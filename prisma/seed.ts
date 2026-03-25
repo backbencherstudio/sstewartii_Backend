@@ -14,7 +14,7 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
 
-  const roles = ['ADMIN', 'USER'];
+  const roles = ['ADMIN', 'USER', 'VENDOR'];
   const roleMap: Record<string, string> = {};
 
   for (const role_name of roles) {

@@ -31,11 +31,6 @@ export class AuthController {
     return this.authService.requestEmailVerification(dto.email);
   }
 
-  @Post('verify-email')
-  @Public()
-  async verifyEmail(@Body() dto: VerifyOtpDto) {
-    return this.authService.verifyEmail(dto);
-  }
 
   @Get('google/url')
   @Public()

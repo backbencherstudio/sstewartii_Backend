@@ -1,4 +1,9 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum } from 'class-validator';
+
+export enum AccountType {
+  USER = 'USER',
+  VENDOR = 'VENDOR',
+}
 
 export class RegisterDto {
     
@@ -16,4 +21,7 @@ export class RegisterDto {
     @IsString()
     @IsNotEmpty()
     confirmPassword: string;
+
+    @IsEnum(AccountType, { message: 'accountType must be USER or VENDOR' })
+    accountType: AccountType;
 }

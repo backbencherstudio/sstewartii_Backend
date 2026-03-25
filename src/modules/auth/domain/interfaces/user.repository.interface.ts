@@ -6,7 +6,7 @@ export interface IUserRepository {
 
     findById(id: string): Promise<User | null>
 
-    create(user: User): Promise<User>;
+    create(user: User, roleType: 'USER' | 'VENDOR'): Promise<User>;
 
     updateRefreshToken(userId: string, refreshToken: string | null): Promise<void>
 

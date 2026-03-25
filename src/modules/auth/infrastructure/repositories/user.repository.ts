@@ -46,7 +46,7 @@ export class UserRepository implements IUserRepository {
     return UserMapper.toDomain(updatedUser);
   }
 
-  async create(user: User): Promise<User> {
+  async create(user: User, roleType: 'USER' | 'VENDOR'): Promise<User> {
 
     const created = await this.prisma.user.create({
       data: {
@@ -58,7 +58,7 @@ export class UserRepository implements IUserRepository {
         provider: user.provider,
         
         role: {
-          connect: { name: 'USER' }
+          connect: { name: roleType }
         } 
       },
       include: { role: true }

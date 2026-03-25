@@ -12,13 +12,17 @@ model User {
   password     String?
 
   provider     String   @default("local")
-  googleId     String?  @unique 
+  googleId     String?  @unique
+  appleId      String?  @unique
 
   isEmailVerified Boolean @default(false)
   otps         Otp[]
   
   roleId       String
   role         Role     @relation(fields: [roleId], references: [id])
+
+  vendorStore  Vendor?
+
   refreshToken String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -56,5 +60,64 @@ model Otp {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Vendor {
+  id                   String   @id @default(uuid())
+  storeName            String   @unique
+  ownerId              String   @unique
+  owner                User     @relation(fields:[ownerId], references:[id])
+  
+  stripeCustomerId     String?  @unique 
+  stripeSubscriptionId String?  @unique 
+
+  subscriptionPlanId   String?
+  subscriptionPlan     SubscriptionPlan? @relation(fields:[subscriptionPlanId], references: [id])
+  subscriptionStatus   SubscriptionStatus @default(INACTIVE)
+  subscriptionExpiry   DateTime?
+
+  kycProfile           KycProfile?
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model SubscriptionPlan {
+  id             String   @id @default(uuid())
+  name           String   
+  price          Float    
+  durationDays   Int      
+  maxProducts    Int      
+
+  stripePriceId  String   @unique 
+
+  vendors        Vendor[] 
+}
+
+model KycProfile {
+  id               String   @id @default(uuid())
+  vendorId         String   @unique
+  vendor           Vendor   @relation(fields:[vendorId], references: [id])
+
+  documentType     DocumentType
+  documentNumber   String   @unique
+  frontImageUrl    String
+  backImageUrl     String?
+  
+  submittedAt      DateTime @default(now())
+  verifiedAt       DateTime?
+}
+
+enum DocumentType {
+  NATIONAL_ID
+  PASSPORT
+  DRIVERS_LICENSE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  CANCELLED
 }
 

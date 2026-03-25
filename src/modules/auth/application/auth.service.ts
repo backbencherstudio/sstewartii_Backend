@@ -82,7 +82,9 @@ export class AuthService {
         provider: 'GOOGLE',
       });
 
-      user = await this.userRepository.create(newUser);
+      const roleType = 'USER'; 
+
+      user = await this.userRepository.create(newUser, roleType);
     }
 
     const tokens = await this.getTokens(user.id, user.email, user.role.name);
@@ -94,7 +96,7 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     
-    const { email, password, confirmPassword } = registerDto;
+    const { email, password, confirmPassword, accountType  } = registerDto;
 
     if(password !== confirmPassword){
       throw new BadRequestException;
@@ -114,7 +116,9 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    const savedUser = await this.userRepository.create(newUser);
+    const roleType = accountType === 'VENDOR' ? 'VENDOR' : 'USER';
+
+    const savedUser = await this.userRepository.create(newUser, roleType);
 
     return {
       message: 'Registration Successfull',
