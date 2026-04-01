@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, IsArray, IsUrl, ValidateNested } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsArray, IsUrl, ValidateNested,IsInt, Min, Max, IsBoolean } from 'class-validator';
 import { Type, Transform, plainToInstance  } from 'class-transformer';
 
 export class SocialLinkDto {
@@ -25,4 +25,22 @@ export class SetupProfileDto {
     return arr.map((item: any) => plainToInstance(SocialLinkDto, item));
   })
   socialLinks?: SocialLinkDto[];
+}
+
+export class OperationHourDto {
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  dayOfWeek: number;
+
+  @IsOptional()
+  @IsString()
+  openTime?: string;
+
+  @IsOptional()
+  @IsString()
+  closeTime?: string;
+
+  @IsBoolean()
+  isClosed: boolean;
 }

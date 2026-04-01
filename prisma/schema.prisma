@@ -221,8 +221,8 @@ model OperationHour {
   vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   dayOfWeek Int      // 0 = Sunday, 6 = Saturday
-  openTime  String   // "09:00"
-  closeTime String   // "22:00"
+  openTime  String?   // "09:00"
+  closeTime String?  // "22:00"
   isClosed  Boolean  @default(false)
 
   createdAt DateTime @default(now())
