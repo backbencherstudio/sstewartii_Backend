@@ -65,8 +65,14 @@ model Otp {
 }
 
 model Vendor {
-  id                   String   @id @default(uuid())
-  storeName            String   @unique
+  id              String   @id @default(uuid())
+  businessName    String?
+  publicEmail     String?
+  contactNumber   String?
+  bio             String?       @db.Text
+  coverImage      String?          
+  onboardingStep  Int           @default(1)
+
   ownerId              String   @unique
   owner                User     @relation(fields:[ownerId], references:[id])
   kycStatus            KycStatus @default(UNVERIFIED)
@@ -82,6 +88,9 @@ model Vendor {
   kycProfile           KycProfile?
   products             Product[] 
   orderItems           OrderItem[]
+  socialLinks          SocialLink[]
+  cuisines             VendorCuisine[]
+  operationHours       OperationHour[]
   
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -183,6 +192,45 @@ model OrderItem {
   vendorId    String
   vendor      Vendor   @relation(fields:[vendorId], references: [id])
 }
+
+model SocialLink {
+  id        String   @id @default(uuid())
+  url       String?
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
+model Cuisine {
+  id      String           @id @default(uuid())
+  name    String           @unique
+  vendors VendorCuisine[]
+}
+
+model VendorCuisine {
+  vendorId  String
+  cuisineId String
+  vendor    Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  cuisine   Cuisine @relation(fields: [cuisineId], references: [id], onDelete: Cascade)
+
+  @@id([vendorId, cuisineId])
+}
+
+model OperationHour {
+  id        String   @id @default(uuid())
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  dayOfWeek Int      // 0 = Sunday, 6 = Saturday
+  openTime  String?   // "09:00"
+  closeTime String?  // "22:00"
+  isClosed  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([vendorId, dayOfWeek])
+}
+
 
 enum PaymentMethod {
   COD // Cash on Delivery

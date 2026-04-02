@@ -152,6 +152,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Public()
   @ResponseMessage('Password changed successfully.')
   async resetPassword(
     @Body('resetToken') resetToken: string, 
