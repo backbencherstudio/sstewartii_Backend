@@ -91,6 +91,8 @@ model Vendor {
   socialLinks          SocialLink[]
   cuisines             VendorCuisine[]
   operationHours       OperationHour[]
+  serviceArea          ServiceArea?
+  vendorVerification VendorVerification?
   
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -217,28 +219,66 @@ model VendorCuisine {
 
 model OperationHour {
   id        String   @id @default(uuid())
+
   vendorId  String
   vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  dayOfWeek Int      // 0 = Sunday, 6 = Saturday
-  openTime  String?   // "09:00"
-  closeTime String?  // "22:00"
-  isClosed  Boolean  @default(false)
+  dayOfWeek  Int                          // 0 = Sunday, 6 = Saturday
+  openTime   String?                      // "09:00"
+  closeTime  String?                      // "22:00"
+  isClosed   Boolean   @default(false)
+  activeFrom DateTime
+  activeTo   DateTime?    
+
+  priority   Int       @default(0)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([vendorId, dayOfWeek, activeFrom, activeTo])
+}
+
+model ServiceArea {
+  id        String   @id @default(uuid())
+  vendorId  String   @unique
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  latitude  Float
+  longitude Float
+  address   String?
+  radius    Float
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@unique([vendorId, dayOfWeek])
 }
 
+model VendorVerification {
+  id                String   @id @default(uuid())
 
-enum PaymentMethod {
-  COD // Cash on Delivery
+  vendorId          String   @unique
+  vendor            Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  businessLicense   String
+  healthPermit      String
+  insuranceProof    String
+
+  status            VerificationStatus @default(PENDING)
+  rejectionReason   String?
+
+  submittedAt       DateTime @default(now())
+  reviewedAt        DateTime?
+
+  version           Int      @default(1)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([vendorId])
 }
 
-enum KycStatus {
-  UNVERIFIED
-  PENDING_REVIEW
+enum VerificationStatus {
+  PENDING
+  IN_REVIEW
   APPROVED
   REJECTED
 }
@@ -249,6 +289,17 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   RETURNED
+}
+
+enum PaymentMethod {
+  COD // Cash on Delivery
+}
+
+enum KycStatus {
+  UNVERIFIED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
 }
 
 enum DocumentType {

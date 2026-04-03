@@ -1,5 +1,6 @@
 import { SetupProfileDto } from "../../presentation/dto/profile-setup-flow.dto";
 import { OperationHourDto } from "../../presentation/dto/profile-setup-flow.dto";
+import { ServiceAreaDto } from "../../presentation/dto/profile-setup-flow.dto";
 
 export interface IProfileSetupRepository {
   
@@ -9,8 +10,14 @@ export interface IProfileSetupRepository {
     imageUrl?: string,
   ): Promise<void>;
 
-  upsertOperationHours(
+  createOperationHourVersion(
     userId: string, 
     hours:OperationHourDto[]
   ): Promise<void>;
+
+  upsertServiceArea(
+    userId: string,
+    data: ServiceAreaDto
+  ): Promise<void>;
+  
 }

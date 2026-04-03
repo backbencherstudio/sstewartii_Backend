@@ -1,4 +1,19 @@
-import { IsString, IsEmail, IsOptional, IsArray, IsUrl, ValidateNested,IsInt, Min, Max, IsBoolean } from 'class-validator';
+import {
+  IsString, 
+  IsNumber,
+  IsEmail, 
+  IsOptional, 
+  IsArray, 
+  IsUrl, 
+  ValidateNested,
+  IsInt, 
+  Min, 
+  Max, 
+  IsBoolean, 
+  IsDateString, 
+  ValidateIf,
+  IsNotEmpty,
+ } from 'class-validator';
 import { Type, Transform, plainToInstance  } from 'class-transformer';
 
 export class SocialLinkDto {
@@ -33,14 +48,52 @@ export class OperationHourDto {
   @Max(6)
   dayOfWeek: number;
 
-  @IsOptional()
+  @ValidateIf((o) => !o.isClosed)
   @IsString()
+  @IsNotEmpty()
   openTime?: string;
 
-  @IsOptional()
+  @ValidateIf((o) => !o.isClosed)
   @IsString()
+  @IsNotEmpty()
   closeTime?: string;
 
   @IsBoolean()
   isClosed: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  activeFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  activeTo?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  priority?: number;
+}
+
+export class UpsertOperationHoursDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OperationHourDto)
+  hours: OperationHourDto[];
+}
+
+export class ServiceAreaDto {
+  @IsNumber()
+  latitude: number;
+
+  @IsNumber()
+  longitude: number;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsNumber()
+  @Min(0.1)
+  radius: number;
 }

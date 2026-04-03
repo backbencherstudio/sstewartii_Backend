@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { IProfileSetupRepository } from '../../domain/interface/profile.setup.interface';
 import { SetupProfileDto } from '../../presentation/dto/profile-setup-flow.dto';
 import { OperationHourDto } from '../../presentation/dto/profile-setup-flow.dto';
+import { ServiceAreaDto } from '../../presentation/dto/profile-setup-flow.dto';
 
 @Injectable()
 export class ProfileSetupRepository implements IProfileSetupRepository {
@@ -83,38 +84,39 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
     });
   }
   
-  async upsertOperationHours(
+  async createOperationHourVersion(
     userId: string,
     hours: OperationHourDto[],
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
 
-      let vendor = await tx.vendor.findUnique({
+      const vendor = await tx.vendor.findUnique({
         where: { ownerId: userId },
         select: { id: true },
       });
 
       if (!vendor) {
-        throw new Error('Vendor not found for this user');
+        throw new Error('Vendor not found');
       }
 
       const vendorId = vendor.id;
 
-      await tx.operationHour.deleteMany({
-        where: { vendorId },
-      });
+      const now = new Date();
 
-      if (hours.length > 0) {
-        await tx.operationHour.createMany({
-          data: hours.map((h) => ({
-            vendorId,
-            dayOfWeek: h.dayOfWeek,
-            openTime: h.openTime ?? null,
-            closeTime: h.closeTime ?? null,
-            isClosed: h.isClosed,
-          })),
-        });
-      }
+      const data = hours.map((h) => ({
+        vendorId,
+        dayOfWeek: h.dayOfWeek,
+        openTime: h.isClosed ? null : h.openTime ?? null,
+        closeTime: h.isClosed ? null : h.closeTime ?? null,
+        isClosed: h.isClosed,
+        activeFrom: h.activeFrom ? new Date(h.activeFrom) : now,
+        activeTo: h.activeTo ? new Date(h.activeTo) : null,
+        priority: h.priority ?? 0,
+      }));
+
+      await tx.operationHour.createMany({
+        data,
+      });
 
       await tx.vendor.update({
         where: { id: vendorId },
@@ -125,5 +127,48 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
     });
   }
 
+  async upsertServiceArea(
+    userId: string,
+    data: ServiceAreaDto
+  ): Promise<void> {
+
+    await this.prisma.$transaction(async (tx) => {
+
+      const vendor = await tx.vendor.findUnique({
+        where: { ownerId: userId },
+        select: { id: true },
+      });
+
+      if (!vendor) {
+        throw new Error('Vendor not found');
+      }
+
+      const vendorId = vendor.id;
+
+      await tx.serviceArea.upsert({
+        where: { vendorId },
+        update: {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.address,
+          radius: data.radius,
+        },
+        create: {
+          vendorId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.address,
+          radius: data.radius,
+        },
+      });
+
+      await tx.vendor.update({
+        where: { id: vendorId },
+        data: {
+          onboardingStep: 4,
+        },
+      });
+    });
+  }
   
 }
