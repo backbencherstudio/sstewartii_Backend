@@ -8,20 +8,20 @@ export enum AccountType {
 export class RegisterDto {
     
     @IsString()
-    name: string;
+    name!: string;
 
     @IsEmail({}, { message: 'Please Valid Email' })
-    email: string;
+    email!: string;
 
     @IsString()
     @IsNotEmpty()
     @MinLength(6, { message: 'Password must be at least 6 characters long' })
-    password: string;
+    password!: string;
 
     @IsString()
     @IsNotEmpty()
-    confirmPassword: string;
+    confirmPassword!: string;
 
     @IsEnum(AccountType, { message: 'accountType must be USER or VENDOR' })
-    accountType: AccountType;
+    accountType!: AccountType;
 }
