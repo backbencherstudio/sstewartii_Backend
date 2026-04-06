@@ -14,21 +14,24 @@ import {
   ValidateIf,
   IsNotEmpty,
  } from 'class-validator';
+
 import { Type, Transform, plainToInstance  } from 'class-transformer';
+import { PartialType } from '@nestjs/mapped-types';
+
 
 export class SocialLinkDto {
-  @IsUrl() url: string;
+  @IsUrl() url!: string;
 }
 
 export class SetupProfileDto {
-  @IsString() businessName: string;
-  @IsEmail() publicEmail: string;
-  @IsString() contactNumber: string;
-  @IsString() bio: string;
+  @IsString() businessName!: string;
+  @IsEmail() publicEmail!: string;
+  @IsString() contactNumber!: string;
+  @IsString() bio!: string;
 
   @IsArray()
   @Transform(({ value }) => (typeof value === 'string' ? JSON.parse(value) : value))
-  cuisines: string[];
+  cuisines!: string[];
 
   @IsArray()
   @IsOptional()
@@ -46,7 +49,7 @@ export class OperationHourDto {
   @IsInt()
   @Min(0)
   @Max(6)
-  dayOfWeek: number;
+  dayOfWeek!: number;
 
   @ValidateIf((o) => !o.isClosed)
   @IsString()
@@ -59,7 +62,7 @@ export class OperationHourDto {
   closeTime?: string;
 
   @IsBoolean()
-  isClosed: boolean;
+  isClosed!: boolean;
 
   @IsOptional()
   @IsDateString()
@@ -79,15 +82,15 @@ export class UpsertOperationHoursDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OperationHourDto)
-  hours: OperationHourDto[];
+  hours!: OperationHourDto[];
 }
 
 export class ServiceAreaDto {
   @IsNumber()
-  latitude: number;
+  latitude!: number;
 
   @IsNumber()
-  longitude: number;
+  longitude!: number;
 
   @IsOptional()
   @IsString()
@@ -95,5 +98,28 @@ export class ServiceAreaDto {
 
   @IsNumber()
   @Min(0.1)
-  radius: number;
+  radius!: number;
+}
+
+
+export class UpdateServiceAreaDto extends PartialType(ServiceAreaDto) {
+  
+  radius?: never; 
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ValidateIf(o => !o.latitude && !o.longitude && !o.address)
+  validateAtLeastOne() {
+    throw new Error('At least one field must be provided');
+  } 
 }

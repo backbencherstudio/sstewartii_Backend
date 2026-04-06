@@ -1,9 +1,11 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import type { IProfileSetupRepository } from '../domain/interface/profile.setup.interface';
 import { SetupProfileDto } from '../presentation/dto/profile-setup-flow.dto';
 import type { IStorageService } from 'src/common/storage/storage.interface';
 import { UpsertOperationHoursDto } from '../presentation/dto/profile-setup-flow.dto';
 import { ServiceAreaDto } from '../presentation/dto/profile-setup-flow.dto';
+import { UpdateServiceAreaDto } from '../presentation/dto/profile-setup-flow.dto';
+import type { IVendorRepository } from '../../vendor/domain/interface/vendor.repository.interface';
 
 @Injectable()
 export class ProfileSetupFlowService {
@@ -11,8 +13,12 @@ export class ProfileSetupFlowService {
   constructor(
     @Inject('IProfileSetupRepository')
     private readonly vendorRepository: IProfileSetupRepository,
+
     @Inject('IStorageService')
     private readonly storageService: IStorageService,
+    
+    @Inject('IVendorRepository')
+    private readonly vendorRepo: IVendorRepository,
   ) {}
 
   async saveProfile(vendorId: string, dto: SetupProfileDto, file?: Express.Multer.File): Promise<void> {
@@ -53,6 +59,24 @@ export class ProfileSetupFlowService {
     }
 
     return this.vendorRepository.upsertServiceArea(userId, dto);
+  }
+
+  async updateServiceArea(
+    userId: string,
+    dto: UpdateServiceAreaDto,
+  ): Promise<void> {
+
+    const vendor = await this.vendorRepo.findByOwnerId(userId);
+    
+     if (!vendor) {
+      throw new BadRequestException('Vendor profile not found');
+    }
+
+    if (!dto.latitude && !dto.longitude && !dto.address) {
+    throw new BadRequestException('At least one field must be provided');
+  }
+
+    return this.vendorRepository.updateServiceArea(vendor.id, dto);
   }
 
 }

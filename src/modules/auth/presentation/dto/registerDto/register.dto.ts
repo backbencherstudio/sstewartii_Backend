@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum AccountType {
   USER = 'USER',
@@ -7,21 +8,26 @@ export enum AccountType {
 
 export class RegisterDto {
     
-    @IsString()
-    name: string;
+  @IsString()
+  @ApiProperty({ example: 'sahadat' })
+  name!: string;
 
-    @IsEmail({}, { message: 'Please Valid Email' })
-    email: string;
+  @IsEmail({}, { message: 'Please Valid Email' })
+  @ApiProperty({ example: 'sahadat@gmail.com' })
+  email!: string;
 
-    @IsString()
-    @IsNotEmpty()
-    @MinLength(6, { message: 'Password must be at least 6 characters long' })
-    password: string;
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @ApiProperty({ example: '123456' })
+  password!: string;
 
-    @IsString()
-    @IsNotEmpty()
-    confirmPassword: string;
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({ example: '123456' })
+  confirmPassword!: string;
 
-    @IsEnum(AccountType, { message: 'accountType must be USER or VENDOR' })
-    accountType: AccountType;
+  @IsEnum(AccountType, { message: 'accountType must be USER or VENDOR' })
+  @ApiProperty({ example: 'VENDOR' })
+  accountType!: AccountType;
 }
