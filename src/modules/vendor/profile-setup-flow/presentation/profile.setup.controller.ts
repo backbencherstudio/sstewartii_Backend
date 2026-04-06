@@ -1,4 +1,4 @@
-import { Controller, Req, Post, Body, Request, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
+import { Controller, Req, Post, Body, Request, UploadedFile, UseInterceptors, UseGuards, Patch } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfileSetupFlowService } from '../application/profile.setup.service';
 import { SetupProfileDto } from './dto/profile-setup-flow.dto';
@@ -9,6 +9,9 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
 import { UpsertOperationHoursDto } from './dto/profile-setup-flow.dto';
 import { ServiceAreaDto } from './dto/profile-setup-flow.dto';
+import { UpdateServiceAreaDto } from './dto/profile-setup-flow.dto';
+import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
+import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interface';
 
 @Controller('vendor/profile-setup')
 export class ProfileSetupFlowController {
@@ -53,4 +56,18 @@ export class ProfileSetupFlowController {
 
     return this.service.upsertServiceArea(userId, dto);
   }
+
+  @Patch('update-service-area')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Service area updated successfully')
+  async updateServiceArea(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateServiceAreaDto,
+  ): Promise<void> {
+    const userId = user.id;
+
+    return this.service.updateServiceArea(userId, dto);
+  }
+
 }

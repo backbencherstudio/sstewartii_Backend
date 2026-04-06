@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IProfileSetupRepository } from '../../domain/interface/profile.setup.interface';
 import { SetupProfileDto } from '../../presentation/dto/profile-setup-flow.dto';
 import { OperationHourDto } from '../../presentation/dto/profile-setup-flow.dto';
 import { ServiceAreaDto } from '../../presentation/dto/profile-setup-flow.dto';
+import { UpdateServiceAreaDto } from '../../presentation/dto/profile-setup-flow.dto';
 
 @Injectable()
 export class ProfileSetupRepository implements IProfileSetupRepository {
@@ -170,5 +171,32 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
       });
     });
   }
+
+  async updateServiceArea(
+    vendorId: string,
+    data: UpdateServiceAreaDto,
+  ): Promise<void> {
+
+    const existing = await this.prisma.serviceArea.findUnique({
+      where: { vendorId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Service area not found');
+    }
+
+   
+    const updateData: any = {};
+    if (data.latitude !== undefined) updateData.latitude = data.latitude;
+    if (data.longitude !== undefined) updateData.longitude = data.longitude;
+    if (data.address !== undefined) updateData.address = data.address;
+
+    await this.prisma.serviceArea.update({
+      where: { vendorId },
+      data: updateData,
+    });
+  }
+
+
   
 }

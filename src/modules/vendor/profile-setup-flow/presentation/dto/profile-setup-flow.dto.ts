@@ -14,7 +14,10 @@ import {
   ValidateIf,
   IsNotEmpty,
  } from 'class-validator';
+
 import { Type, Transform, plainToInstance  } from 'class-transformer';
+import { PartialType } from '@nestjs/mapped-types';
+
 
 export class SocialLinkDto {
   @IsUrl() url!: string;
@@ -96,4 +99,27 @@ export class ServiceAreaDto {
   @IsNumber()
   @Min(0.1)
   radius!: number;
+}
+
+
+export class UpdateServiceAreaDto extends PartialType(ServiceAreaDto) {
+  
+  radius?: never; 
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ValidateIf(o => !o.latitude && !o.longitude && !o.address)
+  validateAtLeastOne() {
+    throw new Error('At least one field must be provided');
+  } 
 }

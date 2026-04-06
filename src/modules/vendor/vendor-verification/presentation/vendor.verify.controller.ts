@@ -26,9 +26,9 @@ type VendorVerificationFiles = {
 };
 
 class VendorVerificationResponseDto {
-  id: string;
-  status: string;
-  submittedAt: Date;
+  id!: string;
+  status!: string;
+  submittedAt!: Date;
 }
 
 @Controller('vendor/verification')

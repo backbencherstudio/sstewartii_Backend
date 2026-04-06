@@ -16,7 +16,9 @@ import { ConfigService } from '@nestjs/config';
 import { Public } from 'src/common/decorators/public.decorator';
 import { SendOtpDto, VerifyOtpDto, NewPasswordDto  } from './dto/mail/otp.dto';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
     
@@ -29,6 +31,8 @@ export class AuthController {
   @Post('register')
   @Public()
   @ResponseMessage('Registration Successfull.')
+  @ApiOperation({ summary: 'Registration' })
+  @ApiResponse({ status: 201, description: 'Registration Successfull' })
     register(@Body() registerDto: RegisterDto ) {
       return this.authService.register(registerDto);
   }

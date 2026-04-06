@@ -1,15 +1,30 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+
+import { 
+  ValidationPipe,
+  VersioningType 
+} from '@nestjs/common';
+
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
+
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
 import helmet from 'helmet';
 import morgan from 'morgan'; 
 import cookieParser from 'cookie-parser';
+
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+
  
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+
+   const app = await NestFactory.create<NestExpressApplication>(
+    AppModule,
+    { rawBody: true },
+  );
 
   const configService = app.get(ConfigService);
 
@@ -47,13 +62,29 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  const port = configService.get<number>('PORT') || 3000;
-  
   app.use(cookieParser());
+
+   if (nodeEnv !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Food Delivery API')
+      .setDescription('API documentation for your SaaS backend')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document);
+  }
+
+  const port = configService.get<number>('PORT') || 3000;
 
   await app.listen(port);
 
-  console.log(`Application is running on: http://localhost:${port}/api/v1`);
+  console.log(`API: http://localhost:${port}/api/v1`);
+  if (nodeEnv !== 'production') {
+    console.log(`Docs: http://localhost:${port}/docs`);
+  }
+
 }
 
 bootstrap();
