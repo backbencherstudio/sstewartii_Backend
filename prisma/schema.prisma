@@ -140,6 +140,7 @@ model Product {
 
   cartItems   CartItem[] 
   orderItems  OrderItem[]
+  sizeOptions SizeOption[]
 
   createdAt   DateTime @default(now())
 }
@@ -292,6 +293,20 @@ model Category {
   updatedAt DateTime @updatedAt
 
   @@unique([vendorId, name])
+}
+
+model SizeOption {
+  id        String   @id @default(uuid())
+  productId String
+  
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name      String   
+  price     Float
+
+  isRequired Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 enum VerificationStatus {
