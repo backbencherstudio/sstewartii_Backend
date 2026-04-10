@@ -14,23 +14,25 @@ import { VendorProfileSetupModule } from './modules/vendor/profile-setup-flow/pr
 import { StorageModule } from './common/storage/storage.module';
 import { VendorVerificationModule } from './modules/vendor/vendor-verification/vendor.verification.module';
 import { VendorModule } from './modules/vendor/vendor/vendor.module';
+import { ProductModule } from './modules/product/product.module';
 
 @Module({
   imports: [
-     ConfigModule.forRoot({
+    ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
       load: [configuration],
     }),
-    AuthModule,
-    VendorProfileSetupModule,
-    StorageModule,
     ServeStaticModule.forRoot({
     rootPath: join(process.cwd(), 'uploads'),
     serveRoot: '/uploads', 
     }),
+    AuthModule,
+    VendorProfileSetupModule,
+    StorageModule,
     VendorVerificationModule,
     VendorModule,
+    ProductModule,
   ],
   controllers: [AppController],
   providers: [

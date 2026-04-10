@@ -17,6 +17,7 @@ import {
 
 import { Type, Transform, plainToInstance  } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
+import { ApiProperty } from '@nestjs/swagger';
 
 
 export class SocialLinkDto {
@@ -101,21 +102,23 @@ export class ServiceAreaDto {
   radius!: number;
 }
 
-
 export class UpdateServiceAreaDto extends PartialType(ServiceAreaDto) {
   
   radius?: never; 
 
   @IsOptional()
   @IsNumber()
+  @ApiProperty({ example: '34.0522' })
   latitude?: number;
 
   @IsOptional()
   @IsNumber()
+  @ApiProperty({ example: '-118.2437' })
   longitude?: number;
 
   @IsOptional()
   @IsString()
+  @ApiProperty({ example: 'Angeles, California, 3525 Hillhaven Drive' })
   address?: string;
 
   @ValidateIf(o => !o.latitude && !o.longitude && !o.address)

@@ -12,7 +12,9 @@ import { ServiceAreaDto } from './dto/profile-setup-flow.dto';
 import { UpdateServiceAreaDto } from './dto/profile-setup-flow.dto';
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
 import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interface';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('vendor/profile-setup')
 @Controller('vendor/profile-setup')
 export class ProfileSetupFlowController {
   constructor(private readonly service: ProfileSetupFlowService) {}
@@ -61,6 +63,8 @@ export class ProfileSetupFlowController {
   @UseGuards(RoleGuard)
   @Roles(Role.VENDOR)
   @ResponseMessage('Service area updated successfully')
+  @ApiOperation({ summary: 'Update Service Area' })
+  @ApiResponse({ status: 201, description: 'Service area updated successfully' })
   async updateServiceArea(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateServiceAreaDto,
