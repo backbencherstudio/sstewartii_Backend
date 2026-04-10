@@ -7,11 +7,15 @@ import { CategoryRepository } from './infrastructure/repositories/category.repos
 import { ProductController } from './presentation/controller/product.controller';
 import { CuisineRepository } from './infrastructure/repositories/cusine.repository';
 import { ProductService } from './application/product.service';
+import { StorageModule } from '@/common/storage/storage.module';
+import { LocalStorageService } from '@/common/storage/local.storage.service';
+import { ProductRepository } from './infrastructure/repositories/product.repository';
 
 @Module({
   imports: [
     PrismaModule,
     VendorModule,
+    StorageModule,
   ],
   controllers: [
     CategoryController,
@@ -25,9 +29,17 @@ import { ProductService } from './application/product.service';
       useClass: CategoryRepository,
     },
     {
+      provide: 'IProductRepository',
+      useClass: ProductRepository,
+    },
+    {
       provide: 'ICuisineRepository',
       useClass: CuisineRepository,
-    }
+    },
+    {
+      provide: 'IStorageService',
+      useClass: LocalStorageService,
+    } 
   ],
 })
 export class ProductModule {}

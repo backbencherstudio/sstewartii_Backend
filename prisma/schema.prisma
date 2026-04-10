@@ -126,24 +126,25 @@ model KycProfile {
 }
 
 model Product {
-  id            String    @id @default(uuid())
-  name          String
-  description   String
-  price         Float    
-  stock         Int       @default(0)
-  isActive      Boolean   @default(true)
+  id                String    @id @default(uuid())
+  name              String
+  description       String
+  price             Float    
+  estimateCookTime  Int       @default(10)
+  isActive          Boolean   @default(true)
 
-  vendorId      String
-  vendor        Vendor    @relation(fields:[vendorId], references: [id])
+  vendorId          String
+  vendor            Vendor    @relation(fields:[vendorId], references: [id])
 
-  categoryId    String?
-  category      Category? @relation(fields: [categoryId], references: [id])
+  categoryId        String?
+  category          Category? @relation(fields: [categoryId], references: [id])
 
-  cartItems     CartItem[] 
-  orderItems    OrderItem[]
-  sizeOptions   SizeOption[]
-  choiceOptions ChoiceOption[]
-  addOns        AddOn[]
+  cartItems         CartItem[] 
+  orderItems        OrderItem[]
+  sizeOptions       SizeOption[]
+  choiceOptions     ChoiceOption[]
+  addOns            AddOn[]
+  images            ProductImage[]
 
   createdAt   DateTime @default(now())
 }
@@ -335,6 +336,21 @@ model AddOn {
   isRequired Boolean @default(false)
 
   createdAt DateTime @default(now())
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url       String
+  isPrimary Boolean  @default(false) 
+  position  Int      @default(0)     
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
 }
 
 enum VerificationStatus {
