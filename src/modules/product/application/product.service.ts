@@ -15,6 +15,7 @@ import { ProductResponseDto } from '../presentation/dto/product.response.dto';
 import { ProductMapper } from '../infrastructure/mappers/product.mapper';
 import { SearchProductQueryDto } from '../presentation/dto/searchQuery.dto';
 import { UpdateProductStatusDto } from '../presentation/dto/product.dto';
+import { ProductDetailResponseDto } from '../presentation/dto/product.response.dto';
 
 @Injectable()
 export class ProductService {
@@ -163,6 +164,65 @@ export class ProductService {
     }
 
     await this.productRepo.deleteProduct(productId);
+  }
+
+  async getProductDetail(
+    productId: string,
+  ): Promise<ProductDetailResponseDto> {
+    const product = await this.productRepo.findProductDetailById(productId);
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      isActive: product.isActive,
+      estimateCookTime: product.estimateCookTime,
+
+      category: product.category
+        ? {
+            id: product.category.id,
+            name: product.category.name,
+          }
+        : undefined,
+
+      images: product.images.map((img) => ({
+        id: img.id,
+        url: img.url,
+        isPrimary: img.isPrimary,
+        position: img.position,
+      })),
+
+      cuisines: product.vendor.cuisines.map((vc) => ({
+        id: vc.cuisine.id,
+        name: vc.cuisine.name,
+      })),
+
+      sizeOptions: product.sizeOptions.map((s) => ({
+        id: s.id,
+        name: s.name,
+        price: s.price,
+        isRequired: s.isRequired,
+      })),
+
+      choiceOptions: product.choiceOptions.map((c) => ({
+        id: c.id,
+        name: c.name,
+        price: c.price,
+        isRequired: c.isRequired,
+      })),
+
+      addOns: product.addOns.map((a) => ({
+        id: a.id,
+        name: a.name,
+        price: a.price,
+        isRequired: a.isRequired,
+      })),
+    };
   }
   
 }

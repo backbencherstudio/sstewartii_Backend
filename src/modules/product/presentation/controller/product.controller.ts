@@ -30,6 +30,7 @@ import { ProductResponseDto } from '../dto/product.response.dto';
 import { SearchProductQueryDto } from '../dto/searchQuery.dto';
 import { UpdateProductStatusDto } from '../dto/product.dto';
 import { ApiResponses } from '@/common/types/api-response.type';
+import { ProductDetailResponseDto } from '../dto/product.response.dto';
 
 @ApiTags('Product')
 @Controller('product')
@@ -114,6 +115,14 @@ export class ProductController {
     @Param('productId', ParseUUIDPipe) productId: string,
   ): Promise<void> {
     return this.service.deleteProduct(user.id, productId);
+  }
+
+  @Get(':id')
+  @Public()
+  async getProductDetail(
+    @Param('id') id: string,
+  ): Promise<ProductDetailResponseDto> {
+    return this.service.getProductDetail(id);
   }
 
 }

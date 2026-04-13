@@ -12,7 +12,6 @@ type PrismaProductFull = Prisma.ProductGetPayload<{
 
 export class ProductMapper {
 
-  // ─── Prisma raw → Domain Entity (repo → service) 
   static toDomain(raw: PrismaProductFull): Product {
     const entity          = new Product();
     entity.id             = raw.id;
@@ -27,7 +26,6 @@ export class ProductMapper {
     return entity;
   }
 
-  // ─── Domain Entity → Response DTO (service → controller) 
   static toResponse(entity: Product & { category?: { id: string; name: string } | null }): ProductResponseDto {
     const dto         = new ProductResponseDto();
     dto.id            = entity.id;

@@ -3,6 +3,26 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { IProductRepository } from '../../domain/interfaces/product.interface';
 import { Product } from '../../domain/entities/product.entity';
 import { ProductMapper } from '../mappers/product.mapper';
+import { Prisma } from '@prisma/client';
+
+  type ProductDetailPrisma = Prisma.ProductGetPayload<{
+    include: {
+      category: true;
+      images: true;
+      sizeOptions: true;
+      choiceOptions: true;
+      addOns: true;
+      vendor: {
+        include: {
+          cuisines: {
+            include: {
+              cuisine: true;
+            };
+          };
+        };
+      };
+    };
+  }>;
 
 @Injectable()
 export class ProductRepository implements IProductRepository {
@@ -181,5 +201,36 @@ export class ProductRepository implements IProductRepository {
       where: { id: productId },
     });
   }
+  
+  async findProductDetailById(
+    productId: string,
+  ): Promise<ProductDetailPrisma | null> {
+    return this.prisma.product.findFirst({
+      where: {
+        id: productId,
+        isActive: true,
+      },
+      include: {
+        category: true,
 
+        images: {
+          orderBy: { position: 'asc' },
+        },
+
+        sizeOptions: true,
+        choiceOptions: true,
+        addOns: true,
+
+        vendor: {
+          include: {
+            cuisines: {
+              include: {
+                cuisine: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }

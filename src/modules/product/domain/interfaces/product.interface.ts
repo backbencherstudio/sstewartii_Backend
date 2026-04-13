@@ -5,6 +5,25 @@ type ProductWithCategory = Prisma.ProductGetPayload<{
   include: { category: true };
 }>;
 
+export type ProductDetailPrisma = Prisma.ProductGetPayload<{
+  include: {
+    category: true;
+    images: true;
+    sizeOptions: true;
+    choiceOptions: true;
+    addOns: true;
+    vendor: {
+      include: {
+        cuisines: {
+          include: {
+            cuisine: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
 export interface SearchProductsParams {
   vendorId: string;
   search?: string;
@@ -46,5 +65,9 @@ export interface IProductRepository {
   );
 
   deleteProduct(productId: string): Promise<void>;
+
+  findProductDetailById(
+    productId: string,
+  ): Promise<ProductDetailPrisma | null>;
 
 }
