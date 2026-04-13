@@ -142,5 +142,27 @@ export class ProductService {
 
     return ProductMapper.toResponse(updated);
   }
+
+  async deleteProduct(
+    userId: string,
+    productId: string,
+  ): Promise<void> {
+    const vendor = await this.vendorRepo.findByOwnerId(userId);
+
+    if (!vendor) {
+      throw new BadRequestException('Vendor not found');
+    }
+
+    const product = await this.productRepo.findProductByIdAndVendorId(
+      productId,
+      vendor.id,
+    );
+
+    if (!product) {
+      throw new NotFoundException('Product not found or does not belong to this vendor');
+    }
+
+    await this.productRepo.deleteProduct(productId);
+  }
   
 }

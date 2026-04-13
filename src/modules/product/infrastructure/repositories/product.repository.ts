@@ -176,4 +176,10 @@ export class ProductRepository implements IProductRepository {
     return ProductMapper.toDomain(raw);            
   }
 
+  async deleteProduct(productId: string): Promise<void> {
+    await this.prisma.product.delete({
+      where: { id: productId },
+    });
+  }
+
 }

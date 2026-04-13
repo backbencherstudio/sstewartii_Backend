@@ -45,5 +45,6 @@ export interface IProductRepository {
     productId: string,
   );
 
+  deleteProduct(productId: string): Promise<void>;
 
 }

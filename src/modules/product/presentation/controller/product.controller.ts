@@ -11,6 +11,8 @@ import { Controller,
    Patch,
    ParseUUIDPipe,
    Param,
+   Delete,
+   HttpCode,
   } from '@nestjs/common';
    
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -99,6 +101,19 @@ export class ProductController {
       message: `Product marked as ${dto.isActive ? 'active' : 'inactive'} successfully`,
       data,
     };
+  }
+
+  @Delete('delete-product/:productId')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Product deleted successfully')
+  @ApiOperation({ summary: 'Delete a vendor product' })
+  @ApiParam({ name: 'productId', description: 'Product UUID' })
+  async deleteProduct(
+    @CurrentUser() user: AuthUser,
+    @Param('productId', ParseUUIDPipe) productId: string,
+  ): Promise<void> {
+    return this.service.deleteProduct(user.id, productId);
   }
 
 }
