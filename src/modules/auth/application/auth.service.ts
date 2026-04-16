@@ -34,7 +34,7 @@ export class AuthService {
 
   async register(registerDto: RegisterDto): Promise<any> {
     
-    const { email, password, confirmPassword, accountType  } = registerDto;
+    const { email, password, confirmPassword, accountType, name  } = registerDto;
 
     if(password !== confirmPassword){
       throw new BadRequestException;
@@ -52,6 +52,7 @@ export class AuthService {
       id: uuidv4(),
       email: email,
       password: hashedPassword,
+      name: name,
     });
 
     const roleType = accountType === 'VENDOR' ? 'VENDOR' : 'USER';
@@ -148,7 +149,7 @@ export class AuthService {
   }
 
   async validateGoogleLogin(profile: any): Promise<any> {
-    const { email, googleId } = profile;
+    const { email, name, googleId } = profile;
 
     let user = await this.userRepository.findByEmail(email);
 
@@ -162,6 +163,7 @@ export class AuthService {
       const newUser = new User({
         id: uuidv4(),
         email: email,
+        name: name,
         password: null, 
         googleId: googleId, 
         provider: 'GOOGLE',

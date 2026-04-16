@@ -3,6 +3,7 @@ import {
   Post,
   Body,
   UseGuards,
+  Get,
 } from '@nestjs/common';
 import { CustomerService } from '../../application/customer.service';
 import { SetCustomerLocationDto } from '../dto/customer.dto';
@@ -13,10 +14,15 @@ import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
 import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interface';
 import { CustomerResponseDto } from '../dto/customer.response.dto';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { HomeResponseDto } from '../dto/home.response.dto';
+import { HomeService } from '../../application/home.service';
 
 @Controller('customer')
 export class CustomerController {
-  constructor(private readonly service: CustomerService) {}
+  constructor(
+    private readonly service: CustomerService,
+    private readonly homeService: HomeService,
+  ) {}
 
   @Post('set-location')
   @UseGuards(RoleGuard)
@@ -27,6 +33,15 @@ export class CustomerController {
     @Body() dto: SetCustomerLocationDto,
   ): Promise<CustomerResponseDto> {
     return this.service.setLocation(user.id, dto);
+  }
+
+  @Get('home')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER) 
+  async getHome(
+    @CurrentUser() user: AuthUser,
+  ): Promise<HomeResponseDto> {
+    return this.homeService.getHome(user.id);
   }
 
 }

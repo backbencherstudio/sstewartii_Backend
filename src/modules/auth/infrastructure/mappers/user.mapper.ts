@@ -9,6 +9,7 @@ export class UserMapper {
       id: raw.id,
       email: raw.email,
       password: raw.password,
+      name: raw.name,
       roleId: raw.roleId,
       role: raw.role,
 

@@ -2,6 +2,7 @@ export interface UserProps {
   id: string;
   email: string;
   password?: string | null;
+  name: string;
   roleId?: string;
   role?: any;
 
@@ -22,6 +23,7 @@ export class User {
   public id: string;
   public email: string;
   public password?: string | null ;
+  public name!: string;
   public roleId?: string;
   public role?: any;
 
@@ -40,6 +42,7 @@ export class User {
   constructor(props: UserProps) {
     this.id = props.id;
     this.email = props.email;
+    this.name = props.name;
     this.password = props.password;
     this.roleId = props.roleId;
     this.role = props.role;

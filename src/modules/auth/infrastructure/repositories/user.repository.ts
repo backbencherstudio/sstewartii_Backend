@@ -28,6 +28,7 @@ export class UserRepository implements IUserRepository {
       data: {
         email: updateData.email ?? undefined,
         password: updateData.password ?? undefined,
+        name: updateData.name ?? undefined, 
         googleId: updateData.googleId ?? undefined,
         appleId: updateData.appleId ?? undefined,
         provider: updateData.provider ?? undefined,
@@ -55,6 +56,7 @@ export class UserRepository implements IUserRepository {
       data: {
         id: user.id,
         email: user.email,
+        name: user.name,
         password: user.password ?? null,
         googleId: user.googleId ?? null,
         appleId: user.appleId ?? null,
