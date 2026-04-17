@@ -18,6 +18,8 @@ import { ProductModule } from './modules/product/product.module';
 import { CustomerModule } from './modules/customer/customer/customer.module';
 import { CartModule } from './modules/customer/cart/cart.module';
 import { OrderModule } from './modules/order/order.module';
+import { ReviewModule } from './modules/review/review.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,6 +40,7 @@ import { OrderModule } from './modules/order/order.module';
     CustomerModule,
     CartModule,
     OrderModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [

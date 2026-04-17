@@ -85,6 +85,9 @@ model Vendor {
   subscriptionStatus   SubscriptionStatus @default(INACTIVE)
   subscriptionExpiry   DateTime?
 
+  reviewAverage         Float    @default(0)
+  reviewCount           Int      @default(0)
+
   kycProfile           KycProfile?
   products             Product[] 
   socialLinks          SocialLink[]

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Vendor" ADD COLUMN     "reviewAverage" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "reviewCount" INTEGER NOT NULL DEFAULT 0;
