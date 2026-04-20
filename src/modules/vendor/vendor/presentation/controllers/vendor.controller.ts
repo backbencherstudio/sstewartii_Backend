@@ -1,6 +1,13 @@
-import { Controller, Get, Req } from '@nestjs/common';
+import { 
+  Controller,
+  Get,
+  Req,
+  Param, 
+  Query
+} from '@nestjs/common';
 import { VendorService } from '../../application/vendor.service';
-
+import { VendorMenuQueryDto } from '../dto/vendor.dto';
+import { VendorMenuResponseDto } from '../dto/vendor.response.dto';
 @Controller('vendor')
 export class VendorController {
   constructor(
@@ -12,5 +19,13 @@ export class VendorController {
     const userId = req.user.sub; 
 
     return this.VendorService.execute(userId);
+  }
+
+  @Get(':vendorId/menu')
+  async getVendorMenu(
+    @Param('vendorId') vendorId: string,
+    @Query() query: VendorMenuQueryDto,
+  ): Promise<VendorMenuResponseDto> {
+    return this.VendorService.getVendorMenu(vendorId, query);
   }
 }

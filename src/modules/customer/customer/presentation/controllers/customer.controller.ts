@@ -72,5 +72,4 @@ export class CustomerController {
   ): Promise<TopPicksResponseDto> {
     return this.service.getTopPicks(user.id, query);
   }
-
 }
