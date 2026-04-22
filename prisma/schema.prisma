@@ -99,6 +99,7 @@ model Vendor {
   orders               Order[]
   reviews              VendorReview[]
   truckGalleryImages   TruckGalleryImage[]
+  favoritedBy          FavoriteVendor[]
   
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -328,6 +329,7 @@ model Customer {
   orders           Order[]
   reviews          VendorReview[]
   favoriteProducts FavoriteProduct[]
+  favoriteVendors  FavoriteVendor[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -571,6 +573,22 @@ model FavoriteProduct {
   @@unique([customerId, productId]) 
   @@index([customerId])
   @@index([productId])
+}
+
+model FavoriteVendor {
+  id          String   @id @default(uuid())
+
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([customerId, vendorId]) 
+  @@index([customerId])
+  @@index([vendorId])
 }
 
 enum OrderStatus {
