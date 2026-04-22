@@ -8,27 +8,29 @@ import {
 } from '@nestjs/common';
 
 import { CustomerService } from '../../application/customer.service';
-import { SetCustomerLocationDto } from '../dto/customer.dto';
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { Role } from '@/common/enums/role.enum';
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
 import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interface';
-import { CustomerResponseDto } from '../dto/customer.response.dto';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { HomeResponseDto } from '../dto/home.response.dto';
 import { HomeService } from '../../application/home.service';
 
 import { 
   NearbyVendorsQueryDto, 
+  SetCustomerLocationDto,
   TopPicksQueryDto,
   ExploreMapQueryDto,
+  FoodFilterQueryDto,
 } from '../dto/customer.dto';
 
 import { 
   NearbyVendorsResponseDto,
+  CustomerResponseDto,
   TopPicksResponseDto,
   ExploreMapResponseDto,
+  FoodFilterResponseDto,
 } from '../dto/customer.response.dto';
 
 @Controller('customer')
@@ -87,4 +89,14 @@ export class CustomerController {
   ): Promise<ExploreMapResponseDto> {
     return this.service.getExploreMap(user.id, query);
   }
+
+@Get('foods')
+@UseGuards(RoleGuard)
+@Roles(Role.USER)
+async getFoods(
+  @CurrentUser() user: AuthUser,
+  @Query() query: FoodFilterQueryDto,
+): Promise<FoodFilterResponseDto> {
+  return this.service.getFoods(user.id, query);
+}
 }
