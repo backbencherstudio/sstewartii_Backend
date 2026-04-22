@@ -5,6 +5,7 @@ import {
   UseGuards,
   Get,
   Query,
+  Param,
 } from '@nestjs/common';
 
 import { CustomerService } from '../../application/customer.service';
@@ -90,13 +91,24 @@ export class CustomerController {
     return this.service.getExploreMap(user.id, query);
   }
 
-@Get('foods')
-@UseGuards(RoleGuard)
-@Roles(Role.USER)
-async getFoods(
-  @CurrentUser() user: AuthUser,
-  @Query() query: FoodFilterQueryDto,
-): Promise<FoodFilterResponseDto> {
-  return this.service.getFoods(user.id, query);
-}
+  @Get('foods')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  async getFoods(
+    @CurrentUser() user: AuthUser,
+    @Query() query: FoodFilterQueryDto,
+  ): Promise<FoodFilterResponseDto> {
+    return this.service.getFoods(user.id, query);
+  }
+
+  @Post('favorites/products/:productId')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ResponseMessage('Favorite updated successfully')
+  async toggleFavoriteProduct(
+    @CurrentUser() user: AuthUser,
+    @Param('productId') productId: string,
+  ): Promise<{ isFavorited: boolean }> {
+    return this.service.toggleFavoriteProduct(user.id, productId);
+  }
 }
