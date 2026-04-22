@@ -6,6 +6,7 @@ import {
   Get,
   Query,
 } from '@nestjs/common';
+
 import { CustomerService } from '../../application/customer.service';
 import { SetCustomerLocationDto } from '../dto/customer.dto';
 import { RoleGuard } from '@/common/guards/roles.guard';
@@ -17,14 +18,18 @@ import { CustomerResponseDto } from '../dto/customer.response.dto';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { HomeResponseDto } from '../dto/home.response.dto';
 import { HomeService } from '../../application/home.service';
+
 import { 
   NearbyVendorsQueryDto, 
   TopPicksQueryDto,
- } from '../dto/customer.dto';
+  ExploreMapQueryDto,
+} from '../dto/customer.dto';
+
 import { 
   NearbyVendorsResponseDto,
   TopPicksResponseDto,
- } from '../dto/customer.response.dto';
+  ExploreMapResponseDto,
+} from '../dto/customer.response.dto';
 
 @Controller('customer')
 export class CustomerController {
@@ -71,5 +76,15 @@ export class CustomerController {
     @Query() query: TopPicksQueryDto,
   ): Promise<TopPicksResponseDto> {
     return this.service.getTopPicks(user.id, query);
+  }
+
+  @Get('explore-map')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  async getExploreMap(
+    @CurrentUser() user: AuthUser,
+    @Query() query: ExploreMapQueryDto,
+  ): Promise<ExploreMapResponseDto> {
+    return this.service.getExploreMap(user.id, query);
   }
 }

@@ -3,18 +3,23 @@ import {
   Inject,
   BadRequestException,
 } from '@nestjs/common';
+
 import type { ICustomerRepository } from '../domain/interface/customer.repository.interface';
-import  { SetCustomerLocationDto } from '../presentation/dto/customer.dto';
-import { CustomerResponseDto } from '../presentation/dto/customer.response.dto';
 import { CustomerEntity } from '../domain/entities/customer.entity';
 import { CustomerMapper } from '../infrastructure/mapper/customer.mapper';
+import  { SetCustomerLocationDto } from '../presentation/dto/customer.dto';
+import { CustomerResponseDto } from '../presentation/dto/customer.response.dto';
+
 import { 
   NearbyVendorsQueryDto, 
   TopPicksQueryDto,
+  ExploreMapQueryDto,
 } from '../presentation/dto/customer.dto';
+
 import { 
   NearbyVendorsResponseDto, 
   TopPicksResponseDto,
+  ExploreMapResponseDto,
  } from '../presentation/dto/customer.response.dto';
 
 @Injectable()
@@ -301,6 +306,82 @@ export class CustomerService {
     return `${normalizedHour}:${minute}${suffix}`;
   }
 
+  async getExploreMap(
+    userId: string,
+    query: ExploreMapQueryDto,
+  ): Promise<ExploreMapResponseDto> {
+      const customer = await this.repo.findByUserId(userId);
 
+    if (
+      !customer ||
+      !customer.isActive ||
+      customer.latitude == null ||
+      customer.longitude == null
+    ) {
+      throw new BadRequestException(
+        'Customer location is required to load explore map',
+      );
+    }
+
+    const customerLat = customer.latitude;
+    const customerLng = customer.longitude;
+
+    const vendors = await this.repo.findExploreMapVendorCandidates(query);
+
+    const radiusKm = query.radiusKm ?? 10;
+
+    const enriched = vendors
+      .map((vendor) => {
+        const distanceKm = this.calculateDistanceKm(
+          customer.latitude!,
+          customer.longitude!,
+          vendor.serviceArea.latitude,
+          vendor.serviceArea.longitude,
+        );
+
+        const withinRequestedRadius = distanceKm <= radiusKm;
+        const availability = this.resolveAvailability(vendor.operationHours);
+
+        return {
+          ...vendor,
+          distanceKm,
+          withinRequestedRadius,
+          availability,
+        };
+      })
+      .filter((vendor) => vendor.withinRequestedRadius)
+      .sort((a, b) => {
+        if (a.distanceKm !== b.distanceKm) {
+          return a.distanceKm - b.distanceKm;
+        }
+
+        if ((b.reviewAverage ?? 0) !== (a.reviewAverage ?? 0)) {
+          return (b.reviewAverage ?? 0) - (a.reviewAverage ?? 0);
+        }
+
+        return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+      });
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = enriched.length;
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    const paginated = enriched.slice(start, start + limit);
+
+    return {
+      center: {
+        latitude: customerLat,
+        longitude: customerLng,
+        address: customer.address ?? undefined,
+      },
+      pins: paginated.map((vendor) => CustomerMapper.toExploreMapPin(vendor)),
+      cards: paginated.map((vendor) => CustomerMapper.toExploreMapCard(vendor)),
+      page,
+      limit,
+      total,
+      totalPages,
+    };
+  }
 
 }

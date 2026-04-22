@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+
 import { ICustomerRepository } from '../../domain/interface/customer.repository.interface';
 import { CustomerEntity } from '../../domain/entities/customer.entity';
-import { NearbyVendorsQueryDto, TopPicksQueryDto } from '../../presentation/dto/customer.dto';
-import { Prisma, } from '@prisma/client';
+
+import { 
+  NearbyVendorsQueryDto,
+  TopPicksQueryDto,
+  ExploreMapQueryDto,
+} from '../../presentation/dto/customer.dto';
 
 @Injectable()
 export class CustomerRepository implements ICustomerRepository {
@@ -244,6 +250,129 @@ export class CustomerRepository implements ICustomerRepository {
         {
           createdAt: 'desc',
         },
+      ],
+    });
+  }
+
+  async findExploreMapVendorCandidates(
+    query: ExploreMapQueryDto,
+  ): Promise<any[]> {
+    const search = query.search?.trim();
+    const category = query.category?.trim();
+
+    const where: Prisma.VendorWhereInput = {
+      serviceArea: {
+        isNot: null,
+      },
+    };
+
+    const andConditions: Prisma.VendorWhereInput[] = [];
+
+    if (search) {
+      andConditions.push({
+        OR: [
+          {
+            businessName: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            cuisines: {
+              some: {
+                cuisine: {
+                  name: {
+                    contains: search,
+                    mode: Prisma.QueryMode.insensitive,
+                  },
+                },
+              },
+            },
+          },
+          {
+            products: {
+              some: {
+                isActive: true,
+                OR: [
+                  {
+                    name: {
+                      contains: search,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                  {
+                    description: {
+                      contains: search,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (category) {
+      andConditions.push({
+        OR: [
+          {
+            categories: {
+              some: {
+                name: {
+                  contains: category,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+          },
+          {
+            products: {
+              some: {
+                isActive: true,
+                category: {
+                  name: {
+                    contains: category,
+                    mode: Prisma.QueryMode.insensitive,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    return this.prisma.vendor.findMany({
+      where,
+      include: {
+        serviceArea: true,
+        operationHours: true,
+        cuisines: {
+          include: {
+            cuisine: true,
+          },
+        },
+        products: {
+          where: { isActive: true },
+          take: 1,
+          include: {
+            images: {
+              orderBy: { position: 'asc' },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: [
+        { reviewAverage: 'desc' },
+        { reviewCount: 'desc' },
+        { createdAt: 'desc' },
       ],
     });
   }

@@ -2,6 +2,8 @@ import { CustomerEntity } from '../../domain/entities/customer.entity';
 import {
   CustomerResponseDto,
   NearbyVendorCardResponseDto,
+  ExploreMapPinResponseDto,
+  ExploreMapCardResponseDto,
 } from '../../presentation/dto/customer.response.dto';
 
 import { TopPickProductCardResponseDto } from '../../presentation/dto/customer.response.dto';
@@ -57,6 +59,42 @@ export class CustomerMapper {
       reviewCount: product.vendor?.reviewCount ?? 0,
       categoryName: product.category?.name ?? undefined,
       distanceKm: Number(product.distanceKm.toFixed(1)),
+    };
+  }
+
+  static toExploreMapPin(vendor: any): ExploreMapPinResponseDto {
+    return {
+      vendorId: vendor.id,
+      businessName: vendor.businessName ?? 'Unnamed Vendor',
+      latitude: vendor.serviceArea.latitude,
+      longitude: vendor.serviceArea.longitude,
+      coverImage:
+        vendor.coverImage ??
+        vendor.products?.[0]?.images?.[0]?.url ??
+        undefined,
+      rating: Number((vendor.reviewAverage ?? 0).toFixed(1)),
+      reviewCount: vendor.reviewCount ?? 0,
+      distanceKm: Number(vendor.distanceKm.toFixed(1)),
+      isOpen: vendor.availability?.isOpen ?? false,
+      statusLabel: vendor.availability?.label ?? 'Unknown',
+    };
+  }
+
+  static toExploreMapCard(vendor: any): ExploreMapCardResponseDto {
+    return {
+      vendorId: vendor.id,
+      businessName: vendor.businessName ?? 'Unnamed Vendor',
+      coverImage:
+        vendor.coverImage ??
+        vendor.products?.[0]?.images?.[0]?.url ??
+        undefined,
+      cuisines: vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+      rating: Number((vendor.reviewAverage ?? 0).toFixed(1)),
+      reviewCount: vendor.reviewCount ?? 0,
+      distanceKm: Number(vendor.distanceKm.toFixed(1)),
+      isOpen: vendor.availability?.isOpen ?? false,
+      statusLabel: vendor.availability?.label ?? 'Unknown',
+      cityLabel: CustomerMapper.extractCityLabel(vendor.serviceArea?.address),
     };
   }
 }
