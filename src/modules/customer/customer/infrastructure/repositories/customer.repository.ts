@@ -513,4 +513,10 @@ export class CustomerRepository implements ICustomerRepository {
       data,
     });
   }
+
+  async removeFavoriteProduct(favoriteId: string): Promise<void> {
+    await this.prisma.favoriteProduct.delete({
+      where: { id: favoriteId },
+    });
+  }
 }
