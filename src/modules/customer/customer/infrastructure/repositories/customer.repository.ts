@@ -479,4 +479,38 @@ export class CustomerRepository implements ICustomerRepository {
       },
     });
   }
+
+  async findActiveProductById(productId: string): Promise<{ id: string } | null> {
+    return this.prisma.product.findFirst({
+      where: {
+        id: productId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+  }
+
+  async findFavoriteProduct(
+    customerId: string,
+    productId: string,
+  ): Promise<{ id: string } | null> {
+    return this.prisma.favoriteProduct.findUnique({
+      where: {
+        customerId_productId: {
+          customerId,
+          productId,
+        },
+      },
+      select: { id: true },
+    });
+  }
+
+  async createFavoriteProduct(data: {
+    customerId: string;
+    productId: string;
+  }): Promise<void> {
+    await this.prisma.favoriteProduct.create({
+      data,
+    });
+  }
 }
