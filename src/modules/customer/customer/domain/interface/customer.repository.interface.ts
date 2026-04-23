@@ -61,4 +61,16 @@ export interface ICustomerRepository {
     customerId: string,
     query: FavoriteProductsQueryDto,
   ): Promise<any[]>;
+
+  findFavoriteVendor(
+    customerId: string,
+    vendorId: string,
+  ): Promise<{ id: string } | null>;
+
+  createFavoriteVendor(data: {
+    customerId: string;
+    vendorId: string;
+  }): Promise<void>;
+
+  removeFavoriteVendor(favoriteId: string): Promise<void>;
 }
