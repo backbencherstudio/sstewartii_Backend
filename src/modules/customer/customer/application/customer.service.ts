@@ -589,7 +589,7 @@ export class CustomerService {
       throw new NotFoundException('Customer not found');
     }
 
-    const vendor = await this.vendorService.findByOwnerId(vendorId);
+    const vendor = await this.vendorService.findByVendorId(vendorId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');

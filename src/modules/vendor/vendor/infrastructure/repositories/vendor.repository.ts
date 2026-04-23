@@ -14,10 +14,22 @@ import { VendorMenuQueryDto } from '../../presentation/dto/vendor.dto';
 export class VendorRepository implements IVendorRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findByVendorId(vendorId: string): Promise<Vendor | null> {
+    const vendorRecord = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+    });
+
+    console.log(vendorId);
+
+    return vendorRecord ? VendorMapper.toDomain(vendorRecord) : null;
+  }
+
   async findByOwnerId(ownerId: string): Promise<Vendor | null> {
     const vendorRecord = await this.prisma.vendor.findUnique({
       where: { ownerId },
     });
+
+    console.log(ownerId);
 
     return vendorRecord ? VendorMapper.toDomain(vendorRecord) : null;
   }

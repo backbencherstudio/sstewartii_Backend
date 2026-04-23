@@ -3,6 +3,7 @@ import { VendorMenuQueryDto } from '../../presentation/dto/vendor.dto';
 
 export interface IVendorRepository {
 
+  findByVendorId(ownerId: string): Promise<Vendor | null>;
   findByOwnerId(ownerId: string): Promise<Vendor | null>;
 
   findById(id: string): Promise<Vendor | null>;
