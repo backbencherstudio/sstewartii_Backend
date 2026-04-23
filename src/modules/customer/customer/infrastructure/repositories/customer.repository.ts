@@ -594,4 +594,41 @@ export class CustomerRepository implements ICustomerRepository {
       },
     });
   }
+
+  async findVendorById(vendorId: string): Promise<{ id: string } | null> {
+    return this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
+  }
+
+  async findFavoriteVendor(
+    customerId: string,
+    vendorId: string,
+  ): Promise<{ id: string } | null> {
+    return this.prisma.favoriteVendor.findUnique({
+      where: {
+        customerId_vendorId: {
+          customerId,
+          vendorId,
+        },
+      },
+      select: { id: true },
+    });
+  }
+
+  async createFavoriteVendor(data: {
+    customerId: string;
+    vendorId: string;
+  }): Promise<void> {
+    await this.prisma.favoriteVendor.create({
+      data,
+    });
+  }
+
+  async removeFavoriteVendor(favoriteId: string): Promise<void> {
+    await this.prisma.favoriteVendor.delete({
+      where: { id: favoriteId },
+    });
+  }
 }
