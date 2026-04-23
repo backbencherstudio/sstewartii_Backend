@@ -16,6 +16,7 @@ import {
   TopPicksQueryDto,
   ExploreMapQueryDto,
   FoodFilterQueryDto,
+  FavoriteProductsQueryDto,
 } from '../presentation/dto/customer.dto';
 
 import { 
@@ -23,6 +24,7 @@ import {
   TopPicksResponseDto,
   ExploreMapResponseDto,
   FoodFilterResponseDto,
+  FavoriteProductsResponseDto,
  } from '../presentation/dto/customer.response.dto';
 
 @Injectable()
@@ -540,4 +542,36 @@ export class CustomerService {
     return { isFavorited: true };
   }
 
+  async getFavoriteProducts(
+    userId: string,
+    query: FavoriteProductsQueryDto,
+  ): Promise<FavoriteProductsResponseDto> {
+    const customer = await this.repo.findByUserId(userId);
+
+    if (!customer || !customer.isActive) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const favoriteProducts = await this.repo.findFavoriteProducts(
+      customer.id,
+      query,
+    );
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const total = favoriteProducts.length;
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    const paginated = favoriteProducts.slice(start, start + limit);
+
+    return {
+      items: paginated.map((item) =>
+        CustomerMapper.toFavoriteProductItem(item),
+      ),
+      page,
+      limit,
+      total,
+      totalPages,
+    };
+  }
 }
