@@ -5,8 +5,10 @@ import { CustomerRepository } from './infrastructure/repositories/customer.repos
 import { PrismaService } from '@/prisma/prisma.service';
 import { HomeService } from './application/home.service';
 import { HomeRepository } from './infrastructure/repositories/home.repository';
+import { VendorModule } from '@/modules/vendor/vendor/vendor.module';
 
 @Module({
+  imports: [VendorModule],
   controllers: [CustomerController],
   providers: [
     CustomerService,

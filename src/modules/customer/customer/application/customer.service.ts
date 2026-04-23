@@ -7,9 +7,8 @@ import {
 
 import type { ICustomerRepository } from '../domain/interface/customer.repository.interface';
 import { CustomerEntity } from '../domain/entities/customer.entity';
+
 import { CustomerMapper } from '../infrastructure/mapper/customer.mapper';
-import  { SetCustomerLocationDto } from '../presentation/dto/customer.dto';
-import { CustomerResponseDto } from '../presentation/dto/customer.response.dto';
 
 import { 
   NearbyVendorsQueryDto, 
@@ -17,6 +16,7 @@ import {
   ExploreMapQueryDto,
   FoodFilterQueryDto,
   FavoriteProductsQueryDto,
+  SetCustomerLocationDto,
 } from '../presentation/dto/customer.dto';
 
 import { 
@@ -25,13 +25,17 @@ import {
   ExploreMapResponseDto,
   FoodFilterResponseDto,
   FavoriteProductsResponseDto,
+  CustomerResponseDto,
  } from '../presentation/dto/customer.response.dto';
+
+import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
 
 @Injectable()
 export class CustomerService {
   constructor(
     @Inject('ICustomerRepository')
     private readonly repo: ICustomerRepository,
+    private readonly vendorService: VendorService,
   ) {}
 
   async findActiveByUserId(userId: string): Promise<CustomerEntity | null> {
@@ -585,7 +589,7 @@ export class CustomerService {
       throw new NotFoundException('Customer not found');
     }
 
-    const vendor = await this.repo.findVendorById(vendorId);
+    const vendor = await this.vendorService.findByOwnerId(vendorId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');

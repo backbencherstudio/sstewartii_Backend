@@ -14,6 +14,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
       useClass: VendorRepository,
     },
   ],
-  exports: ['IVendorRepository'],
+  exports: ['IVendorRepository', VendorService],
 })
 export class VendorModule {}

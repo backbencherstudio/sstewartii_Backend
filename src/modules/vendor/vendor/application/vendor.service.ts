@@ -33,6 +33,16 @@ export class VendorService {
     private readonly storageService: LocalStorageService
   ) {}
 
+  async findByOwnerId(ownerId: string) {
+    const vendor = await this.vendorRepository.findByOwnerId(ownerId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    return vendor;
+  }
+
   async execute(ownerId: string) {
     const vendor = await this.vendorRepository.findByOwnerId(ownerId);
 
