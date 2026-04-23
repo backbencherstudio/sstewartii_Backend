@@ -137,7 +137,7 @@ export class CustomerController {
     return this.service.toggleFavoriteVendor(user.id, vendorId);
   }
 
-  @Get('favorites/vendors')
+  @Get('favorites/truck')
   @UseGuards(RoleGuard)
   @Roles(Role.USER)
   async getFavoriteVendors(
