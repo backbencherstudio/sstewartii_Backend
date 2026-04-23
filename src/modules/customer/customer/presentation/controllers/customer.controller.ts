@@ -123,4 +123,15 @@ export class CustomerController {
   ): Promise<FavoriteProductsResponseDto> {
     return this.service.getFavoriteProducts(user.id, query);
   }
+
+  @Post('favorites/vendors/:vendorId')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ResponseMessage('Favorite updated successfully')
+  async toggleFavoriteVendor(
+    @CurrentUser() user: AuthUser,
+    @Param('vendorId') vendorId: string,
+  ): Promise<{ isFavorited: boolean }> {
+    return this.service.toggleFavoriteVendor(user.id, vendorId);
+  }
 }
