@@ -3,9 +3,9 @@ import {
   NearbyVendorsQueryDto,
   ExploreMapQueryDto,
   FoodFilterQueryDto,
+  FavoriteProductsQueryDto,
+  TopPicksQueryDto,
  } from "../../presentation/dto/customer.dto";
-
-import { TopPicksQueryDto } from "../../presentation/dto/customer.dto";
 
 export interface ICustomerRepository {
   
@@ -56,4 +56,9 @@ export interface ICustomerRepository {
   }): Promise<void>;
 
   removeFavoriteProduct(favoriteId: string): Promise<void>;
+
+  findFavoriteProducts(
+    customerId: string,
+    query: FavoriteProductsQueryDto,
+  ): Promise<any[]>;
 }
