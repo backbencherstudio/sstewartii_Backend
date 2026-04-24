@@ -38,6 +38,7 @@ export class CartController {
     return this.cartService.addItem(user.id, dto);
   }
 
+  // Get api for cart list
   @Get('get-cart-items')
   @UseGuards(RoleGuard)
   @Roles(Role.USER)
