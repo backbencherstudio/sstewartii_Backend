@@ -21,10 +21,6 @@ export class CartService {
     private readonly productRepo: ProductService,
   ) {}
 
-  async findCartByCustomerId(customerId: string): Promise<any | null> {
-    return this.cartRepository.findCartByCustomerId(customerId);
-  }
-
   async addItem(
     userId: string,
     dto: AddCartItemDto,
@@ -43,55 +39,12 @@ export class CartService {
       throw new NotFoundException('Product not found or inactive');
     }
 
-    if (dto.sizeOptionId) {
-      const validSize = product.sizeOptions.some(
-        (item) => item.id === dto.sizeOptionId,
-      );
+    this.validateProductOptions(dto, product);
 
-      if (!validSize) {
-        throw new BadRequestException('Invalid size option');
-      }
-    }
-
-    if (dto.choiceOptionIds?.length) {
-      const validChoiceIds = new Set(
-        product.choiceOptions.map((item) => item.id),
-      );
-
-      for (const choiceOptionId of dto.choiceOptionIds) {
-        if (!validChoiceIds.has(choiceOptionId)) {
-          throw new BadRequestException('Invalid choice option');
-        }
-      }
-    }
-
-    if (dto.addOnIds?.length) {
-      const validAddOnIds = new Set(
-        product.addOns.map((item) => item.id),
-      );
-
-      for (const addOnId of dto.addOnIds) {
-        if (!validAddOnIds.has(addOnId)) {
-          throw new BadRequestException('Invalid add-on');
-        }
-      }
-    }
-
-    const cart = await this.cartRepository.findOrCreateCartByCustomerId(
-      customer.id,
-    );
-
-    const existingCart = await this.cartRepository.findCartByCustomerId(
-      customer.id,
-    );
-
-    const existingVendorId = existingCart?.items[0]?.product.vendorId;
-
-    if (existingVendorId && existingVendorId !== product.vendorId) {
-      throw new BadRequestException(
-        'Cart can contain items from only one vendor at a time',
-      );
-    }
+    const cart = await this.cartRepository.findOrCreateCart({
+      customerId: customer.id,
+      vendorId: product.vendorId,
+    });
 
     await this.cartRepository.createCartItem({
       cartId: cart.id,
@@ -106,9 +59,7 @@ export class CartService {
 
     await this.cartRepository.recalculateCartTotal(cart.id);
 
-    const updatedCart = await this.cartRepository.findCartByCustomerId(
-      customer.id,
-    );
+    const updatedCart = await this.cartRepository.findCartById(cart.id);
 
     if (!updatedCart) {
       throw new NotFoundException('Cart not found after update');
@@ -117,5 +68,42 @@ export class CartService {
     return CartMapper.toResponse(updatedCart);
   }
 
-  
+  private validateProductOptions(
+    dto: AddCartItemDto,
+    product: any,
+  ): void {
+    if (dto.sizeOptionId) {
+      const validSize = product.sizeOptions.some(
+        (item: any) => item.id === dto.sizeOptionId,
+      );
+
+      if (!validSize) {
+        throw new BadRequestException('Invalid size option');
+      }
+    }
+
+    if (dto.choiceOptionIds?.length) {
+      const validChoiceIds = new Set(
+        product.choiceOptions.map((item: any) => item.id),
+      );
+
+      for (const choiceOptionId of dto.choiceOptionIds) {
+        if (!validChoiceIds.has(choiceOptionId)) {
+          throw new BadRequestException('Invalid choice option');
+        }
+      }
+    }
+
+    if (dto.addOnIds?.length) {
+      const validAddOnIds = new Set(
+        product.addOns.map((item: any) => item.id),
+      );
+
+      for (const addOnId of dto.addOnIds) {
+        if (!validAddOnIds.has(addOnId)) {
+          throw new BadRequestException('Invalid add-on');
+        }
+      }
+    }
+  }
 }

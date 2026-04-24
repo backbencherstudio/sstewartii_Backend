@@ -2,13 +2,11 @@ import { CartResponseDto } from '../../presentation/dto/cart.response.dto';
 
 export class CartMapper {
   static toResponse(cart: any): CartResponseDto {
-    const firstItem = cart.items[0];
-
     return {
       id: cart.id,
       customerId: cart.customerId,
-      vendorId: firstItem?.product.vendorId,
-      vendorName: firstItem?.product.vendor.businessName ?? undefined,
+      vendorId: cart.vendorId,
+      vendorName: cart.vendor?.businessName ?? 'Unnamed Vendor',
       totalAmount: cart.totalAmount,
       itemCount: cart.items.reduce(
         (acc: number, item: any) => acc + item.quantity,
@@ -17,19 +15,22 @@ export class CartMapper {
       updatedAt: cart.updatedAt,
       items: cart.items.map((item: any) => {
         const sizePrice = item.sizeOption?.price ?? 0;
+
         const addOnTotal = item.addOns.reduce(
           (acc: number, entry: any) => acc + entry.addOn.price,
           0,
         );
-        const lineTotal = (item.price + sizePrice + addOnTotal) * item.quantity;
+
+        const lineTotal =
+          (item.price + sizePrice + addOnTotal) * item.quantity;
 
         return {
           id: item.id,
           productId: item.productId,
           productName: item.product.name,
-          productImage: item.product.images[0]?.url,
+          productImage: item.product.images?.[0]?.url,
           vendorId: item.product.vendorId,
-          vendorName: item.product.vendor.businessName ?? '',
+          vendorName: item.product.vendor?.businessName ?? 'Unnamed Vendor',
           quantity: item.quantity,
           unitBasePrice: item.price,
           sizePrice,

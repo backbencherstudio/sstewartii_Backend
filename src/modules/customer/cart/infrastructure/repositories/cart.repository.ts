@@ -7,17 +7,26 @@ import type {
   CartOwnerView,
 } from '../../domain/interface/cart.repository.interface';
 
-
 @Injectable()
 export class CartRepository implements ICartRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findOrCreateCartByCustomerId(
-    customerId: string,
-  ): Promise<CartOwnerView> {
+  async findOrCreateCart(data: {
+    customerId: string;
+    vendorId: string;
+  }): Promise<CartOwnerView> {
     const existing = await this.prisma.cart.findUnique({
-      where: { customerId },
-      select: { id: true, customerId: true },
+      where: {
+        customerId_vendorId: {
+          customerId: data.customerId,
+          vendorId: data.vendorId,
+        },
+      },
+      select: {
+        id: true,
+        customerId: true,
+        vendorId: true,
+      },
     });
 
     if (existing) {
@@ -25,15 +34,23 @@ export class CartRepository implements ICartRepository {
     }
 
     return this.prisma.cart.create({
-      data: { customerId },
-      select: { id: true, customerId: true },
+      data: {
+        customerId: data.customerId,
+        vendorId: data.vendorId,
+      },
+      select: {
+        id: true,
+        customerId: true,
+        vendorId: true,
+      },
     });
   }
 
-  async findCartByCustomerId(customerId: string): Promise<any | null> {
+  async findCartById(cartId: string): Promise<any | null> {
     return this.prisma.cart.findUnique({
-      where: { customerId },
+      where: { id: cartId },
       include: {
+        vendor: true,
         items: {
           orderBy: { createdAt: 'asc' },
           include: {
@@ -118,6 +135,7 @@ export class CartRepository implements ICartRepository {
 
     const totalAmount = cart.items.reduce((sum, item) => {
       const sizePrice = item.sizeOption?.price ?? 0;
+
       const addOnTotal = item.addOns.reduce(
         (acc, entry) => acc + entry.addOn.price,
         0,

@@ -1,3 +1,9 @@
+export interface CartOwnerView {
+  id: string;
+  customerId: string;
+  vendorId: string;
+}
+
 export interface CreateCartItemInput {
   cartId: string;
   productId: string;
@@ -9,17 +15,13 @@ export interface CreateCartItemInput {
   addOnIds?: string[];
 }
 
-export interface CartOwnerView {
-  id: string;
-  customerId: string;
-}
-
 export interface ICartRepository {
-  findOrCreateCartByCustomerId(
-    customerId: string,
-  ): Promise<CartOwnerView>;
+  findOrCreateCart(data: {
+    customerId: string;
+    vendorId: string;
+  }): Promise<CartOwnerView>;
 
-  findCartByCustomerId(customerId: string): Promise<any | null>;
+  findCartById(cartId: string): Promise<any | null>;
 
   createCartItem(input: CreateCartItemInput): Promise<void>;
 

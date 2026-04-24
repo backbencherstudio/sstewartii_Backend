@@ -20,7 +20,7 @@ export class CartController {
 
   @Post('add-cart-items')
   @UseGuards(RoleGuard)
-  @Roles(Role.USER) 
+  @Roles(Role.USER)
   @ResponseMessage('Item added to cart successfully.')
   async addItem(
     @CurrentUser() user: AuthUser,

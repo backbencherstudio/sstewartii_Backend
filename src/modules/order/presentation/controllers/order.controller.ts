@@ -20,14 +20,14 @@ import { Role } from 'src/common/enums/role.enum';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Post('create-order')
-  @UseGuards(RoleGuard)
-  @Roles(Role.USER) 
-  @ResponseMessage('Order placed successfully.')
-  async createOrder(
-    @CurrentUser() user: AuthUser,
-    @Body() dto: CreateOrderDto,
-  ): Promise<CreateOrderResponseDto> {
-    return this.orderService.createOrder(user.id, dto);
-  }
+  // @Post('create-order')
+  // @UseGuards(RoleGuard)
+  // @Roles(Role.USER) 
+  // @ResponseMessage('Order placed successfully.')
+  // async createOrder(
+  //   @CurrentUser() user: AuthUser,
+  //   @Body() dto: CreateOrderDto,
+  // ): Promise<CreateOrderResponseDto> {
+  //   return this.orderService.createOrder(user.id, dto);
+  // }
 }

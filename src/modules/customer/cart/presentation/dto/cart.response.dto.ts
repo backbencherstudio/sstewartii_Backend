@@ -36,8 +36,8 @@ export class CartItemResponseDto {
 export class CartResponseDto {
   id!: string;
   customerId!: string;
-  vendorId?: string;
-  vendorName?: string;
+  vendorId!: string;
+  vendorName!: string;
   totalAmount!: number;
   items!: CartItemResponseDto[];
   itemCount!: number;
