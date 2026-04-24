@@ -1,4 +1,7 @@
-import { CartResponseDto } from '../../presentation/dto/cart.response.dto';
+import { 
+  CartResponseDto,
+  CartListResponseDto,
+} from '../../presentation/dto/cart.response.dto';
 
 export class CartMapper {
   static toResponse(cart: any): CartResponseDto {
@@ -58,4 +61,34 @@ export class CartMapper {
       }),
     };
   }
+    static toCartListResponse(carts: any[]): CartListResponseDto {
+    return {
+      carts: carts.map((cart) => ({
+        cartId: cart.id,
+        vendor: {
+          id: cart.vendor.id,
+          businessName: cart.vendor.businessName ?? 'Unnamed Vendor',
+          coverImage:
+            cart.vendor.coverImage ??
+            cart.vendor.truckGalleryImages?.[0]?.url ??
+            undefined,
+          address: cart.vendor.serviceArea?.address ?? undefined,
+        },
+        items: cart.items.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.product.name,
+          productImage: item.product.images?.[0]?.url ?? undefined,
+          quantity: item.quantity,
+        })),
+        totalAmount: cart.totalAmount,
+        itemCount: cart.items.reduce(
+          (sum: number, item: any) => sum + item.quantity,
+          0,
+        ),
+        updatedAt: cart.updatedAt,
+      })),
+    };
+  }
+
 }
