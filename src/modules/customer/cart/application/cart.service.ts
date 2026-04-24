@@ -5,7 +5,10 @@ import {
   Inject,
 } from '@nestjs/common';
 import { AddCartItemDto } from '../presentation/dto/cart.dto';
-import { CartResponseDto } from '../presentation/dto/cart.response.dto';
+import { 
+  CartResponseDto,
+  CartListResponseDto,
+} from '../presentation/dto/cart.response.dto';
 import type { ICartRepository } from '../domain/interface/cart.repository.interface';
 import { CartMapper } from '../infrastructure/mapper/cart.mapper';
 import { CustomerService } from '../../customer/application/customer.service';
@@ -17,7 +20,7 @@ export class CartService {
   constructor(
     @Inject('ICartRepository')
     private readonly cartRepository: ICartRepository,
-    private readonly customerRepo: CustomerService,
+    private readonly customerService: CustomerService,
     private readonly productRepo: ProductService,
   ) {}
 
@@ -25,7 +28,7 @@ export class CartService {
     userId: string,
     dto: AddCartItemDto,
   ): Promise<CartResponseDto> {
-    const customer = await this.customerRepo.findActiveByUserId(userId);
+    const customer = await this.customerService.findActiveByUserId(userId);
 
     if (!customer) {
       throw new NotFoundException('Customer not found');
@@ -105,5 +108,19 @@ export class CartService {
         }
       }
     }
+  }
+
+  async getCartList(userId: string): Promise<CartListResponseDto> {
+    const customer = await this.customerService.findActiveByUserId(userId);
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const carts = await this.cartRepository.findCartListByCustomerId(
+      customer.id,
+    );
+
+    return CartMapper.toCartListResponse(carts);
   }
 }
