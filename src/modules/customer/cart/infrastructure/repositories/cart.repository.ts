@@ -162,6 +162,7 @@ export class CartRepository implements ICartRepository {
         vendor: {
           include: {
             serviceArea: true,
+            operationHours: true,
             truckGalleryImages: {
               where: {
                 isPrimary: true,

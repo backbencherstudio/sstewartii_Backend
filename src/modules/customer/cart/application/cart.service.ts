@@ -286,19 +286,89 @@ export class CartService {
     };
   }
 
-  private resolveAvailability(operationHours: any[]) {
-    const now = new Date();
-    const day = now.getDay();
-
-    const today = operationHours.find(
-      (o: any) => o.dayOfWeek === day,
-    );
-
-    if (!today || today.isClosed) {
-      return { isOpen: false, label: 'Closed' };
+  private resolveAvailability(
+    operationHours: Array<{
+      dayOfWeek: number;
+      openTime: string | null;
+      closeTime: string | null;
+      isClosed: boolean;
+      activeFrom: Date;
+      activeTo: Date | null;
+    }> = [],
+  ): { isOpen: boolean; label: string } {
+    if (!operationHours.length) {
+      return {
+        isOpen: false,
+        label: 'Temporarily Closed',
+      };
     }
 
-    return { isOpen: true, label: 'Open Now' };
+    const now = new Date();
+    const today = now.getDay();
+
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes(),
+    ).padStart(2, '0')}`;
+
+    const todaysHours = operationHours
+      .filter(
+        (item) =>
+          item.dayOfWeek === today &&
+          item.activeFrom <= now &&
+          (!item.activeTo || item.activeTo >= now),
+      )
+      .sort((a, b) => (a.openTime ?? '').localeCompare(b.openTime ?? ''));
+
+    if (!todaysHours.length) {
+      return {
+        isOpen: false,
+        label: 'Temporarily Closed',
+      };
+    }
+
+    const currentSlot = todaysHours.find((item) => {
+      if (item.isClosed || !item.openTime || !item.closeTime) {
+        return false;
+      }
+
+      return currentTime >= item.openTime && currentTime <= item.closeTime;
+    });
+
+    if (currentSlot) {
+      return {
+        isOpen: true,
+        label: 'Open Now',
+      };
+    }
+
+    const nextSlot = todaysHours.find(
+      (item) =>
+        !item.isClosed &&
+        item.openTime !== null &&
+        item.openTime > currentTime,
+    );
+
+    if (nextSlot?.openTime) {
+      return {
+        isOpen: false,
+        label: `Opens at ${this.formatTime(nextSlot.openTime)}`,
+      };
+    }
+
+    return {
+      isOpen: false,
+      label: 'Temporarily Closed',
+    };
+  }
+
+  private formatTime(time: string): string {  
+    const [hourStr, minute] = time.split(':');
+    const hour = Number(hourStr);
+
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+
+    return `${formattedHour}:${minute} ${period}`;
   }
 
 }
