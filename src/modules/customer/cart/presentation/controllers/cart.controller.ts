@@ -61,6 +61,7 @@ export class CartController {
     return this.cartService.deleteCart(user.id, cartId);
   }
 
+  //Get cart detail
   @Get('detail/:cartId')
   @UseGuards(RoleGuard)
   @Roles(Role.USER)
