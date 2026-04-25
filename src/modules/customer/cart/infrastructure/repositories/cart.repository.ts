@@ -149,6 +149,7 @@ export class CartRepository implements ICartRepository {
       data: { totalAmount },
     });
   }
+
   async findCartListByCustomerId(customerId: string): Promise<any[]> {
     return this.prisma.cart.findMany({
       where: {
@@ -189,6 +190,16 @@ export class CartRepository implements ICartRepository {
       },
       orderBy: {
         updatedAt: 'desc',
+      },
+    });
+  }
+
+  async findCartOwner(cartId: string): Promise<{ id: string; customerId: string } | null> {
+    return this.prisma.cart.findUnique({
+      where: { id: cartId },
+      select: {
+        id: true,
+        customerId: true,
       },
     });
   }
