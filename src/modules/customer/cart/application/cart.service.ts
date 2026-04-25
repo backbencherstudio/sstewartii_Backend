@@ -4,13 +4,17 @@ import {
   NotFoundException,
   Inject,
 } from '@nestjs/common';
+
+import type { ICartRepository } from '../domain/interface/cart.repository.interface';
+import { CartMapper } from '../infrastructure/mapper/cart.mapper';
+
 import { AddCartItemDto } from '../presentation/dto/cart.dto';
 import { 
   CartResponseDto,
   CartListResponseDto,
+  CartDetailResponseDto,
 } from '../presentation/dto/cart.response.dto';
-import type { ICartRepository } from '../domain/interface/cart.repository.interface';
-import { CartMapper } from '../infrastructure/mapper/cart.mapper';
+
 import { CustomerService } from '../../customer/application/customer.service';
 import { ProductService } from '@/modules/product/application/product.service';
 
@@ -148,4 +152,138 @@ export class CartService {
 
     return { success: true };
   }
+
+  async getCartDetail(
+    userId: string,
+    cartId: string,
+  ): Promise<CartDetailResponseDto> {
+    const customer = await this.customerService.findActiveByUserId(userId);
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const cart = await this.cartRepository.findCartById(cartId);
+
+    if (!cart) {
+      throw new NotFoundException('Cart not found');
+    }
+
+    if (cart.customerId !== customer.id) {
+      throw new BadRequestException('Unauthorized access');
+    }
+
+    const availability = this.resolveAvailability(
+      cart.vendor.operationHours,
+    );
+
+    const items = cart.items.map((item: any) => {
+      let isAvailable = true;
+      let reason: string | undefined;
+
+      if (!item.product.isActive) {
+        isAvailable = false;
+        reason = 'Product is no longer available';
+      }
+
+      return {
+        id: item.id,
+        productId: item.productId,
+        productName: item.product.name,
+        productImage: item.product.images?.[0]?.url,
+
+        quantity: item.quantity,
+
+        unitPrice: item.price,
+        sizePrice: item.sizeOption?.price ?? 0,
+
+        addOnTotal: item.addOns.reduce(
+          (acc: number, a: any) => acc + a.addOn.price,
+          0,
+        ),
+
+        lineTotal: 0, 
+
+        note: item.note,
+
+        isAvailable,
+        unavailableReason: reason,
+
+        sizeOption: item.sizeOption
+          ? {
+              id: item.sizeOption.id,
+              name: item.sizeOption.name,
+            }
+          : undefined,
+
+        addOns: item.addOns.map((a: any) => ({
+          id: a.addOn.id,
+          name: a.addOn.name,
+          price: a.addOn.price,
+        })),
+      };
+    });
+
+    let subtotal = 0;
+
+    for (const item of items) {
+      const lineTotal =
+        (item.unitPrice + item.sizePrice + item.addOnTotal) *
+        item.quantity;
+
+      item.lineTotal = lineTotal;
+
+      subtotal += lineTotal;
+    }
+
+    const tax = subtotal * 0.05;
+    const serviceFee = 2;
+
+    const total = subtotal + tax + serviceFee;
+
+    const errors: string[] = [];
+
+    if (!availability.isOpen) {
+      errors.push('Vendor is closed');
+    }
+
+    const hasUnavailableItems = items.some((i) => !i.isAvailable);
+
+    if (hasUnavailableItems) {
+      errors.push('Some items are unavailable');
+    }
+
+    if (subtotal <= 0) {
+      errors.push('Cart is empty');
+    }
+
+    const canCheckout = errors.length === 0;
+
+    return {
+      cartId: cart.id,
+
+      vendor: {
+        id: cart.vendor.id,
+        businessName: cart.vendor.businessName,
+        isOpen: availability.isOpen,
+        statusLabel: availability.label,
+        address: cart.vendor.serviceArea?.address,
+      },
+
+      items,
+
+      pricing: {
+        subtotal,
+        tax,
+        serviceFee,
+        total,
+      },
+
+      validation: {
+        canCheckout,
+        errors,
+      },
+    };
+  }
+
 }
