@@ -6,14 +6,17 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { HomeService } from './application/home.service';
 import { HomeRepository } from './infrastructure/repositories/home.repository';
 import { VendorModule } from '@/modules/vendor/vendor/vendor.module';
+import { CustomerMapper } from './infrastructure/mapper/customer.mapper';
+import { MediaModule } from '@/common/media/media.module';
 
 @Module({
-  imports: [VendorModule],
+  imports: [VendorModule, MediaModule],
   controllers: [CustomerController],
   providers: [
     CustomerService,
     PrismaService,
     HomeService,
+    CustomerMapper,
     {
       provide: 'ICustomerRepository',
       useClass: CustomerRepository,

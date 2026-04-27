@@ -18,7 +18,6 @@ import cookieParser from 'cookie-parser';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
- 
 async function bootstrap() {
 
    const app = await NestFactory.create<NestExpressApplication>(
@@ -67,7 +66,7 @@ async function bootstrap() {
    if (nodeEnv !== 'production') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Food Delivery API')
-      .setDescription('API documentation for your SaaS backend')
+      .setDescription('API documentation for SaaS backend')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -77,8 +76,9 @@ async function bootstrap() {
   }
 
   const port = configService.get<number>('PORT') || 3000;
+  const host = configService.get<string>('HOST') || '0.0.0.0';
 
-  await app.listen(port);
+  await app.listen(port, host);
 
   console.log(`API: http://localhost:${port}/api/v1`);
   if (nodeEnv !== 'production') {

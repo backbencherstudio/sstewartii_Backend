@@ -1,4 +1,6 @@
+import { Injectable } from '@nestjs/common';
 import { CustomerEntity } from '../../domain/entities/customer.entity';
+
 import {
   CustomerResponseDto,
   NearbyVendorCardResponseDto,
@@ -10,8 +12,12 @@ import {
 } from '../../presentation/dto/customer.response.dto';
 
 import { TopPickProductCardResponseDto } from '../../presentation/dto/customer.response.dto';
+import { MediaService } from '@/common/media/media.service';
 
+@Injectable()
 export class CustomerMapper {
+  constructor(private readonly media: MediaService) {}
+
   static toResponse(entity: CustomerEntity): CustomerResponseDto {
     return {
       id: entity.id,
@@ -101,20 +107,21 @@ export class CustomerMapper {
     };
   }
 
-  static toFoodCard(product: any): FoodCardResponseDto {
+   toFoodCard(product: any): FoodCardResponseDto {
     return {
       id: product.id,
       name: product.name,
       description: product.description,
       price: product.price,
-      image: product.images?.[0]?.url ?? undefined,
+
+      image: this.media.getUrl(product.images?.[0]?.url) ?? undefined,
 
       vendorId: product.vendorId,
       vendorName: product.vendor?.businessName ?? 'Unnamed Vendor',
 
       categoryName: product.category?.name ?? undefined,
       cuisines:
-        product.vendor?.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+      product.vendor?.cuisines?.map((item: any) => item.cuisine.name) ?? [],
 
       rating: Number((product.vendor?.reviewAverage ?? 0).toFixed(1)),
       reviewCount: product.vendor?.reviewCount ?? 0,
@@ -146,7 +153,6 @@ export class CustomerMapper {
       isFavorited: true,
     };
   }
-  
 
   static toFavoriteVendorItem(item: any): FavoriteVendorItemResponseDto {
     const vendor = item.vendor;

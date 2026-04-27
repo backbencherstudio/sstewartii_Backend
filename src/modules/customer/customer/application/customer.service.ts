@@ -38,6 +38,7 @@ export class CustomerService {
     @Inject('ICustomerRepository')
     private readonly repo: ICustomerRepository,
     private readonly vendorService: VendorService,
+    private readonly mapper: CustomerMapper
   ) {}
 
   async findActiveByUserId(userId: string): Promise<CustomerEntity | null> {
@@ -505,7 +506,7 @@ export class CustomerService {
     const paginated = enriched.slice(start, start + limit);
 
     return {
-      items: paginated.map((product) => CustomerMapper.toFoodCard(product)),
+      items: paginated.map((product) => this.mapper.toFoodCard(product)),
       page,
       limit,
       total,

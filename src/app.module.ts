@@ -19,6 +19,7 @@ import { CustomerModule } from './modules/customer/customer/customer.module';
 import { CartModule } from './modules/customer/cart/cart.module';
 import { OrderModule } from './modules/order/order.module';
 import { ReviewModule } from './modules/review/review.module';
+import { MediaModule } from './common/media/media.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ReviewModule } from './modules/review/review.module';
     CartModule,
     OrderModule,
     ReviewModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [
