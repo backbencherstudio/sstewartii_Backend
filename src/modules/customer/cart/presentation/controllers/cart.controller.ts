@@ -83,4 +83,15 @@ export class CartController {
     return this.cartService.increaseItemQuantity(user.id, itemId);
   }
 
+  @Patch('items/:itemId/decrease')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ResponseMessage('Cart item quantity decreased successfully.')
+  async decreaseItemQuantity(
+    @CurrentUser() user: AuthUser,
+    @Param('itemId') itemId: string,
+  ): Promise<CartResponseDto | { message: string }> {
+    return this.cartService.decreaseItemQuantity(user.id, itemId);
+  }
+
 }
