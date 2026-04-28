@@ -573,7 +573,7 @@ export class CustomerService {
 
     return {
       items: paginated.map((item) =>
-        CustomerMapper.toFavoriteProductItem(item),
+        this.mapper.toFavoriteProductItem(item),
       ),
       page,
       limit,
@@ -689,7 +689,7 @@ export class CustomerService {
 
     return {
       items: paginated.map((item) =>
-        CustomerMapper.toFavoriteVendorItem(item),
+        this.mapper.toFavoriteVendorItem(item),
       ),
       page,
       limit,

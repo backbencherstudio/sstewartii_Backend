@@ -19,7 +19,6 @@ import {
 import { CustomerService } from '../../customer/application/customer.service';
 import { ProductService } from '@/modules/product/application/product.service';
 
-
 @Injectable()
 export class CartService {
   constructor(
@@ -27,6 +26,7 @@ export class CartService {
     private readonly cartRepository: ICartRepository,
     private readonly customerService: CustomerService,
     private readonly productRepo: ProductService,
+    private readonly cartMapper: CartMapper,
   ) {}
 
   async addItem(
@@ -126,7 +126,7 @@ export class CartService {
       customer.id,
     );
 
-    return CartMapper.toCartListResponse(carts);
+    return this.cartMapper.toCartListResponse(carts);
   }
 
   async deleteCart(

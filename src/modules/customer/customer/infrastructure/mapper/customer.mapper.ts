@@ -131,7 +131,7 @@ export class CustomerMapper {
     };
   }
 
-  static toFavoriteProductItem(item: any): FavoriteProductItemResponseDto {
+  toFavoriteProductItem(item: any): FavoriteProductItemResponseDto {
     const product = item.product;
 
     return {
@@ -139,7 +139,7 @@ export class CustomerMapper {
       name: product.name,
       description: product.description,
       price: product.price,
-      image: product.images?.[0]?.url ?? undefined,
+      image: this.media.getUrl(product.images?.[0]?.url),
 
       vendorId: product.vendorId,
       vendorName: product.vendor?.businessName ?? 'Unnamed Vendor',
@@ -153,16 +153,13 @@ export class CustomerMapper {
     };
   }
 
-  static toFavoriteVendorItem(item: any): FavoriteVendorItemResponseDto {
+  toFavoriteVendorItem(item: any): FavoriteVendorItemResponseDto {
     const vendor = item.vendor;
 
     return {
       id: vendor.id,
       businessName: vendor.businessName ?? 'Unnamed Vendor',
-      coverImage:
-        vendor.coverImage ??
-        vendor.products?.[0]?.images?.[0]?.url ??
-        undefined,
+      coverImage: this.media.getUrl(vendor.coverImage ?? vendor.products?.[0]?.images?.[0]?.url),
 
       cuisines: vendor.cuisines?.map((entry: any) => entry.cuisine.name) ?? [],
 

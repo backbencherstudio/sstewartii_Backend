@@ -5,16 +5,20 @@ import { CartRepository } from './infrastructure/repositories/cart.repository';
 import { CustomerModule } from '../customer/customer.module';
 import { ProductModule } from '@/modules/product/product.module';
 import { PrismaModule } from '@/prisma/prisma.module';
+import { MediaModule } from '@/common/media/media.module';
+import { CartMapper } from './infrastructure/mapper/cart.mapper';
 
 @Module({
   imports: [
     CustomerModule, 
     ProductModule,
-    PrismaModule
+    PrismaModule,
+    MediaModule
   ],
   controllers: [CartController],
   providers: [
     CartService,
+    CartMapper,
     {
       provide: 'ICartRepository',
       useClass: CartRepository,
