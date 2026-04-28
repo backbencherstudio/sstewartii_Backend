@@ -1,17 +1,22 @@
+import {Injectable} from '@nestjs/common'
 import { Vendor } from '../../domain/entities/vendor.entity';
 
 import { 
    VendorMenuResponseDto,
    VendorInfoResponseDto,
    VendorReviewsResponseDto,
-  } from '../../presentation/dto/vendor.response.dto';
+} from '../../presentation/dto/vendor.response.dto';
 
 import { 
   UploadTruckGalleryResponseDto,
   TruckGalleryResponseDto,
- } from '../../presentation/dto/vendor.response.dto';
+} from '../../presentation/dto/vendor.response.dto';
 
+import { MediaService } from '@/common/media/media.service';
+
+@Injectable()
 export class VendorMapper {
+  constructor(private readonly mediaService: MediaService) {}
 
   static toDomain(raw: any): Vendor {
 
@@ -35,7 +40,7 @@ export class VendorMapper {
     });
   }
 
-   static toMenuResponse(
+  toMenuResponse(
     vendor: any,
     extra: {
       distanceKm?: number;
@@ -44,6 +49,7 @@ export class VendorMapper {
       cityLabel?: string;
     },
   ): VendorMenuResponseDto {
+    console.log('mediaService:', this.mediaService);
     const grouped = new Map<
       string,
       {
@@ -88,7 +94,7 @@ export class VendorMapper {
       vendor: {
         id: vendor.id,
         businessName: vendor.businessName ?? 'Unnamed Vendor',
-        coverImage: vendor.coverImage ?? undefined,
+        coverImage: this.mediaService.getUrl(vendor.coverImage),
         bio: vendor.bio ?? undefined,
         cityLabel: extra.cityLabel,
         distanceKm:

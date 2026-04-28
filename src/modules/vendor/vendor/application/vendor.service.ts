@@ -30,7 +30,8 @@ export class VendorService {
   constructor(
     @Inject('IVendorRepository') 
     private readonly vendorRepository: IVendorRepository,
-    private readonly storageService: LocalStorageService
+    private readonly storageService: LocalStorageService,
+    private readonly vendorMapper: VendorMapper,
   ) {}
 
   async findByVendorId(vendorId: string) {
@@ -83,7 +84,7 @@ export class VendorService {
 
     const availability = this.resolveAvailability(vendor.operationHours ?? []);
 
-    return VendorMapper.toMenuResponse(vendor, {
+    return this.vendorMapper.toMenuResponse(vendor, {
       distanceKm,
       isOpen: availability.isOpen,
       statusLabel: availability.label,
