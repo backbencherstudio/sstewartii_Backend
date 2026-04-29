@@ -20,7 +20,7 @@ import { Role } from 'src/common/enums/role.enum';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Post()
+  @Post('create-new')
   @UseGuards(RoleGuard)
   @Roles(Role.USER)
   @ResponseMessage('Order created successfully.')

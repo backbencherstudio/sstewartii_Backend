@@ -1,38 +1,40 @@
 import { PaymentMethod, Prisma } from '@prisma/client';
 
-export interface CreateOrderInput {
+export interface CreateOrderFromCartInput {
+  orderNumber: string;
   customerId: string;
   vendorId: string;
-  paymentMethod: PaymentMethod;
+  paymentMethod: string;
+  note?: string;
   subtotal: number;
   tax: number;
   serviceFee: number;
   totalAmount: number;
-  note?: string;
-  estimatedReadyAt?: Date;
-  orderNumber: string;
-  cart: Prisma.CartGetPayload<{
-    include: {
-      items: {
-        include: {
-          product: true;
-          sizeOption: true;
-          choiceOptions: {
-            include: {
-              choiceOption: true;
-            };
-          };
-          addOns: {
-            include: {
-              addOn: true;
-            };
-          };
-        };
-      };
-    };
-  }>;
+  items: CreateOrderItemInput[];
+}
+
+export interface CreateOrderItemInput {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  sizeName?: string;
+  sizePrice: number;
+  lineTotal: number;
+
+  choiceOptions: {
+    id: string;      
+    name: string;
+    price: number;
+  }[];
+
+  addOns: {
+    id: string;      
+    name: string;
+    price: number;
+  }[];
 }
 
 export interface IOrderRepository {
-  createOrderFromCart(input: CreateOrderInput): Promise<any>;
+  createOrderFromCart(input: CreateOrderFromCartInput): Promise<any>;
 }

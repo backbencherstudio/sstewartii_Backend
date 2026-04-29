@@ -1,84 +1,66 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PaymentMethod } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
-import type { CreateOrderInput, IOrderRepository } from '../../domain/interface/order.repository.interface';
+import type { CreateOrderFromCartInput, IOrderRepository } from '../../domain/interface/order.repository.interface';
 
 @Injectable()
 export class OrderRepository implements IOrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createOrderFromCart(input: CreateOrderInput): Promise<any> {
+  async createOrderFromCart(
+    data: CreateOrderFromCartInput,
+  ): Promise<any> {
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const order = await tx.order.create({
         data: {
-          orderNumber: input.orderNumber,
-          customerId: input.customerId,
-          vendorId: input.vendorId,
-          paymentMethod: input.paymentMethod,
-          subtotal: input.subtotal,
-          tax: input.tax,
-          serviceFee: input.serviceFee,
-          totalAmount: input.totalAmount,
-          note: input.note,
-          estimatedReadyAt: input.estimatedReadyAt,
+          orderNumber: data.orderNumber,
+          customerId: data.customerId,
+          vendorId: data.vendorId,
+          paymentMethod: data.paymentMethod as PaymentMethod,
+          subtotal: data.subtotal,
+          tax: data.tax,
+          serviceFee: data.serviceFee,
+          totalAmount: data.totalAmount,
+          note: data.note,
         },
       });
 
-      for (const cartItem of input.cart.items) {
-        const sizePrice = cartItem.sizeOption?.price ?? 0;
-
-        const addOnTotal = cartItem.addOns.reduce(
-          (sum, entry) => sum + entry.addOn.price,
-          0,
-        );
-
-        const lineTotal =
-          (cartItem.price + sizePrice + addOnTotal) * cartItem.quantity;
-
+      for (const item of data.items) {
         const orderItem = await tx.orderItem.create({
           data: {
             orderId: order.id,
-            productId: cartItem.productId,
-            productName: cartItem.product.name,
-            quantity: cartItem.quantity,
-            unitPrice: cartItem.price,
-            sizeName: cartItem.sizeOption?.name ?? null,
-            sizePrice,
-            lineTotal,
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            sizeName: item.sizeName,
+            sizePrice: item.sizePrice,
+            lineTotal: item.lineTotal,
           },
         });
 
-        if (cartItem.choiceOptions.length) {
+        if (item.choiceOptions.length) {
           await tx.orderItemChoiceOption.createMany({
-            data: cartItem.choiceOptions.map((entry) => ({
+            data: item.choiceOptions.map((choice) => ({
               orderItemId: orderItem.id,
-              choiceOptionId: entry.choiceOption.id,
-              name: entry.choiceOption.name,
-              price: entry.choiceOption.price,
+              choiceOptionId: choice.id,
+              name: choice.name,
+              price: choice.price,
             })),
           });
         }
 
-        if (cartItem.addOns.length) {
+        if (item.addOns.length) {
           await tx.orderItemAddOn.createMany({
-            data: cartItem.addOns.map((entry) => ({
+            data: item.addOns.map((addOn) => ({
               orderItemId: orderItem.id,
-              addOnId: entry.addOn.id,
-              name: entry.addOn.name,
-              price: entry.addOn.price,
+              addOnId: addOn.id,
+              name: addOn.name,
+              price: addOn.price,
             })),
           });
         }
       }
-
-      await tx.cartItem.deleteMany({
-        where: { cartId: input.cart.id },
-      });
-
-      await tx.cart.update({
-        where: { id: input.cart.id },
-        data: { totalAmount: 0 },
-      });
 
       return tx.order.findUnique({
         where: { id: order.id },

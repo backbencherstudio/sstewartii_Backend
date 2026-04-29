@@ -13,7 +13,6 @@ export class OrderMapper {
       tax: order.tax,
       serviceFee: order.serviceFee,
       totalAmount: order.totalAmount,
-      note: order.note ?? undefined,
       estimatedReadyAt: order.estimatedReadyAt ?? null,
       createdAt: order.createdAt,
       orderItems: order.orderItems.map((item: any) => ({

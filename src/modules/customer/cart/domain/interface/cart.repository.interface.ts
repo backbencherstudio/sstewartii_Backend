@@ -50,4 +50,6 @@ export interface ICartRepository {
   deleteCartItem(itemId: string): Promise<void>;
 
   deleteCartIfEmpty(cartId: string): Promise<void>;
+
+  findCartByCustomerId(customerId: string): Promise<any[]>;
 }

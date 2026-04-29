@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+
 import { PaymentMethod } from '@prisma/client';
 import type { IOrderRepository } from '../domain/interface/order.repository.interface';
 import { CreateOrderDto } from '../presentation/dto/create-order.dto';
@@ -17,80 +18,87 @@ export class OrderService {
   constructor(
     @Inject('IOrderRepository')
     private readonly orderRepository: IOrderRepository,
-
     private readonly customerService: CustomerService,
-
     private readonly cartService: CartService,
   ) {}
 
-  // async createOrder(
-  //   userId: string,
-  //   dto: CreateOrderDto,
-  // ): Promise<CreateOrderResponseDto> {
-  //   const customer = await this.customerService.findActiveByUserId(userId);
+  async createOrder(
+    userId: string,
+    dto: CreateOrderDto,
+  ): Promise<CreateOrderResponseDto> {
+    const customer = await this.customerService.findActiveByUserId(userId);
 
-  //   if (!customer) {
-  //     throw new NotFoundException('Customer not found');
-  //   }
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
 
-  //   const cart = await this.cartService.findCartByCustomerId(customer.id);
+    const cart = await this.cartService.findCartById(dto.cartId);
 
-  //   if (!cart) {
-  //     throw new NotFoundException('Cart not found');
-  //   }
+    if (!cart) {
+      throw new NotFoundException('Cart not found');
+    }
 
-  //   if (!cart.items.length) {
-  //     throw new BadRequestException('Cart is empty');
-  //   }
+    if (cart.customerId !== customer.id) {
+      throw new BadRequestException('Invalid cart');
+    }
 
-  //   const vendorId = cart.items[0].product.vendorId;
+    if (!cart.items.length) {
+      throw new BadRequestException('Cart is empty');
+    }
 
-  //   const mixedVendor = cart.items.some(
-  //     (item: any) => item.product.vendorId !== vendorId,
-  //   );
+    const subtotal = cart.totalAmount;
+    const tax = 0;
+    const serviceFee = 0;
+    const totalAmount = subtotal + tax + serviceFee;
 
-  //   if (mixedVendor) {
-  //     throw new BadRequestException(
-  //       'Cart contains items from multiple vendors',
-  //     );
-  //   }
+    const orderItems = cart.items.map((item: any) => {
+      const sizePrice = item.sizeOption?.price ?? 0;
 
-  //   const subtotal = cart.totalAmount;
-  //   const tax = 0;
-  //   const serviceFee = 0;
-  //   const totalAmount = subtotal + tax + serviceFee;
+      const addOnTotal = item.addOns.reduce(
+        (sum: number, entry: any) => sum + entry.addOn.price,
+        0,
+      );
 
-  //   const maxCookTime = Math.max(
-  //     ...cart.items.map((item: any) => item.product.estimateCookTime ?? 10),
-  //   );
+      const lineTotal = (item.price + sizePrice + addOnTotal) * item.quantity;
 
-  //   const estimatedReadyAt = new Date(Date.now() + maxCookTime * 60 * 1000);
+      return {
+        productId: item.productId,
+        productName: item.product.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        sizeName: item.sizeOption?.name,
+        sizePrice,
+        lineTotal,
+        choiceOptions: item.choiceOptions.map((entry: any) => ({
+          id: entry.choiceOption.id,
+          name: entry.choiceOption.name,
+          price: entry.choiceOption.price,
+        })),
+        addOns: item.addOns.map((entry: any) => ({
+          id: entry.addOn.id,
+          name: entry.addOn.name,
+          price: entry.addOn.price,
+        })),
+      };
+    });
 
-  //   const orderNumber = this.generateOrderNumber();
+    const order = await this.orderRepository.createOrderFromCart({
+      orderNumber: this.generateOrderNumber(),
+      customerId: customer.id,
+      vendorId: cart.vendorId,
+      paymentMethod: dto.paymentMethod,
+      note: dto.note,
+      subtotal,
+      tax,
+      serviceFee,
+      totalAmount,
+      items: orderItems,
+    });
 
-  //   const order = await this.orderRepository.createOrderFromCart({
-  //     customerId: customer.id,
-  //     vendorId,
-  //     paymentMethod: dto.paymentMethod ?? PaymentMethod.COD,
-  //     subtotal,
-  //     tax,
-  //     serviceFee,
-  //     totalAmount,
-  //     note: dto.note,
-  //     estimatedReadyAt,
-  //     orderNumber,
-  //     cart,
-  //   });
-
-  //   if (!order) {
-  //     throw new BadRequestException('Failed to create order');
-  //   }
-
-  //   return OrderMapper.toCreateResponse(order);
-  // }
+    return OrderMapper.toCreateResponse(order);
+  }
 
   private generateOrderNumber(): string {
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `TC-${random}`;
+    return `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
   }
 }

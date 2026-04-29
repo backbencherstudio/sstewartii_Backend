@@ -78,6 +78,10 @@ export class CartService {
     return CartMapper.toResponse(updatedCart);
   }
 
+  async findCartById(cartId: string): Promise<any | null> {
+    return this.cartRepository.findCartById(cartId);
+  }
+
   private validateProductOptions(
     dto: AddCartItemDto,
     product: any,
