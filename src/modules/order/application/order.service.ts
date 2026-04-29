@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { PaymentMethod } from '@prisma/client';
 import type { IOrderRepository } from '../domain/interface/order.repository.interface';
 import { CreateOrderDto } from '../presentation/dto/create-order.dto';
 import { CreateOrderResponseDto } from '../presentation/dto/order.response.dto';
