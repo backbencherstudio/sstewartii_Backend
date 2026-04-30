@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, PaymentMethod } from '@prisma/client';
+import { Prisma, PaymentMethod, OrderStatus } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import type { CreateOrderFromCartInput, IOrderRepository } from '../../domain/interface/order.repository.interface';
 
@@ -108,6 +108,28 @@ export class OrderRepository implements IOrderRepository {
       },
       include: {
         customer: true,
+        vendor: {
+          include: {
+            serviceArea: true,
+          },
+        },
+      },
+    });
+  }
+
+  async cancelOrder(data: {
+    orderId: string;
+    cancelledAt: Date;
+  }): Promise<any> {
+    return this.prisma.order.update({
+      where: {
+        id: data.orderId,
+      },
+      data: {
+        status: OrderStatus.CANCELLED,
+        cancelledAt: data.cancelledAt,
+      },
+      include: {
         vendor: {
           include: {
             serviceArea: true,
