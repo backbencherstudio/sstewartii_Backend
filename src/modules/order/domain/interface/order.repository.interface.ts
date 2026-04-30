@@ -10,6 +10,7 @@ export interface CreateOrderFromCartInput {
   tax: number;
   serviceFee: number;
   totalAmount: number;
+  estimatedReadyAt: Date;
   items: CreateOrderItemInput[];
 }
 

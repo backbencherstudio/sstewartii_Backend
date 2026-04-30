@@ -56,6 +56,7 @@ export class OrderService {
     const tax = 0;
     const serviceFee = 0;
     const totalAmount = subtotal + tax + serviceFee;
+    const estimatedReadyAt = this.calculateEstimatedReadyAt(cart);
 
     const orderItems = cart.items.map((item: any) => {
       const sizePrice = item.sizeOption?.price ?? 0;
@@ -98,10 +99,30 @@ export class OrderService {
       tax,
       serviceFee,
       totalAmount,
+      estimatedReadyAt,
       items: orderItems,
     });
 
     return OrderMapper.toCreateResponse(order);
+  }
+  
+  private calculateEstimatedReadyAt(cart: any): Date {
+    const now = new Date();
+
+    const maxCookTime = Math.max(
+      ...cart.items.map((item: any) => item.product.estimateCookTime ?? 10),
+    );
+
+    const totalQuantity = cart.items.reduce(
+      (sum: number, item: any) => sum + item.quantity,
+      0,
+    );
+
+    const quantityBuffer = Math.ceil(totalQuantity / 5) * 5;
+
+    const estimatedMinutes = maxCookTime + quantityBuffer;
+
+    return new Date(now.getTime() + estimatedMinutes * 60 * 1000);
   }
 
   private generateOrderNumber(): string {

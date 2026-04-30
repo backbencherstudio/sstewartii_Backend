@@ -22,6 +22,7 @@ export class OrderRepository implements IOrderRepository {
           serviceFee: data.serviceFee,
           totalAmount: data.totalAmount,
           note: data.note,
+          estimatedReadyAt: data.estimatedReadyAt,
         },
       });
 
