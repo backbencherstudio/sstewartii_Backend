@@ -5,6 +5,7 @@ import {
   UseGuards,
   Get,
   Param,
+  Patch,
 } from '@nestjs/common';
 
 import { 
@@ -56,5 +57,16 @@ export class OrderController {
     @Param('orderId') orderId: string,
   ): Promise<OrderTrackResponseDto> {
     return this.orderService.getUserOrderTrack(user.id, orderId);
+  }
+
+  @Patch(':orderId/cancel')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ResponseMessage('Order cancelled successfully.')
+  async userCancelOrder(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+  ): Promise<OrderTrackResponseDto> {
+    return this.orderService.userCancelOrder(user.id, orderId);
   }
 }
