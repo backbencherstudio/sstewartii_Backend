@@ -6,6 +6,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 
+import { OrderStatus } from '@prisma/client';
+
 import type { IOrderRepository } from '../domain/interface/order.repository.interface';
 
 import { OrderMapper } from '../infrastructure/mapper/order.mapper';
@@ -175,5 +177,46 @@ export class OrderService {
 
       return OrderMapper.toTrackResponse(order);
     }
+
+  async userCancelOrder(
+    userId: string,
+    orderId: string,
+  ): Promise<OrderTrackResponseDto> {
+    const customer = await this.customerService.findActiveByUserId(userId);
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const order = await this.orderRepository.findOrderTrackById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.customerId !== customer.id) {
+      throw new ForbiddenException('You cannot cancel this order');
+    }
+
+    if (!this.canCustomerCancel(order.status)) {
+      throw new BadRequestException(
+        `Order cannot be cancelled when status is ${order.status}`,
+      );
+    }
+
+    const cancelledOrder = await this.orderRepository.cancelOrder({
+      orderId: order.id,
+      cancelledAt: new Date(),
+    });
+
+    return OrderMapper.toTrackResponse(cancelledOrder);
+  }
+
+  private canCustomerCancel(status: OrderStatus): boolean {
+    return (
+      status === OrderStatus.PENDING ||
+      status === OrderStatus.CONFIRMED
+    );
+  }
 
 }
