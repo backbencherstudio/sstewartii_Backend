@@ -7,7 +7,10 @@ import {
   Param,
 } from '@nestjs/common';
 
-import { OrderSummaryResponseDto } from '../dto/order.response.dto';
+import { 
+  OrderSummaryResponseDto,
+  OrderTrackResponseDto,
+} from '../dto/order.response.dto';
 
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
 import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interface';
@@ -43,5 +46,15 @@ export class OrderController {
     @Param('orderId') orderId: string,
   ): Promise<OrderSummaryResponseDto> {
     return this.orderService.getUserOrderSummary(user.id, orderId);
+  }
+
+  @Get(':orderId/track')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  async getUserOrderTrack(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+  ): Promise<OrderTrackResponseDto> {
+    return this.orderService.getUserOrderTrack(user.id, orderId);
   }
 }
