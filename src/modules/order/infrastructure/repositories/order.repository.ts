@@ -75,4 +75,28 @@ export class OrderRepository implements IOrderRepository {
       });
     });
   }
+
+  async findOrderSummaryById(orderId: string): Promise<any | null> {
+    return this.prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        vendor: {
+          include: {
+            serviceArea: true,
+          },
+        },
+        orderItems: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+          include: {
+            orderItemChoiceOption: true,
+            orderItemAddOn: true,
+          },
+        },
+      },
+    });
+  }
 }
