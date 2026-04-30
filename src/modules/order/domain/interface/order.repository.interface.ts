@@ -43,4 +43,9 @@ export interface IOrderRepository {
   findOrderSummaryById(orderId: string): Promise<any | null>;
 
   findOrderTrackById(orderId: string): Promise<any | null>;
+
+  cancelOrder(data: {
+    orderId: string;
+    cancelledAt: Date;
+  }): Promise<any>;
 }
