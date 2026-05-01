@@ -34,12 +34,9 @@ import { Role } from 'src/common/enums/role.enum';
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
-  @Get(':vendorId')
-  async getVendorTruckReviews(
-    @Param('vendorId') vendorId: string,
-    @Query() query: VendorTruckReviewsQueryDto,
-  ): Promise<VendorTruckReviewsResponseDto> {
-    return this.reviewService.getVendorTruckReviews(vendorId, query);
+  @Get('tags')
+  async getReviewTags(): Promise<VendorTruckReviewTagListResponseDto> {
+    return this.reviewService.getReviewTags();
   }
 
   @Post('create-truck-review')
@@ -55,8 +52,11 @@ export class ReviewController {
     return this.reviewService.createVendorTruckReview(user.id, dto, files);
   }
 
-  @Get('tags')
-  async getReviewTags(): Promise<VendorTruckReviewTagListResponseDto> {
-    return this.reviewService.getReviewTags();
+  @Get(':vendorId')
+  async getVendorTruckReviews(
+    @Param('vendorId') vendorId: string,
+    @Query() query: VendorTruckReviewsQueryDto,
+  ): Promise<VendorTruckReviewsResponseDto> {
+    return this.reviewService.getVendorTruckReviews(vendorId, query);
   }
 }

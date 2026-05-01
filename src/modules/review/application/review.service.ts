@@ -39,30 +39,10 @@ export class ReviewService {
     private readonly vendorTruckReviewMapper: VendorTruckReviewMapper,
   ) {}
 
-  async getVendorTruckReviews(
-    vendorId: string,
-    query: VendorTruckReviewsQueryDto,
-  ): Promise<VendorTruckReviewsResponseDto> {
-    const vendor = await this.reviewRepository.findVendorReviewSummary(vendorId);
+  async getReviewTags(): Promise<VendorTruckReviewTagListResponseDto> {
+    const tags = await this.reviewRepository.findAllTags();
 
-    if (!vendor) {
-      throw new NotFoundException('Vendor not found');
-    }
-
-    const [reviews, total] = await Promise.all([
-      this.reviewRepository.findVendorTruckReviews(vendorId, query),
-      this.reviewRepository.countVendorTruckReviews(vendorId),
-    ]);
-
-    return this.vendorTruckReviewMapper.toReviewListResponse({
-      vendorId: vendor.id,
-      reviewAverage: vendor.truckReviewAverage,
-      reviewCount: vendor.truckReviewCount,
-      reviews,
-      page: query.page ?? 1,
-      limit: query.limit ?? 10,
-      total,
-    });
+    return this.vendorTruckReviewMapper.toTagListResponse(tags);
   }
 
    async createVendorTruckReview(
@@ -127,9 +107,29 @@ export class ReviewService {
     return this.vendorTruckReviewMapper.toCreateResponse(review);
   }
 
-  async getReviewTags(): Promise<VendorTruckReviewTagListResponseDto> {
-    const tags = await this.reviewRepository.findAllTags();
+  async getVendorTruckReviews(
+    vendorId: string,
+    query: VendorTruckReviewsQueryDto,
+  ): Promise<VendorTruckReviewsResponseDto> {
+    const vendor = await this.reviewRepository.findVendorReviewSummary(vendorId);
 
-    return this.vendorTruckReviewMapper.toTagListResponse(tags);
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const [reviews, total] = await Promise.all([
+      this.reviewRepository.findVendorTruckReviews(vendorId, query),
+      this.reviewRepository.countVendorTruckReviews(vendorId),
+    ]);
+
+    return this.vendorTruckReviewMapper.toTruckReviewListResponse({
+      vendorId: vendor.id,
+      reviewAverage: vendor.truckReviewAverage,
+      reviewCount: vendor.truckReviewCount,
+      reviews,
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
+      total,
+    });
   }
 }
