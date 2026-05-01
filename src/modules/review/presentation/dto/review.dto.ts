@@ -1,19 +1,19 @@
+import { Transform } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
-  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Max,
   MaxLength,
   Min,
+  IsInt,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 
-export class CreateReviewDto {
+export class CreateVendorTruckReviewDto {
   @IsUUID()
-  orderId!: string;
+  vendorId!: string;
 
   @Transform(({ value }) => Number(value))
   @IsInt()
@@ -28,15 +28,17 @@ export class CreateReviewDto {
 
   @IsOptional()
   @Transform(({ value }) => {
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') {
-      try {
-        return JSON.parse(value);
-      } catch {
-        return [value];
-      }
+    if (!value) return [];
+
+    if (Array.isArray(value)) {
+      return value;
     }
-    return [];
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return [value];
+    }
   })
   @IsArray()
   @ArrayUnique()
