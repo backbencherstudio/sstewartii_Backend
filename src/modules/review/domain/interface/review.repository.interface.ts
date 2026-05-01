@@ -17,4 +17,11 @@ export interface IVendorTruckReviewRepository {
   validateTags(tagIds: string[]): Promise<{ id: string; name: string }[]>;
 
   createReview(data: CreateVendorTruckReviewInput): Promise<any>;
+
+  findAllTags(): Promise<
+    {
+      id: string;
+      name: string;
+    }[]
+  >;
 }
