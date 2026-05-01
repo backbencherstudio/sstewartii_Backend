@@ -23,3 +23,12 @@ export class CreateVendorTruckReviewResponseDto {
 
   createdAt!: Date;
 }
+
+export class VendorTruckReviewTagListItemResponseDto {
+  id!: string;
+  name!: string;
+}
+
+export class VendorTruckReviewTagListResponseDto {
+  items!: VendorTruckReviewTagListItemResponseDto[];
+}
