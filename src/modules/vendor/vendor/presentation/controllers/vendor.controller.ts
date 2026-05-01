@@ -88,12 +88,4 @@ export class VendorController {
   //   return this.VendorService.getTruckGallery(vendorId);
   // }
 
-  // @Public()
-  // @Get(':vendorId/reviews')
-  // async getVendorReviews(
-  //   @Param('vendorId') vendorId: string,
-  //   @Query() query: VendorReviewsQueryDto,
-  // ): Promise<VendorReviewsResponseDto> {
-  //   return this.VendorService.getVendorReviews(vendorId, query);
-  // }
 }

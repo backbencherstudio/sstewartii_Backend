@@ -200,46 +200,4 @@ export class VendorMapper {
       })),
     };
   }
-
-  static toVendorReviewsResponse(data: {
-    vendorId: string;
-    reviewAverage: number;
-    reviewCount: number;
-    reviews: any[];
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  }): VendorReviewsResponseDto {
-    return {
-      vendorId: data.vendorId,
-      reviewAverage: Number((data.reviewAverage ?? 0).toFixed(1)),
-      reviewCount: data.reviewCount ?? 0,
-      items: data.reviews.map((review) => ({
-        id: review.id,
-        customerId: review.customerId,
-        customerName:
-          review.customer?.user?.name ??
-          review.customer?.user?.email ??
-          'Customer',
-        customerAvatar: review.customer?.avatar ?? undefined,
-        rating: review.rating,
-        reviewText: review.reviewText ?? undefined,
-        createdAt: review.createdAt,
-        tags: (review.tags ?? []).map((entry: any) => ({
-          id: entry.tag.id,
-          name: entry.tag.name,
-        })),
-        images: (review.images ?? []).map((image: any) => ({
-          id: image.id,
-          imageUrl: image.imageUrl,
-          position: image.position,
-        })),
-      })),
-      page: data.page,
-      limit: data.limit,
-      total: data.total,
-      totalPages: data.totalPages,
-    };
-  }
 }

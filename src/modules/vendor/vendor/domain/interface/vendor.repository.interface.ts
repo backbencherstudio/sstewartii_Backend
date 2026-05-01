@@ -15,7 +15,7 @@ export interface IVendorRepository {
 
   findVendorInfoById(vendorId: string): Promise<any | null>;
 
-  // resetTruckGalleryPrimary(vendorId: string): Promise<void>;
+  resetTruckGalleryPrimary(vendorId: string): Promise<void>;
 
   createTruckGalleryImages(data: {
     vendorId: string;
@@ -45,7 +45,4 @@ export interface IVendorRepository {
   //   reviewCount: number;
   // } | null>;
 
-  findVendorReviewsByVendorId(
-    vendorId: string,
-  ): Promise<any[]>;
 }

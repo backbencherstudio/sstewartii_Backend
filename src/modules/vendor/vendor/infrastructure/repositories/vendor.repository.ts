@@ -148,12 +148,12 @@ export class VendorRepository implements IVendorRepository {
     });
   }
 
-  // async resetTruckGalleryPrimary(vendorId: string): Promise<void> {
-  //   await this.prisma.vendorTruckReviewImage.updateMany({
-  //     where: { vendorId },
-  //     data: { isPrimary: false },
-  //   });
-  // }
+  async resetTruckGalleryPrimary(vendorId: string): Promise<void> {
+    await this.prisma.truckGalleryImage.updateMany({
+      where: { vendorId },
+      data: { isPrimary: false },
+    });
+  }
 
   async createTruckGalleryImages(data: {
     vendorId: string;
@@ -224,35 +224,4 @@ export class VendorRepository implements IVendorRepository {
   //   });
   // }
 
-  async findVendorReviewsByVendorId(vendorId: string): Promise<any[]> {
-    return this.prisma.vendorTruckReview.findMany({
-      where: { vendorId },
-      include: {
-        customer: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-              },
-            },
-          },
-        },
-        images: {
-          orderBy: {
-            position: 'asc',
-          },
-        },
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-  }
 }
