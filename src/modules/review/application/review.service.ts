@@ -13,7 +13,10 @@ import type { IVendorTruckReviewRepository} from '../domain/interface/review.rep
 import { VendorTruckReviewMapper } from '../infrastructure/mapper/review.mapper';
 
 import { CreateVendorTruckReviewDto } from '../presentation/dto/review.dto';
-import { CreateVendorTruckReviewResponseDto } from '../presentation/dto/review.response.dto';
+import { 
+  CreateVendorTruckReviewResponseDto,
+  VendorTruckReviewTagListResponseDto,
+} from '../presentation/dto/review.response.dto';
 
 import type { IStorageService } from '@/common/storage/storage.interface';
 import { CustomerService } from '@/modules/customer/customer/application/customer.service';
@@ -92,5 +95,11 @@ export class ReviewService {
     });
 
     return this.vendorTruckReviewMapper.toCreateResponse(review);
+  }
+
+  async getReviewTags(): Promise<VendorTruckReviewTagListResponseDto> {
+    const tags = await this.reviewRepository.findAllTags();
+
+    return VendorTruckReviewMapper.toTagListResponse(tags);
   }
 }
