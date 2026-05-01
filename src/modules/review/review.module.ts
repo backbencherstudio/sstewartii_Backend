@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
-import { ReviewRepository } from './infrastructure/repositories/review.repository';
+import { VendorTruckReviewRepository } from './infrastructure/repositories/review.repository';
 
 import { ReviewController } from './presentation/controllers/review.controller';
 import { ReviewService } from './application/review.service';
@@ -18,8 +18,8 @@ import { VendorModule } from '../vendor/vendor/vendor.module';
     ReviewService,
     PrismaService,
     {
-      provide: 'IReviewRepository',
-      useClass: ReviewRepository,
+      provide: 'IVendorTruckReviewRepository',
+      useClass: VendorTruckReviewRepository,
     },
   ],
 })

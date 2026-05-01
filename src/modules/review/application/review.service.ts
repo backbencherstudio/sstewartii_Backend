@@ -22,7 +22,7 @@ import { VendorService } from '@/modules/vendor/vendor/application/vendor.servic
 @Injectable()
 export class ReviewService {
   constructor(
-    @Inject('IReviewRepository')
+    @Inject('IVendorTruckReviewRepository')
     private readonly reviewRepository: IVendorTruckReviewRepository,
 
     @Inject('IStorageService')

@@ -1,160 +1,120 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, OrderStatus } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { Prisma, OrderStatus } from '@prisma/client';
+
 import type {
-  CreateReviewInput,
-  IReviewRepository,
+  CreateVendorTruckReviewInput,
+  IVendorTruckReviewRepository,
 } from '../../domain/interface/review.repository.interface';
 
 @Injectable()
-export class ReviewRepository implements IReviewRepository {
+export class VendorTruckReviewRepository implements IVendorTruckReviewRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // async findCustomerByUserId(userId: string): Promise<{
-  //   id: string;
-  //   isActive: boolean;
-  // } | null> {
-  //   return this.prisma.customer.findUnique({
-  //     where: { userId },
-  //     select: {
-  //       id: true,
-  //       isActive: true,
-  //     },
-  //   });
-  // }
+  async findExistingReview(data: {
+    vendorId: string;
+    customerId: string;
+  }): Promise<{ id: string } | null> {
+    return this.prisma.vendorTruckReview.findUnique({
+      where: {
+        vendorId_customerId: {
+          vendorId: data.vendorId,
+          customerId: data.customerId,
+        },
+      },
+      select: { id: true },
+    });
+  }
 
-  // async findCompletedOrderForReview(orderId: string): Promise<{
-  //   id: string;
-  //   customerId: string;
-  //   vendorId: string;
-  //   status: string;
-  // } | null> {
-  //   const order = await this.prisma.order.findUnique({
-  //     where: { id: orderId },
-  //     select: {
-  //       id: true,
-  //       customerId: true,
-  //       vendorId: true,
-  //       status: true,
-  //     },
-  //   });
+  async validateTags(
+    tagIds: string[],
+  ): Promise<{ id: string; name: string }[]> {
+    if (!tagIds.length) {
+      return [];
+    }
 
-  //   if (!order) {
-  //     return null;
-  //   }
+    return this.prisma.vendorTruckReviewTag.findMany({
+      where: {
+        id: {
+          in: tagIds,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+  }
 
-  //   return {
-  //     ...order,
-  //     status: order.status,
-  //   };
-  // }
+  async createReview(data: CreateVendorTruckReviewInput): Promise<any> {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const review = await tx.vendorTruckReview.create({
+        data: {
+          vendorId: data.vendorId,
+          customerId: data.customerId,
+          rating: data.rating,
+          reviewText: data.reviewText,
+        },
+      });
 
-  // async findExistingReviewByOrderId(orderId: string): Promise<{
-  //   id: string;
-  // } | null> {
-  //   return this.prisma.vendorReview.findUnique({
-  //     where: { orderId },
-  //     select: { id: true },
-  //   });
-  // }
+      if (data.imageUrls?.length) {
+        await tx.vendorTruckReviewImage.createMany({
+          data: data.imageUrls.map((imageUrl, index) => ({
+            reviewId: review.id,
+            imageUrl,
+            position: index,
+          })),
+        });
+      }
 
-  // async validateReviewTagIds(tagIds: string[]): Promise<string[]> {
-  //   if (!tagIds.length) {
-  //     return [];
-  //   }
+      if (data.tagIds?.length) {
+        await tx.vendorTruckReviewTagMap.createMany({
+          data: data.tagIds.map((tagId) => ({
+            reviewId: review.id,
+            tagId,
+          })),
+        });
+      }
 
-  //   const tags = await this.prisma.reviewTag.findMany({
-  //     where: {
-  //       id: {
-  //         in: tagIds,
-  //       },
-  //     },
-  //     select: {
-  //       id: true,
-  //     },
-  //   });
+      const aggregate = await tx.vendorTruckReview.aggregate({
+        where: {
+          vendorId: data.vendorId,
+        },
+        _avg: {
+          rating: true,
+        },
+        _count: {
+          id: true,
+        },
+      });
 
-  //   return tags.map((tag) => tag.id);
-  // }
+      await tx.vendor.update({
+        where: {
+          id: data.vendorId,
+        },
+        data: {
+          truckReviewAverage: aggregate._avg.rating ?? 0,
+          truckReviewCount: aggregate._count.id,
+        },
+      });
 
-  // async createReview(input: CreateReviewInput): Promise<any> {
-  //   return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-  //     const review = await tx.vendorReview.create({
-  //       data: {
-  //         vendorId: input.vendorId,
-  //         customerId: input.customerId,
-  //         orderId: input.orderId,
-  //         rating: input.rating,
-  //         reviewText: input.reviewText,
-  //       },
-  //     });
-
-  //     if (input.imageUrls?.length) {
-  //       await tx.vendorReviewImage.createMany({
-  //         data: input.imageUrls.map((imageUrl, index) => ({
-  //           reviewId: review.id,
-  //           imageUrl,
-  //           position: index,
-  //         })),
-  //       });
-  //     }
-
-  //     if (input.tagIds?.length) {
-  //       await tx.vendorReviewTagMap.createMany({
-  //         data: input.tagIds.map((tagId) => ({
-  //           reviewId: review.id,
-  //           tagId,
-  //         })),
-  //       });
-  //     }
-
-  //     return tx.vendorReview.findUnique({
-  //       where: { id: review.id },
-  //       include: {
-  //         images: {
-  //           orderBy: { position: 'asc' },
-  //         },
-  //         tags: {
-  //           include: {
-  //             tag: true,
-  //           },
-  //         },
-  //       },
-  //     });
-  //   });
-  // }
-
-  // async getVendorReviewStats(vendorId: string): Promise<{
-  //   average: number;
-  //   count: number;
-  // }> {
-  //   const result = await this.prisma.vendorReview.aggregate({
-  //     where: { vendorId },
-  //     _avg: {
-  //       rating: true,
-  //     },
-  //     _count: {
-  //       id: true,
-  //     },
-  //   });
-
-  //   return {
-  //     average: result._avg.rating ?? 0,
-  //     count: result._count.id ?? 0,
-  //   };
-  // }
-
-  // async updateVendorReviewSummary(
-  //   vendorId: string,
-  //   average: number,
-  //   count: number,
-  // ): Promise<void> {
-  //   await this.prisma.vendor.update({
-  //     where: { id: vendorId },
-  //     data: {
-  //       reviewAverage: average,
-  //       reviewCount: count,
-  //     },
-  //   });
-  // }
+      return tx.vendorTruckReview.findUnique({
+        where: {
+          id: review.id,
+        },
+        include: {
+          images: {
+            orderBy: {
+              position: 'asc',
+            },
+          },
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+    });
+  }
 }

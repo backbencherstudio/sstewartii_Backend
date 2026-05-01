@@ -8,7 +8,6 @@ export interface CreateVendorTruckReviewInput {
 }
 
 export interface IVendorTruckReviewRepository {
-  findVendorById(vendorId: string): Promise<{ id: string } | null>;
 
   findExistingReview(data: {
     vendorId: string;
