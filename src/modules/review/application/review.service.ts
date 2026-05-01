@@ -8,7 +8,7 @@ import {
 
 import { OrderStatus } from '@prisma/client';
 
-import type { IReviewRepository} from '../domain/interface/review.repository.interface';
+import type { IVendorTruckReviewRepository} from '../domain/interface/review.repository.interface';
 
 import { ReviewMapper } from '../infrastructure/mapper/review.mapper';
 
@@ -23,7 +23,7 @@ import { VendorService } from '@/modules/vendor/vendor/application/vendor.servic
 export class ReviewService {
   constructor(
     @Inject('IReviewRepository')
-    private readonly reviewRepository: IReviewRepository,
+    private readonly reviewRepository: IVendorTruckReviewRepository,
 
     @Inject('IStorageService')
     private readonly storage: IStorageService,

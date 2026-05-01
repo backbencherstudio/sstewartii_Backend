@@ -1,42 +1,21 @@
-export interface CreateReviewInput {
+export interface CreateVendorTruckReviewInput {
   vendorId: string;
   customerId: string;
-  orderId: string;
   rating: number;
   reviewText?: string;
   imageUrls?: string[];
   tagIds?: string[];
 }
 
-export interface IReviewRepository {
-  // findCustomerByUserId(userId: string): Promise<{
-  //   id: string;
-  //   isActive: boolean;
-  // } | null>;
+export interface IVendorTruckReviewRepository {
+  findVendorById(vendorId: string): Promise<{ id: string } | null>;
 
-  // findCompletedOrderForReview(orderId: string): Promise<{
-  //   id: string;
-  //   customerId: string;
-  //   vendorId: string;
-  //   status: string;
-  // } | null>;
+  findExistingReview(data: {
+    vendorId: string;
+    customerId: string;
+  }): Promise<{ id: string } | null>;
 
-  // findExistingReviewByOrderId(orderId: string): Promise<{
-  //   id: string;
-  // } | null>;
+  validateTags(tagIds: string[]): Promise<{ id: string; name: string }[]>;
 
-  // validateReviewTagIds(tagIds: string[]): Promise<string[]>;
-
-  // createReview(input: CreateReviewInput): Promise<any>;
-
-  // getVendorReviewStats(vendorId: string): Promise<{
-  //   average: number;
-  //   count: number;
-  // }>;
-
-  // updateVendorReviewSummary(
-  //   vendorId: string,
-  //   average: number,
-  //   count: number,
-  // ): Promise<void>;
+  createReview(data: CreateVendorTruckReviewInput): Promise<any>;
 }
