@@ -6,14 +6,20 @@ import {
   UseInterceptors,
   UseGuards,
   Get,
+  Param,
+  Query,
 } from '@nestjs/common';
 
 import { FilesInterceptor } from '@nestjs/platform-express';
 
-import { CreateVendorTruckReviewDto } from '../dto/review.dto';
+import { 
+  CreateVendorTruckReviewDto,
+  VendorTruckReviewsQueryDto,
+ } from '../dto/review.dto';
 import { 
   CreateVendorTruckReviewResponseDto,
   VendorTruckReviewTagListResponseDto,
+  VendorTruckReviewsResponseDto,
 } from '../dto/review.response.dto';
 
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
@@ -27,6 +33,14 @@ import { Role } from 'src/common/enums/role.enum';
 @Controller('reviews')
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
+
+  @Get(':vendorId')
+  async getVendorTruckReviews(
+    @Param('vendorId') vendorId: string,
+    @Query() query: VendorTruckReviewsQueryDto,
+  ): Promise<VendorTruckReviewsResponseDto> {
+    return this.reviewService.getVendorTruckReviews(vendorId, query);
+  }
 
   @Post('create-truck-review')
   @UseGuards(RoleGuard)
