@@ -73,7 +73,7 @@ constructor(private readonly mediaService:MediaService){}
         reviewText: review.reviewText ?? undefined,
         images: (review.images ?? []).map((image: any) => ({
           id: image.id,
-          imageUrl: image.imageUrl,
+          imageUrl: this.mediaService.getUrl(image.imageUrl),
           position: image.position,
         })),
         tags: (review.tags ?? []).map((entry: any) => ({

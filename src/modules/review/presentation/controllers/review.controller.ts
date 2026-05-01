@@ -52,7 +52,7 @@ export class ReviewController {
     return this.reviewService.createVendorTruckReview(user.id, dto, files);
   }
 
-  @Get('get-truck-review/:vendorId')
+  @Get(':vendorId/get-truck-review')
   async getVendorTruckReviews(
     @Param('vendorId') vendorId: string,
     @Query() query: VendorTruckReviewsQueryDto,
