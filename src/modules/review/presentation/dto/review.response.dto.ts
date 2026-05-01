@@ -1,3 +1,47 @@
+export class VendorTruckReviewListTagResponseDto {
+  id!: string;
+  name!: string;
+}
+
+export class VendorTruckReviewListImageResponseDto {
+  id!: string;
+  imageUrl!: string;
+  position!: number;
+}
+
+export class VendorTruckReviewListCustomerResponseDto {
+  id!: string;
+  name!: string;
+  avatar?: string;
+}
+
+export class VendorTruckReviewListItemResponseDto {
+  id!: string;
+
+  customer!: VendorTruckReviewListCustomerResponseDto;
+
+  rating!: number;
+  reviewText?: string;
+
+  images!: VendorTruckReviewListImageResponseDto[];
+  tags!: VendorTruckReviewListTagResponseDto[];
+
+  createdAt!: Date;
+}
+
+export class VendorTruckReviewsResponseDto {
+  vendorId!: string;
+  reviewAverage!: number;
+  reviewCount!: number;
+
+  items!: VendorTruckReviewListItemResponseDto[];
+
+  page!: number;
+  limit!: number;
+  total!: number;
+  totalPages!: number;
+}
+
 export class VendorTruckReviewImageResponseDto {
   id!: string;
   imageUrl!: string;
