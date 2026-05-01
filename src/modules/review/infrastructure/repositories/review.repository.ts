@@ -117,4 +117,21 @@ export class VendorTruckReviewRepository implements IVendorTruckReviewRepository
       });
     });
   }
+  
+  async findAllTags(): Promise<
+    {
+      id: string;
+      name: string;
+    }[]
+  > {
+    return this.prisma.vendorTruckReviewTag.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
 }

@@ -100,6 +100,6 @@ export class ReviewService {
   async getReviewTags(): Promise<VendorTruckReviewTagListResponseDto> {
     const tags = await this.reviewRepository.findAllTags();
 
-    return VendorTruckReviewMapper.toTagListResponse(tags);
+    return this.vendorTruckReviewMapper.toTagListResponse(tags);
   }
 }

@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateVendorTruckReviewResponseDto } from '../../presentation/dto/review.response.dto';
+
+import { 
+  CreateVendorTruckReviewResponseDto,
+  VendorTruckReviewTagListResponseDto,
+ } from '../../presentation/dto/review.response.dto';
+
 import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
@@ -25,4 +30,19 @@ constructor(private readonly mediaService:MediaService){}
       createdAt: review.createdAt,
     };
   }
+
+  toTagListResponse(
+    tags: {
+      id: string;
+      name: string;
+    }[],
+  ): VendorTruckReviewTagListResponseDto {
+    return {
+      items: tags.map((tag) => ({
+        id: tag.id,
+        name: tag.name,
+      })),
+    };
+  }
+
 }
