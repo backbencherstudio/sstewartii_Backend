@@ -4,6 +4,7 @@ import {
   CreateVendorTruckReviewResponseDto,
   VendorTruckReviewTagListResponseDto,
   VendorTruckReviewsResponseDto,
+  CreateFoodReviewResponseDto,
  } from '../../presentation/dto/review.response.dto';
 
 import { MediaService } from '@/common/media/media.service';
@@ -86,6 +87,27 @@ constructor(private readonly mediaService:MediaService){}
       limit: data.limit,
       total: data.total,
       totalPages: data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
+    };
+  }
+
+  toCreateFoodResponse(review: any): CreateFoodReviewResponseDto {
+    return {
+      id: review.id,
+      productId: review.productId,
+      customerId: review.customerId,
+      orderItemId: review.orderItemId,
+      rating: review.rating,
+      reviewText: review.reviewText ?? undefined,
+      images: review.images.map((image: any) => ({
+        id: image.id,
+        imageUrl: this.mediaService.getUrl(image.imageUrl),
+        position: image.position,
+      })),
+      tags: review.tags.map((entry: any) => ({
+        id: entry.tag.id,
+        name: entry.tag.name,
+      })),
+      createdAt: review.createdAt,
     };
   }
 

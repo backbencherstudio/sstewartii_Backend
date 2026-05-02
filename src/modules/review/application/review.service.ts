@@ -178,7 +178,7 @@ export class ReviewService {
     const tagIds = dto.tagIds ?? [];
 
     if (tagIds.length) {
-      const tags = await this.reviewRepository.validatefoodReviewTags(tagIds);
+      const tags = await this.reviewRepository.foodReviewValidateTags(tagIds);
 
       if (tags.length !== tagIds.length) {
         throw new BadRequestException('One or more food review tags are invalid');
@@ -207,6 +207,6 @@ export class ReviewService {
       tagIds,
     });
 
-    return FoodReviewMapper.toCreateResponse(review);
+    return this.vendorTruckReviewMapper.toCreateFoodResponse(review);
   }
 }
