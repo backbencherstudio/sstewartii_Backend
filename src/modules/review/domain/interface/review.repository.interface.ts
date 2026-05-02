@@ -50,6 +50,13 @@ export interface IVendorTruckReviewRepository {
 
   countVendorTruckReviews(vendorId: string): Promise<number>;
 
+   findFoodAllTags(): Promise<
+    {
+      id: string;
+      name: string;
+    }[]
+  >;
+
   findOrderItemForReview(orderItemId: string): Promise<any | null>;
 
   findExistingReviewByOrderItem(

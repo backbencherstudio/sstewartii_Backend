@@ -77,6 +77,15 @@ export class VendorTruckReviewTagListResponseDto {
   items!: VendorTruckReviewTagListItemResponseDto[];
 }
 
+export class FoodReviewTagListItemResponseDto {
+  id!: string;
+  name!: string;
+}
+
+export class FoodReviewTagListResponseDto {
+  items!: FoodReviewTagListItemResponseDto[];
+}
+
 export class FoodReviewImageResponseDto {
   id!: string;
   imageUrl!: string;

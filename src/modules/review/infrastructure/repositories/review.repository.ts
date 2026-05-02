@@ -205,7 +205,24 @@ export class VendorTruckReviewRepository implements IVendorTruckReviewRepository
     });
   }
 
-   async findOrderItemForReview(orderItemId: string): Promise<any | null> {
+  async findFoodAllTags(): Promise<
+    {
+      id: string;
+      name: string;
+    }[]
+  > {
+    return this.prisma.vendorTruckReviewTag.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
+
+  async findOrderItemForReview(orderItemId: string): Promise<any | null> {
     return this.prisma.orderItem.findUnique({
       where: {
         id: orderItemId,

@@ -22,6 +22,7 @@ import {
   VendorTruckReviewTagListResponseDto,
   VendorTruckReviewsResponseDto,
   CreateFoodReviewResponseDto,
+  FoodReviewTagListResponseDto,
 } from '../presentation/dto/review.response.dto';
 
 import type { IStorageService } from '@/common/storage/storage.interface';
@@ -133,6 +134,12 @@ export class ReviewService {
       limit: query.limit ?? 10,
       total,
     });
+  }
+
+  async getReviewFoodTags(): Promise<FoodReviewTagListResponseDto> {
+    const tags = await this.reviewRepository.findFoodAllTags();
+
+    return this.vendorTruckReviewMapper.toTagListResponse(tags);
   }
 
   async createFoodReview(

@@ -62,6 +62,11 @@ export class ReviewController {
     return this.reviewService.getVendorTruckReviews(vendorId, query);
   }
 
+  @Get('food-tags')
+  async getReviewFoodTags(): Promise<VendorTruckReviewTagListResponseDto> {
+    return this.reviewService.getReviewFoodTags();
+  }
+
   @Post('create-food-review')
   @UseGuards(RoleGuard)
   @Roles(Role.USER)
