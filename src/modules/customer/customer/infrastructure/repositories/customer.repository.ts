@@ -12,6 +12,7 @@ import {
   FoodFilterQueryDto,
   FavoriteProductsQueryDto,
   FavoriteVendorsQueryDto,
+  CustomerAdvancedSearchQueryDto,
 } from '../../presentation/dto/customer.dto';
 
 @Injectable()
@@ -696,5 +697,321 @@ export class CustomerRepository implements ICustomerRepository {
         createdAt: 'desc',
       },
     });
+  }
+
+  async findFoodSearchCandidates(
+  query: CustomerAdvancedSearchQueryDto,
+): Promise<any[]> {
+  const search = query.search?.trim();
+  const category = query.category?.trim();
+  const cuisine = query.cuisine?.trim();
+
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    vendor: {
+      serviceArea: {
+        isNot: null,
+      },
+      ...(query.minRating !== undefined
+        ? {
+            truckReviewAverage: {
+              gte: query.minRating,
+            },
+          }
+        : {}),
+    },
+  };
+
+  const andConditions: Prisma.ProductWhereInput[] = [];
+
+  if (search) {
+    andConditions.push({
+      OR: [
+        {
+          name: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        {
+          description: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        {
+          vendor: {
+            businessName: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        },
+        {
+          vendor: {
+            cuisines: {
+              some: {
+                cuisine: {
+                  name: {
+                    contains: search,
+                    mode: Prisma.QueryMode.insensitive,
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          category: {
+            name: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  if (category && category.toLowerCase() !== 'all') {
+    andConditions.push({
+      category: {
+        name: {
+          contains: category,
+          mode: Prisma.QueryMode.insensitive,
+        },
+      },
+    });
+  }
+
+  if (cuisine && cuisine.toLowerCase() !== 'all') {
+    andConditions.push({
+      vendor: {
+        cuisines: {
+          some: {
+            cuisine: {
+              name: {
+                contains: cuisine,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
+  }
+
+  return this.prisma.product.findMany({
+    where,
+    include: {
+      category: true,
+      images: {
+        orderBy: { position: 'asc' },
+        take: 1,
+      },
+      vendor: {
+        include: {
+          serviceArea: true,
+          operationHours: true,
+          cuisines: {
+            include: {
+              cuisine: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+}
+
+  async findTruckSearchCandidates(
+    query: CustomerAdvancedSearchQueryDto,
+  ): Promise<any[]> {
+    const search = query.search?.trim();
+    const category = query.category?.trim();
+    const cuisine = query.cuisine?.trim();
+
+    const where: Prisma.VendorWhereInput = {
+      serviceArea: {
+        isNot: null,
+      },
+      ...(query.minRating !== undefined
+        ? {
+            truckReviewAverage: {
+              gte: query.minRating,
+            },
+          }
+        : {}),
+    };
+
+    const andConditions: Prisma.VendorWhereInput[] = [];
+
+    if (search) {
+      andConditions.push({
+        OR: [
+          {
+            businessName: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            cuisines: {
+              some: {
+                cuisine: {
+                  name: {
+                    contains: search,
+                    mode: Prisma.QueryMode.insensitive,
+                  },
+                },
+              },
+            },
+          },
+          {
+            products: {
+              some: {
+                isActive: true,
+                OR: [
+                  {
+                    name: {
+                      contains: search,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                  {
+                    description: {
+                      contains: search,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            categories: {
+              some: {
+                name: {
+                  contains: search,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (category && category.toLowerCase() !== 'all') {
+      andConditions.push({
+        OR: [
+          {
+            categories: {
+              some: {
+                name: {
+                  contains: category,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+          },
+          {
+            products: {
+              some: {
+                isActive: true,
+                category: {
+                  name: {
+                    contains: category,
+                    mode: Prisma.QueryMode.insensitive,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (cuisine && cuisine.toLowerCase() !== 'all') {
+      andConditions.push({
+        cuisines: {
+          some: {
+            cuisine: {
+              name: {
+                contains: cuisine,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    return this.prisma.vendor.findMany({
+      where,
+      include: {
+        serviceArea: true,
+        operationHours: true,
+        cuisines: {
+          include: {
+            cuisine: true,
+          },
+        },
+        products: {
+          where: {
+            isActive: true,
+          },
+          take: 1,
+          include: {
+            images: {
+              orderBy: {
+                position: 'asc',
+              },
+              take: 1,
+            },
+          },
+        },
+        truckGalleryImages: {
+          where: {
+            isPrimary: true,
+          },
+          take: 1,
+        },
+      },
+      orderBy: [
+        { truckReviewAverage: 'desc' },
+        { truckReviewCount: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+  }
+
+  async findFavoriteProductIds(customerId: string): Promise<string[]> {
+    const favorites = await this.prisma.favoriteProduct.findMany({
+      where: { customerId },
+      select: { productId: true },
+    });
+
+    return favorites.map((item) => item.productId);
+  }
+
+  async findFavoriteVendorIds(customerId: string): Promise<string[]> {
+    const favorites = await this.prisma.favoriteVendor.findMany({
+      where: { customerId },
+      select: { vendorId: true },
+    });
+
+    return favorites.map((item) => item.vendorId);
   }
 }
