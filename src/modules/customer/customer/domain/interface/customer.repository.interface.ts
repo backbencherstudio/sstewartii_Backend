@@ -6,6 +6,7 @@ import {
   FavoriteProductsQueryDto,
   TopPicksQueryDto,
   FavoriteVendorsQueryDto,
+  CustomerAdvancedSearchQueryDto,
  } from "../../presentation/dto/customer.dto";
 
 export interface ICustomerRepository {
@@ -75,8 +76,21 @@ export interface ICustomerRepository {
 
   removeFavoriteVendor(favoriteId: string): Promise<void>;
 
-   findFavoriteVendors(
+  findFavoriteVendors(
     customerId: string,
     query: FavoriteVendorsQueryDto,
   ): Promise<any[]>;
+
+  findFoodSearchCandidates(
+    query: CustomerAdvancedSearchQueryDto,
+  ): Promise<any[]>;
+
+  findTruckSearchCandidates(
+    query: CustomerAdvancedSearchQueryDto,
+  ): Promise<any[]>;
+
+  findFavoriteProductIds(customerId: string): Promise<string[]>;
+
+  findFavoriteVendorIds(customerId: string): Promise<string[]>;
+
 }
