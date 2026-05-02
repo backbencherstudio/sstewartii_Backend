@@ -803,7 +803,7 @@ export class CustomerService {
       type: 'FOOD',
       search: query.search,
       items: paginated.map((product) =>
-        CustomerMapper.toAdvancedFoodItem(product, favoriteSet),
+        this.mapper.toAdvancedFoodItem(product, favoriteSet),
       ),
       page,
       limit,
@@ -865,7 +865,7 @@ export class CustomerService {
       type: 'TRUCK',
       search: query.search,
       items: paginated.map((vendor) =>
-        CustomerMapper.toAdvancedTruckItem(vendor, favoriteSet),
+        this.mapper.toAdvancedTruckItem(vendor, favoriteSet),
       ),
       page,
       limit,

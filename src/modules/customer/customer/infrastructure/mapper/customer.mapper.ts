@@ -172,7 +172,7 @@ export class CustomerMapper {
     };
   }
 
-  static toAdvancedFoodItem(
+  toAdvancedFoodItem(
     product: any,
     favoriteProductIds: Set<string>,
   ): AdvancedSearchFoodItemResponseDto {
@@ -182,7 +182,7 @@ export class CustomerMapper {
       name: product.name,
       description: product.description,
       price: product.price,
-      image: product.images?.[0]?.url ?? undefined,
+      image: this.media.getUrl(product.images?.[0]?.url),
 
       vendorId: product.vendorId,
       vendorName: product.vendor?.businessName ?? 'Unnamed Vendor',
@@ -202,7 +202,7 @@ export class CustomerMapper {
     };
   }
 
-  static toAdvancedTruckItem(
+  toAdvancedTruckItem(
     vendor: any,
     favoriteVendorIds: Set<string>,
   ): AdvancedSearchTruckItemResponseDto {
@@ -210,12 +210,10 @@ export class CustomerMapper {
       type: 'TRUCK',
       id: vendor.id,
       businessName: vendor.businessName ?? 'Unnamed Vendor',
-      coverImage:
-        vendor.coverImage ??
+      coverImage: this.media.getUrl( vendor.coverImage ??
         vendor.truckGalleryImages?.[0]?.url ??
-        vendor.products?.[0]?.images?.[0]?.url ??
-        undefined,
-
+        vendor.products?.[0]?.images?.[0]?.url ),
+        
       cityLabel: CustomerMapper.extractCityLabel(vendor.serviceArea?.address),
       address: vendor.serviceArea?.address ?? undefined,
 
