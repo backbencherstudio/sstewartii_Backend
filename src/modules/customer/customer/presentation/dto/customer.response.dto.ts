@@ -172,3 +172,64 @@ export class FavoriteVendorsResponseDto {
   total!: number;
   totalPages!: number;
 }
+
+export class AdvancedSearchFoodItemResponseDto {
+  type!: 'FOOD';
+
+  id!: string;
+  name!: string;
+  description!: string;
+  price!: number;
+  image?: string;
+
+  vendorId!: string;
+  vendorName!: string;
+
+  categoryName?: string;
+  cuisines!: string[];
+
+  rating!: number;
+  reviewCount!: number;
+
+  distanceKm!: number;
+  isOpen!: boolean;
+  statusLabel!: string;
+
+  isFavorited!: boolean;
+}
+
+export class AdvancedSearchTruckItemResponseDto {
+  type!: 'TRUCK';
+
+  id!: string;
+  businessName!: string;
+  coverImage?: string;
+
+  cityLabel?: string;
+  address?: string;
+
+  cuisines!: string[];
+
+  rating!: number;
+  reviewCount!: number;
+
+  distanceKm!: number;
+  isOpen!: boolean;
+  statusLabel!: string;
+
+  isFavorited!: boolean;
+}
+
+export class CustomerAdvancedSearchResponseDto {
+  type!: 'FOOD' | 'TRUCK';
+  search?: string;
+
+  items!: Array<
+    AdvancedSearchFoodItemResponseDto | AdvancedSearchTruckItemResponseDto
+  >;
+
+  page!: number;
+  limit!: number;
+  total!: number;
+  totalPages!: number;
+}
