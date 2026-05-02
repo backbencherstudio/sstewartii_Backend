@@ -9,9 +9,11 @@ import {
   FoodCardResponseDto,
   FavoriteProductItemResponseDto,
   FavoriteVendorItemResponseDto,
+  AdvancedSearchFoodItemResponseDto,
+  AdvancedSearchTruckItemResponseDto,
+  TopPickProductCardResponseDto,
 } from '../../presentation/dto/customer.response.dto';
 
-import { TopPickProductCardResponseDto } from '../../presentation/dto/customer.response.dto';
 import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
@@ -43,16 +45,6 @@ export class CustomerMapper {
       rating: Number((vendor.reviewAverage ?? 0).toFixed(1)),
       reviewCount: vendor.reviewCount ?? 0,
     };
-  }
-
-  private static extractCityLabel(
-    address?: string | null,
-  ): string | undefined {
-    if (!address) {
-      return undefined;
-    }
-
-    return address.split(',')[0]?.trim() || undefined;
   }
 
   toTopPickProductCard(product: any): TopPickProductCardResponseDto {
@@ -178,5 +170,73 @@ export class CustomerMapper {
 
       isFavorited: true,
     };
+  }
+
+  static toAdvancedFoodItem(
+    product: any,
+    favoriteProductIds: Set<string>,
+  ): AdvancedSearchFoodItemResponseDto {
+    return {
+      type: 'FOOD',
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      image: product.images?.[0]?.url ?? undefined,
+
+      vendorId: product.vendorId,
+      vendorName: product.vendor?.businessName ?? 'Unnamed Vendor',
+
+      categoryName: product.category?.name ?? undefined,
+      cuisines:
+        product.vendor?.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+
+      rating: Number((product.foodReviewAverage ?? 0).toFixed(1)),
+      reviewCount: product.foodReviewCount ?? 0,
+
+      distanceKm: Number(product.distanceKm.toFixed(1)),
+      isOpen: product.availability?.isOpen ?? false,
+      statusLabel: product.availability?.label ?? 'Unknown',
+
+      isFavorited: favoriteProductIds.has(product.id),
+    };
+  }
+
+  static toAdvancedTruckItem(
+    vendor: any,
+    favoriteVendorIds: Set<string>,
+  ): AdvancedSearchTruckItemResponseDto {
+    return {
+      type: 'TRUCK',
+      id: vendor.id,
+      businessName: vendor.businessName ?? 'Unnamed Vendor',
+      coverImage:
+        vendor.coverImage ??
+        vendor.truckGalleryImages?.[0]?.url ??
+        vendor.products?.[0]?.images?.[0]?.url ??
+        undefined,
+
+      cityLabel: CustomerMapper.extractCityLabel(vendor.serviceArea?.address),
+      address: vendor.serviceArea?.address ?? undefined,
+
+      cuisines: vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+
+      rating: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
+      reviewCount: vendor.truckReviewCount ?? 0,
+
+      distanceKm: Number(vendor.distanceKm.toFixed(1)),
+      isOpen: vendor.availability?.isOpen ?? false,
+      statusLabel: vendor.availability?.label ?? 'Unknown',
+
+      isFavorited: favoriteVendorIds.has(vendor.id),
+    };
+  }
+
+  private static extractCityLabel(address?: string | null): string | undefined {
+    if (!address) {
+      return undefined;
+    }
+
+    return address.split(',')[0]?.trim() || undefined;
   }
 }
