@@ -76,3 +76,30 @@ export class VendorTruckReviewTagListItemResponseDto {
 export class VendorTruckReviewTagListResponseDto {
   items!: VendorTruckReviewTagListItemResponseDto[];
 }
+
+export class FoodReviewImageResponseDto {
+  id!: string;
+  imageUrl!: string;
+  position!: number;
+}
+
+export class FoodReviewTagResponseDto {
+  id!: string;
+  name!: string;
+}
+
+export class CreateFoodReviewResponseDto {
+  id!: string;
+
+  productId!: string;
+  customerId!: string;
+  orderItemId!: string;
+
+  rating!: number;
+  reviewText?: string;
+
+  images!: FoodReviewImageResponseDto[];
+  tags!: FoodReviewTagResponseDto[];
+
+  createdAt!: Date;
+}

@@ -60,3 +60,38 @@ export class VendorTruckReviewsQueryDto {
   @Max(50)
   limit?: number = 10;
 }
+
+export class CreateFoodReviewDto {
+  @IsUUID()
+  orderItemId!: string;
+
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reviewText?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (!value) return [];
+
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return [value];
+    }
+  })
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  tagIds?: string[];
+}
