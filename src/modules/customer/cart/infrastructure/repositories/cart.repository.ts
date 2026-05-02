@@ -163,12 +163,12 @@ export class CartRepository implements ICartRepository {
           include: {
             serviceArea: true,
             operationHours: true,
-            // truckGalleryImages: {
-            //   where: {
-            //     isPrimary: true,
-            //   },
-            //   take: 1,
-            // },
+            truckGalleryImages: {
+              where: {
+                isPrimary: true,
+              },
+              take: 1,
+            },
           },
         },
         items: {
