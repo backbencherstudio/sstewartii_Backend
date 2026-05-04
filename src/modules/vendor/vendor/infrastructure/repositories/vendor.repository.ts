@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient, OrderStatus } from '@prisma/client';
 
 import { IVendorRepository } from '../../domain/interface/vendor.repository.interface';
 import { Vendor } from '../../domain/entities/vendor.entity';
@@ -209,4 +209,93 @@ export class VendorRepository implements IVendorRepository {
   //   });
   // }
 
+  async findVendorHomeByOwnerId(ownerId: string): Promise<any | null> {
+  return this.prisma.vendor.findUnique({
+    where: {
+      ownerId,
+    },
+    include: {
+      serviceArea: true,
+      vendorVerification: true,
+      owner: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+  async getVendorTodayStats(data: {
+    vendorId: string;
+    startOfDay: Date;
+    endOfDay: Date;
+  }): Promise<{
+    todaySale: number;
+    ordersCompleted: number;
+    pendingOrders: number;
+    cancelledOrders: number;
+  }> {
+    const [completedAggregate, ordersCompleted, pendingOrders, cancelledOrders] =
+      await Promise.all([
+        this.prisma.order.aggregate({
+          where: {
+            vendorId: data.vendorId,
+            status: OrderStatus.COMPLETED,
+            completedAt: {
+              gte: data.startOfDay,
+              lte: data.endOfDay,
+            },
+          },
+          _sum: {
+            totalAmount: true,
+          },
+        }),
+
+        this.prisma.order.count({
+          where: {
+            vendorId: data.vendorId,
+            status: OrderStatus.COMPLETED,
+            completedAt: {
+              gte: data.startOfDay,
+              lte: data.endOfDay,
+            },
+          },
+        }),
+
+        this.prisma.order.count({
+          where: {
+            vendorId: data.vendorId,
+            status: {
+              in: [
+                OrderStatus.PENDING,
+                OrderStatus.CONFIRMED,
+                OrderStatus.PREPARING,
+                OrderStatus.READY_FOR_PICKUP,
+              ],
+            },
+          },
+        }),
+
+        this.prisma.order.count({
+          where: {
+            vendorId: data.vendorId,
+            status: OrderStatus.CANCELLED,
+            cancelledAt: {
+              gte: data.startOfDay,
+              lte: data.endOfDay,
+            },
+          },
+        }),
+      ]);
+
+    return {
+      todaySale: completedAggregate._sum.totalAmount ?? 0,
+      ordersCompleted,
+      pendingOrders,
+      cancelledOrders,
+    };
+  }
 }
