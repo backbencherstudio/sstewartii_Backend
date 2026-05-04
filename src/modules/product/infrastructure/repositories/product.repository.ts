@@ -39,7 +39,11 @@ export class ProductRepository implements IProductRepository {
         isActive: true,
       },
       include: {
-        sizeOptions: true,
+        sizeOptions: {
+          orderBy: {
+            price: 'asc',
+          },
+        },
         choiceOptions: true,
         addOns: true,
       },

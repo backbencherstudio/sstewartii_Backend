@@ -34,7 +34,7 @@ export class CartService {
     private readonly mediaService: MediaService,
   ) {}
 
- async addItems(
+  async addItems(
     userId: string,
     dto: AddCartItemsDto,
   ): Promise<CartResponseDto> {
@@ -73,7 +73,7 @@ export class CartService {
 
     const vendorId = products[0].vendorId;
 
-    for (const item of normalizedItems) {
+    const itemsWithResolvedOptions = normalizedItems.map((item) => {
       const product = productMap.get(item.productId);
 
       if (!product) {
@@ -82,34 +82,48 @@ export class CartService {
         );
       }
 
-      this.validateProductOptions(item, product);
-    }
+      const sizeOptionId = this.resolveSizeOptionId(
+        item.sizeOptionId,
+        product,
+      );
+
+      const resolvedItem: AddCartItemPayloadDto = {
+        ...item,
+        sizeOptionId,
+      };
+
+      this.validateProductOptions(resolvedItem, product);
+
+      return resolvedItem;
+    });
 
     const cart = await this.cartRepository.findOrCreateCart({
       customerId: customer.id,
       vendorId,
     });
 
-    const createInputs: CreateCartItemInput[] = normalizedItems.map((item) => {
-      const product = productMap.get(item.productId);
+    const createInputs: CreateCartItemInput[] = itemsWithResolvedOptions.map(
+      (item) => {
+        const product = productMap.get(item.productId);
 
-      if (!product) {
-        throw new NotFoundException(
-          `Product not found or inactive: ${item.productId}`,
-        );
-      }
+        if (!product) {
+          throw new NotFoundException(
+            `Product not found or inactive: ${item.productId}`,
+          );
+        }
 
-      return {
-        cartId: cart.id,
-        productId: product.id,
-        quantity: item.quantity,
-        price: product.price,
-        sizeOptionId: item.sizeOptionId,
-        note: item.note,
-        choiceOptionIds: item.choiceOptionIds,
-        addOnIds: item.addOnIds,
-      };
-    });
+        return {
+          cartId: cart.id,
+          productId: product.id,
+          quantity: item.quantity,
+          price: product.price,
+          sizeOptionId: item.sizeOptionId,
+          note: item.note,
+          choiceOptionIds: item.choiceOptionIds,
+          addOnIds: item.addOnIds,
+        };
+      },
+    );
 
     await this.cartRepository.createCartItems(createInputs);
 
@@ -126,6 +140,39 @@ export class CartService {
 
   async findCartById(cartId: string): Promise<any | null> {
     return this.cartRepository.findCartById(cartId);
+  }
+
+  private resolveSizeOptionId(
+    requestedSizeOptionId: string | undefined,
+    product: any,
+  ): string | undefined {
+    if (requestedSizeOptionId) {
+      return requestedSizeOptionId;
+    }
+
+    const sizeOptions = product.sizeOptions ?? [];
+
+    if (!sizeOptions.length) {
+      return undefined;
+    }
+
+    const requiredSizeOptions = sizeOptions.filter(
+      (option: any) => option.isRequired === true,
+    );
+
+    if (requiredSizeOptions.length) {
+      const defaultRequiredSize = [...requiredSizeOptions].sort(
+        (a: any, b: any) => a.price - b.price,
+      )[0];
+
+      return defaultRequiredSize.id;
+    }
+
+    const cheapestSize = [...sizeOptions].sort(
+      (a: any, b: any) => a.price - b.price,
+    )[0];
+
+    return cheapestSize.id;
   }
 
   private assertProductsFound<T>(
@@ -160,8 +207,20 @@ export class CartService {
     dto: AddCartItemPayloadDto,
     product: any,
   ): void {
+    const sizeOptions = product.sizeOptions ?? [];
+
+    const hasRequiredSize = sizeOptions.some(
+      (item: any) => item.isRequired === true,
+    );
+
+    if (hasRequiredSize && !dto.sizeOptionId) {
+      throw new BadRequestException(
+        `Size option is required for product ${product.name}`,
+      );
+    }
+
     if (dto.sizeOptionId) {
-      const validSize = product.sizeOptions.some(
+      const validSize = sizeOptions.some(
         (item: any) => item.id === dto.sizeOptionId,
       );
 
