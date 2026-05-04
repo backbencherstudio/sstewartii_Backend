@@ -1,5 +1,9 @@
-import {Injectable} from '@nestjs/common'
-import { Vendor } from '../../domain/entities/vendor.entity';
+import {Injectable} from '@nestjs/common';
+import {
+  KycStatus,
+  SubscriptionStatus,
+  VerificationStatus,
+} from '@prisma/client';
 
 import { 
    VendorMenuResponseDto,
@@ -9,8 +13,10 @@ import {
 import { 
   UploadTruckGalleryResponseDto,
   TruckGalleryResponseDto,
+  VendorHomeResponseDto,
 } from '../../presentation/dto/vendor.response.dto';
 
+import { Vendor } from '../../domain/entities/vendor.entity';
 import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
@@ -197,6 +203,84 @@ export class VendorMapper {
         position: image.position,
         createdAt: image.createdAt,
       })),
+    };
+  }
+
+  static toVendorHomeResponse(data: {
+    vendor: any;
+    stats: {
+      todaySale: number;
+      ordersCompleted: number;
+      pendingOrders: number;
+      cancelledOrders: number;
+    };
+    unreadNotificationCount: number;
+    isLive: boolean;
+  }): VendorHomeResponseDto {
+    const vendor = data.vendor;
+
+    const kycApproved = vendor.kycStatus === KycStatus.APPROVED;
+
+    const businessApproved =
+      vendor.vendorVerification?.status === VerificationStatus.APPROVED;
+
+    const subscriptionActive =
+      vendor.subscriptionStatus === SubscriptionStatus.ACTIVE;
+
+    const canGoLive = kycApproved && businessApproved && subscriptionActive;
+
+    const actionRequired = !canGoLive;
+
+    return {
+      vendor: {
+        id: vendor.id,
+        businessName: vendor.businessName ?? 'Unnamed Vendor',
+        coverImage: vendor.coverImage ?? undefined,
+        address: vendor.serviceArea?.address ?? undefined,
+        latitude: vendor.serviceArea?.latitude ?? undefined,
+        longitude: vendor.serviceArea?.longitude ?? undefined,
+      },
+
+      verification: {
+        isLimitedMode: !canGoLive,
+        kycStatus: vendor.kycStatus,
+        businessVerificationStatus:
+          vendor.vendorVerification?.status ?? undefined,
+        subscriptionStatus: vendor.subscriptionStatus,
+        onboardingStep: vendor.onboardingStep,
+        actionRequired,
+        title: actionRequired ? 'Action Required' : undefined,
+        message: actionRequired
+          ? 'Your account is currently in "Limited Mode". To start accepting order requests and accessing the marketplace, please complete your identity and fleet verification.'
+          : undefined,
+        buttonText: actionRequired ? 'Complete Verification' : undefined,
+      },
+
+      liveStatus: {
+        canGoLive,
+        isLive: canGoLive ? data.isLive : false,
+        disabledReason: canGoLive
+          ? undefined
+          : 'Verify account to toggle status',
+      },
+
+      stats: {
+        todaySale: Number(data.stats.todaySale.toFixed(2)),
+        ordersCompleted: data.stats.ordersCompleted,
+        pendingOrders: data.stats.pendingOrders,
+        cancelledOrders: data.stats.cancelledOrders,
+      },
+
+      currentLocation: vendor.serviceArea
+        ? {
+            address: vendor.serviceArea.address ?? undefined,
+            latitude: vendor.serviceArea.latitude,
+            longitude: vendor.serviceArea.longitude,
+            radius: vendor.serviceArea.radius,
+          }
+        : undefined,
+
+      unreadNotificationCount: data.unreadNotificationCount,
     };
   }
 }
