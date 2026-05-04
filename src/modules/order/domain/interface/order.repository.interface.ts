@@ -48,4 +48,6 @@ export interface IOrderRepository {
     orderId: string;
     cancelledAt: Date;
   }): Promise<any>;
+
+  findActiveOrdersByVendorId(vendorId: string): Promise<any[]>;
 }
