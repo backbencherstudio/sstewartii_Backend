@@ -5,9 +5,8 @@ import {
   OrderSummaryResponseDto,
   OrderTrackResponseDto,
   OrderTrackStepDto,
+  VendorActiveOrdersResponseDto,
 } from '../../presentation/dto/order.response.dto';
-
-
 
 export class OrderMapper {
 
@@ -218,5 +217,116 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       status === OrderStatus.PENDING ||
       status === OrderStatus.CONFIRMED
     );
+  }
+
+  static toVendorActiveOrdersResponse(
+    orders: any[],
+  ): VendorActiveOrdersResponseDto {
+    return {
+      total: orders.length,
+      items: orders.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+
+        customer: {
+          id: order.customer.id,
+          name:
+            order.customer.user?.name ??
+            order.customer.user?.email ??
+            'Customer',
+          avatar: order.customer.avatar ?? undefined,
+        },
+
+        items: order.orderItems.map((item: any) => ({
+          id: item.id,
+          productName: item.productName,
+          quantity: item.quantity,
+          sizeName: item.sizeName ?? undefined,
+          lineTotal: item.lineTotal,
+        })),
+
+        itemCount: order.orderItems.reduce(
+          (sum: number, item: any) => sum + item.quantity,
+          0,
+        ),
+
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        estimatedReadyAt: order.estimatedReadyAt ?? null,
+
+        statusLabel: OrderMapper.getVendorOrderStatusLabel(order.status),
+        actionLabel: OrderMapper.getVendorOrderActionLabel(order.status),
+        timeLabel: OrderMapper.getVendorOrderTimeLabel(order),
+      })),
+    };
+  }
+
+  private static getVendorOrderStatusLabel(status: OrderStatus): string {
+    switch (status) {
+      case OrderStatus.PENDING:
+        return 'New Order';
+
+      case OrderStatus.CONFIRMED:
+      case OrderStatus.PREPARING:
+        return 'Preparing';
+
+      case OrderStatus.READY_FOR_PICKUP:
+        return 'Ready For Pickup';
+
+      default:
+        return status;
+    }
+  }
+
+  private static getVendorOrderActionLabel(status: OrderStatus): string {
+    switch (status) {
+      case OrderStatus.PENDING:
+        return 'Accept Order';
+
+      case OrderStatus.CONFIRMED:
+      case OrderStatus.PREPARING:
+        return 'Ready for pickup';
+
+      case OrderStatus.READY_FOR_PICKUP:
+        return 'Complete Order';
+
+      default:
+        return 'View Details';
+    }
+  }
+
+  private static getVendorOrderTimeLabel(order: any): string {
+    if (order.status === OrderStatus.PENDING) {
+      return OrderMapper.formatTime(order.createdAt);
+    }
+
+    if (
+      order.status === OrderStatus.CONFIRMED ||
+      order.status === OrderStatus.PREPARING
+    ) {
+      return order.estimatedReadyAt
+        ? `${OrderMapper.diffMinutesFromNow(order.estimatedReadyAt)} min left`
+        : 'Preparing';
+    }
+
+    if (order.status === OrderStatus.READY_FOR_PICKUP) {
+      return 'Ready now';
+    }
+
+    return '';
+  }
+
+  private static formatTime(date: Date): string {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(new Date(date));
+  }
+
+  private static diffMinutesFromNow(date: Date): number {
+    const diffMs = new Date(date).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diffMs / 60000));
   }
 }
