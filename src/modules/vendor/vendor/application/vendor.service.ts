@@ -18,6 +18,7 @@ import {
   UploadTruckGalleryResponseDto,
   VendorInfoResponseDto,
   TruckGalleryResponseDto,
+  VendorHomeResponseDto,
  } from '../presentation/dto/vendor.response.dto';
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
@@ -247,5 +248,50 @@ export class VendorService {
     });
 
     return VendorMapper.toUploadTruckGalleryResponse();
+  }
+
+  async getVendorHome(ownerId: string): Promise<VendorHomeResponseDto> {
+    const vendor = await this.vendorRepository.findVendorHomeByOwnerId(ownerId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const { startOfDay, endOfDay } = this.getTodayRange();
+
+    const stats = await this.vendorRepository.getVendorTodayStats({
+      vendorId: vendor.id,
+      startOfDay,
+      endOfDay,
+    });
+
+    const isLive = false;
+    
+    const unreadNotificationCount = 0;
+
+    return VendorMapper.toVendorHomeResponse({
+      vendor,
+      stats,
+      unreadNotificationCount,
+      isLive,
+    });
+  }
+
+  private getTodayRange(): {
+    startOfDay: Date;
+    endOfDay: Date;
+  } {
+    const now = new Date();
+
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return {
+      startOfDay,
+      endOfDay,
+    };
   }
 }
