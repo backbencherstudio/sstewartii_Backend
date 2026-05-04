@@ -164,3 +164,42 @@ export class OrderTrackResponseDto {
 
   totalAmount!: number;
 }
+
+export class VendorActiveOrderCustomerDto {
+  id!: string;
+  name!: string;
+  avatar?: string;
+}
+
+export class VendorActiveOrderItemDto {
+  id!: string;
+  productName!: string;
+  quantity!: number;
+  sizeName?: string;
+  lineTotal!: number;
+}
+
+export class VendorActiveOrderListItemDto {
+  id!: string;
+  orderNumber!: string;
+  status!: OrderStatus;
+
+  customer!: VendorActiveOrderCustomerDto;
+
+  items!: VendorActiveOrderItemDto[];
+
+  itemCount!: number;
+  totalAmount!: number;
+
+  createdAt!: Date;
+  estimatedReadyAt?: Date | null;
+
+  statusLabel!: string;
+  actionLabel!: string;
+  timeLabel!: string;
+}
+
+export class VendorActiveOrdersResponseDto {
+  total!: number;
+  items!: VendorActiveOrderListItemDto[];
+}
