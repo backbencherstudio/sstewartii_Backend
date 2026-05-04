@@ -77,3 +77,59 @@ export class TruckGalleryResponseDto {
   items!: TruckGalleryImageResponseDto[];
 }
 
+import {
+  KycStatus,
+  SubscriptionStatus,
+  VerificationStatus,
+} from '@prisma/client';
+
+export class VendorHomeProfileDto {
+  id!: string;
+  businessName!: string;
+  coverImage?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export class VendorHomeVerificationDto {
+  isLimitedMode!: boolean;
+  kycStatus!: KycStatus;
+  businessVerificationStatus?: VerificationStatus;
+  subscriptionStatus!: SubscriptionStatus;
+  onboardingStep!: number;
+  actionRequired!: boolean;
+  title?: string;
+  message?: string;
+  buttonText?: string;
+}
+
+export class VendorHomeLiveStatusDto {
+  canGoLive!: boolean;
+  isLive!: boolean;
+  disabledReason?: string;
+}
+
+export class VendorHomeStatsDto {
+  todaySale!: number;
+  ordersCompleted!: number;
+  pendingOrders!: number;
+  cancelledOrders!: number;
+}
+
+export class VendorHomeLocationDto {
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+}
+
+export class VendorHomeResponseDto {
+  vendor!: VendorHomeProfileDto;
+  verification!: VendorHomeVerificationDto;
+  liveStatus!: VendorHomeLiveStatusDto;
+  stats!: VendorHomeStatsDto;
+  currentLocation?: VendorHomeLocationDto;
+  unreadNotificationCount!: number;
+}
+
