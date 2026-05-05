@@ -181,4 +181,41 @@ export class OrderRepository implements IOrderRepository {
       ],
     });
   }
+
+  async findVendorOrderDetailById(orderId: string): Promise<any | null> {
+    return this.prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        customer: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        vendor: {
+          select: {
+            id: true,
+            ownerId: true,
+            businessName: true,
+          },
+        },
+        orderItems: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+          include: {
+            orderItemChoiceOption: true,
+            orderItemAddOn: true,
+          },
+        },
+      },
+    });
+  }
 }
