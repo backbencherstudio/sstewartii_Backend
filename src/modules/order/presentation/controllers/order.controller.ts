@@ -117,4 +117,16 @@ export class OrderController {
   ): Promise<VendorOrderActionResponseDto> {
     return this.orderService.acceptVendorOrder(user.id, orderId);
   }
+
+  @Patch('vendor/:orderId/ready-for-pickup')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Order marked as ready for pickup.')
+  async markVendorOrderReadyForPickup(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+  ): Promise<VendorOrderActionResponseDto> {
+    return this.orderService.markVendorOrderReadyForPickup(user.id, orderId);
+  }
+
 } 
