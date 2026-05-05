@@ -326,4 +326,29 @@ export class OrderRepository implements IOrderRepository {
       },
     });
   }
+
+  async markVendorOrderReadyForPickup(data: {
+    orderId: string;
+    readyAt: Date;
+  }): Promise<any> {
+    return this.prisma.order.update({
+      where: {
+        id: data.orderId,
+      },
+      data: {
+        status: OrderStatus.READY_FOR_PICKUP,
+        readyAt: data.readyAt,
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        confirmedAt: true,
+        preparingAt: true,
+        readyAt: true,
+        completedAt: true,
+        cancelledAt: true,
+      },
+    });
+  }
 }
