@@ -168,6 +168,10 @@ export class OrderRepository implements IOrderRepository {
           orderBy: {
             createdAt: 'asc',
           },
+          include: {
+            orderItemChoiceOption: true,
+            orderItemAddOn: true,
+          },
         },
       },
       orderBy: [
