@@ -20,6 +20,7 @@ import {
   VendorActiveOrdersResponseDto,
   VendorOrderDetailResponseDto,
   CancelVendorOrderResponseDto,
+  VendorOrderActionResponseDto,
 } from '../presentation/dto/order.response.dto';
 
 import { CustomerService } from '@/modules/customer/customer/application/customer.service';
@@ -302,6 +303,43 @@ export class OrderService {
     return (
       status === OrderStatus.PENDING ||
       status === OrderStatus.CONFIRMED
+    );
+  }
+
+  async acceptVendorOrder(
+    userId: string,
+    orderId: string,
+  ): Promise<VendorOrderActionResponseDto> {
+    const vendor = await this.vendorService.execute(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const order = await this.orderRepository.findVendorOrderForAction(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.vendorId !== vendor.id) {
+      throw new ForbiddenException('You cannot accept this order');
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException(
+        `Order cannot be accepted when status is ${order.status}`,
+      );
+    }
+
+    const acceptedOrder = await this.orderRepository.acceptVendorOrder({
+      orderId: order.id,
+      confirmedAt: new Date(),
+    });
+
+    return this.orderMapper.toVendorOrderActionResponse(
+      acceptedOrder,
+      'Order accepted successfully.',
     );
   }
 }
