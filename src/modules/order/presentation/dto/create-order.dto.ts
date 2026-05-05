@@ -13,3 +13,10 @@ export class CreateOrderDto {
   @MaxLength(500)
   note?: string;
 }
+
+export class CancelOrderDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
