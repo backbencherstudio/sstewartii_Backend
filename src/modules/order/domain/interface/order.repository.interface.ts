@@ -52,4 +52,11 @@ export interface IOrderRepository {
   findActiveOrdersByVendorId(vendorId: string): Promise<any[]>;
 
   findVendorOrderDetailById(orderId: string): Promise<any | null>;
+
+  findOrderForCancel(orderId: string): Promise<any | null>;
+
+  cancelOrder(data: {
+    orderId: string;
+    cancelledAt: Date;
+  }): Promise<any>;
 }
