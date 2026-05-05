@@ -321,3 +321,15 @@ export class CancelVendorOrderResponseDto {
   status!: OrderStatus;
   cancelledAt!: Date | null;
 }
+
+export class VendorOrderActionResponseDto {
+  id!: string;
+  orderNumber!: string;
+  status!: OrderStatus;
+  confirmedAt?: Date | null;
+  preparingAt?: Date | null;
+  readyAt?: Date | null;
+  completedAt?: Date | null;
+  cancelledAt?: Date | null;
+  message!: string;
+}
