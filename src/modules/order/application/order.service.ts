@@ -370,6 +370,29 @@ export class OrderService {
     );
   }
 
+  async completeVendorOrder(
+    userId: string,
+    orderId: string,
+  ): Promise<VendorOrderActionResponseDto> {
+    const order = await this.getVendorOwnedOrderForAction(userId, orderId);
+
+    if (order.status !== OrderStatus.READY_FOR_PICKUP) {
+      throw new BadRequestException(
+        `Order cannot be completed when status is ${order.status}`,
+      );
+    }
+
+    const completedOrder = await this.orderRepository.completeVendorOrder({
+      orderId: order.id,
+      completedAt: new Date(),
+    });
+
+    return this.orderMapper.toVendorOrderActionResponse(
+      completedOrder,
+      'Order completed successfully.',
+    );
+  }
+
   private async getVendorOwnedOrderForAction(
     userId: string,
     orderId: string,
