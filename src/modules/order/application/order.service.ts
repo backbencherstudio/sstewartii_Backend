@@ -263,4 +263,45 @@ export class OrderService {
     return this.orderMapper.toVendorOrderDetailResponse(order);
   }
 
+  async cancelVendorOrder(
+    userId: string,
+    orderId: string,
+  ): Promise<VendorOrderDetailResponseDto> {
+    const vendor = await this.vendorService.execute(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const order = await this.orderRepository.findVendorOrderForCancel(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.vendorId !== vendor.id) {
+      throw new ForbiddenException('You cannot cancel this order');
+    }
+
+    if (!this.canVendorCancelOrder(order.status)) {
+      throw new BadRequestException(
+        `Order cannot be cancelled when status is ${order.status}`,
+      );
+    }
+
+    const cancelledOrder = await this.orderRepository.cancelVendorOrder({
+      orderId: order.id,
+      cancelledAt: new Date(),
+    });
+
+    return this.orderMapper.toVendorOrderDetailResponse(cancelledOrder);
+  }
+
+  private canVendorCancelOrder(status: OrderStatus): boolean {
+    return (
+      status === OrderStatus.PENDING ||
+      status === OrderStatus.CONFIRMED
+    );
+  }
+
 }

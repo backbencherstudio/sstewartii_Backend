@@ -218,4 +218,85 @@ export class OrderRepository implements IOrderRepository {
       },
     });
   }
+
+  async findVendorOrderForCancel(orderId: string): Promise<any | null> {
+    return this.prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        customer: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        vendor: {
+          select: {
+            id: true,
+            ownerId: true,
+            businessName: true,
+          },
+        },
+        orderItems: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+          include: {
+            orderItemChoiceOption: true,
+            orderItemAddOn: true,
+          },
+        },
+      },
+    });
+  }
+
+  async cancelVendorOrder(data: {
+    orderId: string;
+    cancelledAt: Date;
+  }): Promise<any> {
+    return this.prisma.order.update({
+      where: {
+        id: data.orderId,
+      },
+      data: {
+        status: OrderStatus.CANCELLED,
+        cancelledAt: data.cancelledAt,
+      },
+      include: {
+        customer: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        vendor: {
+          select: {
+            id: true,
+            ownerId: true,
+            businessName: true,
+          },
+        },
+        orderItems: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+          include: {
+            orderItemChoiceOption: true,
+            orderItemAddOn: true,
+          },
+        },
+      },
+    });
+  }
 }

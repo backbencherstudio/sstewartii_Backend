@@ -98,15 +98,10 @@ export class OrderController {
   @UseGuards(RoleGuard)
   @Roles(Role.VENDOR)
   @ResponseMessage('Order cancelled successfully.')
-  async cancelOrder(
+  async cancelVendorOrder(
     @CurrentUser() user: AuthUser,
     @Param('orderId') orderId: string,
-    @Body() dto: CancelOrderDto,
   ): Promise<VendorOrderDetailResponseDto> {
-    return this.orderService.cancelOrder(
-      user.id,
-      orderId,
-      dto,
-    );
+    return this.orderService.cancelVendorOrder(user.id, orderId);
   }
 }
