@@ -18,6 +18,7 @@ import {
   OrderSummaryResponseDto,
   OrderTrackResponseDto,
   VendorActiveOrdersResponseDto,
+  VendorOrderDetailResponseDto,
 } from '../presentation/dto/order.response.dto';
 
 import { CustomerService } from '@/modules/customer/customer/application/customer.service';
@@ -237,6 +238,32 @@ export class OrderService {
     );
 
     return this.orderMapper.toVendorActiveOrdersResponse(orders, new Date());
+  }
+
+  async getVendorOrderDetail(
+    userId: string,
+    orderId: string,
+  ): Promise<VendorOrderDetailResponseDto> {
+    const vendor = await this.vendorService.execute(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const order = await this.orderRepository.findVendorOrderDetailById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.vendorId !== vendor.id) {
+      throw new ForbiddenException('You cannot access this order');
+    }
+
+    return OrderMapper.toVendorOrderDetailResponse(
+      order,
+      (path) => this.mediaService.getUrl(path),
+    );
   }
 
 }
