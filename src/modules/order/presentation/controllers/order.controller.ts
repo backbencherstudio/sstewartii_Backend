@@ -8,13 +8,16 @@ import {
   Patch,
 } from '@nestjs/common';
 
-import { CreateOrderDto } from '../dto/create-order.dto';
+import { 
+  CreateOrderDto,
+  CancelOrderDto,
+} from '../dto/create-order.dto';
 import { 
   OrderSummaryResponseDto,
   OrderTrackResponseDto,
   CreateOrderResponseDto,
   VendorActiveOrdersResponseDto,
-  VendorOrderDetailResponseDto,
+  VendorOrderDetailResponseDto
 } from '../dto/order.response.dto';
 
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
@@ -89,5 +92,21 @@ export class OrderController {
     @Param('orderId') orderId: string,
   ): Promise<VendorOrderDetailResponseDto> {
     return this.orderService.getVendorOrderDetail(user.id, orderId);
+  }
+
+  @Patch(':orderId/cancel')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER, Role.VENDOR)
+  @ResponseMessage('Order cancelled successfully.')
+  async cancelOrder(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+    @Body() dto: CancelOrderDto,
+  ): Promise<VendorOrderDetailResponseDto> {
+    return this.orderService.cancelOrder(
+      user.id,
+      orderId,
+      dto,
+    );
   }
 }
