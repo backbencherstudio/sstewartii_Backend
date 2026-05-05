@@ -17,7 +17,8 @@ import {
   OrderTrackResponseDto,
   CreateOrderResponseDto,
   VendorActiveOrdersResponseDto,
-  VendorOrderDetailResponseDto
+  VendorOrderDetailResponseDto,
+  CancelVendorOrderResponseDto,
 } from '../dto/order.response.dto';
 
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
@@ -101,7 +102,7 @@ export class OrderController {
   async cancelVendorOrder(
     @CurrentUser() user: AuthUser,
     @Param('orderId') orderId: string,
-  ): Promise<VendorOrderDetailResponseDto> {
+  ): Promise<CancelVendorOrderResponseDto> {
     return this.orderService.cancelVendorOrder(user.id, orderId);
   }
-}
+} 

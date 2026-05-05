@@ -314,3 +314,10 @@ export class VendorOrderDetailResponseDto {
   timeline!: VendorOrderTimelineStepDto[];
   actions!: VendorOrderDetailActionsDto;
 }
+
+export class CancelVendorOrderResponseDto {
+  id!: string;
+  orderNumber!: string;
+  status!: OrderStatus;
+  cancelledAt!: Date | null;
+}

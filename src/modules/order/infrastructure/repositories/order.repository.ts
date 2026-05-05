@@ -259,7 +259,12 @@ export class OrderRepository implements IOrderRepository {
   async cancelVendorOrder(data: {
     orderId: string;
     cancelledAt: Date;
-  }): Promise<any> {
+  }): Promise<{
+    id: string;
+    orderNumber: string;
+    status: OrderStatus;
+    cancelledAt: Date | null;
+  }> {
     return this.prisma.order.update({
       where: {
         id: data.orderId,
@@ -268,34 +273,11 @@ export class OrderRepository implements IOrderRepository {
         status: OrderStatus.CANCELLED,
         cancelledAt: data.cancelledAt,
       },
-      include: {
-        customer: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        vendor: {
-          select: {
-            id: true,
-            ownerId: true,
-            businessName: true,
-          },
-        },
-        orderItems: {
-          orderBy: {
-            createdAt: 'asc',
-          },
-          include: {
-            orderItemChoiceOption: true,
-            orderItemAddOn: true,
-          },
-        },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        cancelledAt: true,
       },
     });
   }

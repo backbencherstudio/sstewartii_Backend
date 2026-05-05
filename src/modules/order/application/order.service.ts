@@ -19,6 +19,7 @@ import {
   OrderTrackResponseDto,
   VendorActiveOrdersResponseDto,
   VendorOrderDetailResponseDto,
+  CancelVendorOrderResponseDto,
 } from '../presentation/dto/order.response.dto';
 
 import { CustomerService } from '@/modules/customer/customer/application/customer.service';
@@ -266,7 +267,7 @@ export class OrderService {
   async cancelVendorOrder(
     userId: string,
     orderId: string,
-  ): Promise<VendorOrderDetailResponseDto> {
+  ): Promise<CancelVendorOrderResponseDto> {
     const vendor = await this.vendorService.execute(userId);
 
     if (!vendor) {
@@ -294,7 +295,7 @@ export class OrderService {
       cancelledAt: new Date(),
     });
 
-    return this.orderMapper.toVendorOrderDetailResponse(cancelledOrder);
+    return this.orderMapper.toCancelVendorOrderResponse(cancelledOrder);
   }
 
   private canVendorCancelOrder(status: OrderStatus): boolean {
@@ -303,5 +304,4 @@ export class OrderService {
       status === OrderStatus.CONFIRMED
     );
   }
-
 }

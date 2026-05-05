@@ -8,6 +8,7 @@ import {
   OrderTrackStepDto,
   VendorActiveOrdersResponseDto,
   VendorOrderDetailResponseDto,
+  CancelVendorOrderResponseDto,
 } from '../../presentation/dto/order.response.dto';
 
 import { MediaService } from '@/common/media/media.service';
@@ -658,6 +659,15 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       canComplete: status === OrderStatus.READY_FOR_PICKUP,
 
       canReportIncomplete: status === OrderStatus.READY_FOR_PICKUP,
+    };
+  }
+
+  toCancelVendorOrderResponse(order: any): CancelVendorOrderResponseDto {
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      cancelledAt: order.cancelledAt,
     };
   }
 }
