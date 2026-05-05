@@ -94,9 +94,9 @@ export class OrderController {
     return this.orderService.getVendorOrderDetail(user.id, orderId);
   }
 
-  @Patch(':orderId/cancel')
+  @Patch('vendor/:orderId/cancel')
   @UseGuards(RoleGuard)
-  @Roles(Role.USER, Role.VENDOR)
+  @Roles(Role.VENDOR)
   @ResponseMessage('Order cancelled successfully.')
   async cancelOrder(
     @CurrentUser() user: AuthUser,
