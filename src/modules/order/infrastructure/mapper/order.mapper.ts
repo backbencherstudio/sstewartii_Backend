@@ -7,6 +7,7 @@ import {
   OrderTrackResponseDto,
   OrderTrackStepDto,
   VendorActiveOrdersResponseDto,
+  VendorOrderDetailResponseDto,
 } from '../../presentation/dto/order.response.dto';
 
 import { MediaService } from '@/common/media/media.service';
@@ -441,5 +442,222 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       minute: '2-digit',
       hour12: true,
     }).format(new Date(date));
+  }
+
+  toVendorOrderDetailResponse(
+    order: any,
+  ): VendorOrderDetailResponseDto {
+    const itemCount = order.orderItems.reduce(
+      (sum: number, item: any) => sum + item.quantity,
+      0,
+    );
+
+    const uniqueItemCount = order.orderItems.length;
+
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+
+      status: order.status,
+      statusLabel: OrderMapper.getVendorOrderDetailStatusLabel(order.status),
+
+      paymentMethod: order.paymentMethod,
+
+      customer: {
+        id: order.customer.id,
+        name:
+          order.customer.user?.name ??
+          order.customer.user?.email ??
+          'Customer',
+        email: order.customer.user?.email ?? undefined,
+        imageUrl: this.mediaService.getUrl(order.customer.avatar),
+          
+        customerSince: order.customer.createdAt,
+      },
+
+      items: order.orderItems.map((item: any) =>
+        OrderMapper.toVendorOrderDetailItem(item),
+      ),
+
+      itemCount,
+      uniqueItemCount,
+      itemSummaryLabel: OrderMapper.buildItemSummaryLabel1(itemCount),
+
+      subtotal: order.subtotal,
+      tax: order.tax,
+      serviceFee: order.serviceFee,
+      totalAmount: order.totalAmount,
+
+      note: order.note ?? undefined,
+
+      createdAt: order.createdAt,
+      estimatedReadyAt: order.estimatedReadyAt ?? null,
+      confirmedAt: order.confirmedAt ?? null,
+      readyAt: order.readyAt ?? null,
+      completedAt: order.completedAt ?? null,
+      cancelledAt: order.cancelledAt ?? null,
+
+      timeline: OrderMapper.buildVendorOrderDetailTimeline(order),
+
+      actions: OrderMapper.buildVendorOrderActions(order.status),
+    };
+  }
+
+  private static toVendorOrderDetailItem(item: any) {
+    const choiceOptions = item.orderItemChoiceOption.map((choice: any) => ({
+      id: choice.id,
+      choiceOptionId: choice.choiceOptionId,
+      name: choice.name,
+      price: choice.price,
+    }));
+
+    const addOns = item.orderItemAddOn.map((addon: any) => ({
+      id: addon.id,
+      addOnId: addon.addOnId,
+      name: addon.name,
+      price: addon.price,
+    }));
+
+    const optionNames = [
+      item.sizeName,
+      ...choiceOptions.map((choice: any) => choice.name),
+      ...addOns.map((addon: any) => addon.name),
+    ].filter(Boolean);
+
+    return {
+      id: item.id,
+      productId: item.productId,
+      productName: item.productName,
+
+      quantity: item.quantity,
+
+      unitPrice: item.unitPrice,
+
+      sizeName: item.sizeName ?? undefined,
+      sizePrice: item.sizePrice,
+
+      choiceOptions,
+      addOns,
+
+      lineTotal: item.lineTotal,
+
+      displayText: optionNames.length
+        ? `${item.quantity} x ${item.productName} (${optionNames.join(', ')})`
+        : `${item.quantity} x ${item.productName}`,
+
+      optionSummary: optionNames.length
+        ? optionNames.join(' • ')
+        : undefined,
+    };
+  }
+
+  private static buildItemSummaryLabel1(itemCount: number): string {
+    const itemWord = itemCount === 1 ? 'item' : 'items';
+
+    return `${itemCount} ${itemWord} in single order`;
+  }
+
+  private static getVendorOrderDetailStatusLabel(status: OrderStatus): string {
+    switch (status) {
+      case OrderStatus.PENDING:
+        return 'New Order';
+
+      case OrderStatus.CONFIRMED:
+      case OrderStatus.PREPARING:
+        return 'Preparing';
+
+      case OrderStatus.READY_FOR_PICKUP:
+        return 'Ready For Pickup';
+
+      case OrderStatus.COMPLETED:
+        return 'Completed';
+
+      case OrderStatus.CANCELLED:
+        return 'Cancelled';
+
+      default:
+        return status;
+    }
+  }
+
+  private static buildVendorOrderDetailTimeline(order: any) {
+    const status = order.status as OrderStatus;
+
+    const isCancelled = status === OrderStatus.CANCELLED;
+
+    return [
+      {
+        key: 'ORDER_PLACED' as const,
+        title: 'Order placed',
+        isCompleted: true,
+        isCurrent: status === OrderStatus.PENDING,
+        timestamp: order.createdAt,
+      },
+      {
+        key: 'ORDER_CONFIRMED' as const,
+        title: 'Order confirmed',
+        isCompleted:
+          status === OrderStatus.CONFIRMED ||
+          status === OrderStatus.PREPARING ||
+          status === OrderStatus.READY_FOR_PICKUP ||
+          status === OrderStatus.COMPLETED,
+        isCurrent:
+          status === OrderStatus.CONFIRMED ||
+          status === OrderStatus.PREPARING,
+        timestamp: order.confirmedAt ?? null,
+      },
+      {
+        key: 'READY_FOR_PICKUP' as const,
+        title: 'Ready for pickup',
+        isCompleted:
+          status === OrderStatus.READY_FOR_PICKUP ||
+          status === OrderStatus.COMPLETED,
+        isCurrent: status === OrderStatus.READY_FOR_PICKUP,
+        timestamp: order.readyAt ?? null,
+      },
+      {
+        key: 'PICKED_UP_BY_CUSTOMER' as const,
+        title: 'Order picked up by customer',
+        isCompleted: status === OrderStatus.COMPLETED,
+        isCurrent: false,
+        timestamp: null,
+      },
+      {
+        key: 'ORDER_COMPLETED' as const,
+        title: 'Order completed',
+        isCompleted: status === OrderStatus.COMPLETED,
+        isCurrent: status === OrderStatus.COMPLETED,
+        timestamp: order.completedAt ?? null,
+      },
+      ...(isCancelled
+        ? [
+            {
+              key: 'ORDER_CANCELLED' as const,
+              title: 'Order cancelled',
+              isCompleted: true,
+              isCurrent: true,
+              timestamp: order.cancelledAt ?? null,
+            },
+          ]
+        : []),
+    ];
+  }
+
+  private static buildVendorOrderActions(status: OrderStatus) {
+    return {
+      canAccept: status === OrderStatus.PENDING,
+
+      canCancel:
+        status === OrderStatus.PENDING ||
+        status === OrderStatus.CONFIRMED,
+
+      canMarkReadyForPickup:
+        status === OrderStatus.CONFIRMED ||
+        status === OrderStatus.PREPARING,
+
+      canComplete: status === OrderStatus.READY_FOR_PICKUP,
+
+      canReportIncomplete: status === OrderStatus.READY_FOR_PICKUP,
+    };
   }
 }

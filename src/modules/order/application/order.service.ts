@@ -260,10 +260,7 @@ export class OrderService {
       throw new ForbiddenException('You cannot access this order');
     }
 
-    return OrderMapper.toVendorOrderDetailResponse(
-      order,
-      (path) => this.mediaService.getUrl(path),
-    );
+    return this.orderMapper.toVendorOrderDetailResponse(order);
   }
 
 }
