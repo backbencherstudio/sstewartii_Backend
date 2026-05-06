@@ -99,4 +99,9 @@ export class VendorMenuItemsQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 20; 
-  }
+}
+
+  export class UpdateVendorMenuItemStatusDto {
+  @IsBoolean()
+  isActive!: boolean;
+}
