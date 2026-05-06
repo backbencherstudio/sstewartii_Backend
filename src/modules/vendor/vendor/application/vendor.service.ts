@@ -405,11 +405,11 @@ export class VendorService {
       query,
     );
 
-    return this.vendorMenuMapper.toMenuItemsResponse({
+    return this.vendorMapper.toMenuItemsResponse({
       total: result.total,
       page: query.page ?? 1,
       limit: query.limit ?? 20,
-      items: result.items,
+      items: result.items,  
     });
   }
 }

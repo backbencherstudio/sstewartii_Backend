@@ -8,6 +8,7 @@ import {
 import { 
    VendorMenuResponseDto,
    VendorInfoResponseDto,
+   
 } from '../../presentation/dto/vendor.response.dto';
 
 import { 
@@ -15,6 +16,7 @@ import {
   TruckGalleryResponseDto,
   VendorHomeResponseDto,
   VendorMenuCategoriesResponseDto,
+  VendorMenuItemsResponseDto,
 } from '../../presentation/dto/vendor.response.dto';
 
 import { Vendor } from '../../domain/entities/vendor.entity';
@@ -329,6 +331,50 @@ export class VendorMapper {
       totalCategories: mappedCategories.length,
       totalItems,
       categories: mappedCategories,
+    };
+  }
+
+   toMenuItemsResponse(data: {
+    total: number;
+    page: number;
+    limit: number;
+    items: any[];
+  }): VendorMenuItemsResponseDto {
+    return {
+      total: data.total,
+      page: data.page,
+      limit: data.limit,
+      totalPages:
+        data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
+
+      items: data.items.map((product: any) => {
+        const firstImage = product.images?.[0];
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description ?? undefined,
+
+          price: product.price,
+          estimateCookTime: product.estimateCookTime,
+
+          image: firstImage?.url
+            ? this.mediaService.getUrl(firstImage.url)
+            : undefined,
+
+          category: product.category
+            ? {
+                id: product.category.id,
+                name: product.category.name,
+              }
+            : undefined,
+
+          isActive: product.isActive,
+          availabilityLabel: product.isActive ? 'Available' : 'Unavailable',
+
+          createdAt: product.createdAt,
+        };
+      }),
     };
   }
 }
