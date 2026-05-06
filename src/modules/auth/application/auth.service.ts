@@ -59,6 +59,8 @@ export class AuthService {
 
     const savedUser = await this.userRepository.create(newUser, roleType);
 
+    await this.generateAndSendOtp(savedUser, 'EMAIL_VERIFICATION');
+
     return {
       message: 'Registration Successfull',
       data: {
@@ -204,14 +206,19 @@ export class AuthService {
     await this.generateAndSendOtp(user, 'EMAIL_VERIFICATION');
   }
 
-  private async generateAndSendOtp(user: User, type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET'): Promise<void>  {
+  private async generateAndSendOtp(
+    user: { id: string; email: string },
+    type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET',
+  ): Promise<void> {
     const otp = crypto.randomInt(100000, 999999).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await this.otpRepository.create(user.id, hashedOtp, type, expiresAt);
 
-    const purpose = type === 'EMAIL_VERIFICATION' ? 'Verification' : 'Password Reset';
+    const purpose =
+      type === 'EMAIL_VERIFICATION' ? 'Verification' : 'Password Reset';
+
     await this.mailService.sendOtpEmail(user.email, otp, purpose);
   }
 
