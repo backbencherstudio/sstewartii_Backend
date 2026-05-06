@@ -14,6 +14,7 @@ import {
   UploadTruckGalleryResponseDto,
   TruckGalleryResponseDto,
   VendorHomeResponseDto,
+  VendorMenuCategoriesResponseDto,
 } from '../../presentation/dto/vendor.response.dto';
 
 import { Vendor } from '../../domain/entities/vendor.entity';
@@ -281,6 +282,53 @@ export class VendorMapper {
         : undefined,
 
       unreadNotificationCount: data.unreadNotificationCount,
+    };
+  }
+
+    toMenuCategoriesResponse(vendor: any): VendorMenuCategoriesResponseDto {
+    const categories = vendor.categories ?? [];
+
+    const mappedCategories = categories.map((category: any) => {
+      const products = category.products ?? [];
+
+      return {
+        id: category.id,
+        name: category.name,
+        itemCount: products.length,
+        items: products.map((product: any) => {
+          const images = product.images ?? [];
+          const firstImage = images[0];
+
+          return {
+            id: product.id,
+            name: product.name,
+            description: product.description ?? undefined,
+            price: product.price,
+            estimateCookTime: product.estimateCookTime,
+            isActive: product.isActive,
+            availabilityLabel: product.isActive ? 'Available' : 'Unavailable',
+            image: firstImage?.url
+              ? this.mediaService.getUrl(firstImage.url)
+              : undefined,
+            images: images.map((image: any) => ({
+              id: image.id,
+              url: this.mediaService.getUrl(image.url),
+              position: image.position,
+            })),
+          };
+        }),
+      };
+    });
+
+    const totalItems = mappedCategories.reduce(
+      (sum: number, category: any) => sum + category.itemCount,
+      0,
+    );
+
+    return {
+      totalCategories: mappedCategories.length,
+      totalItems,
+      categories: mappedCategories,
     };
   }
 }
