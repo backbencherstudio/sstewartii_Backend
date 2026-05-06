@@ -36,6 +36,20 @@ export interface VendorMenuItemsResult {
   items: any[];
 }
 
+export interface VendorMenuItemOwnerView {
+  id: string;
+  vendorId: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface VendorMenuItemStatusView {
+  id: string;
+  name: string;
+  isActive: boolean;
+  updatedAt: Date;
+}
+
 export interface IVendorRepository {
 
   findByVendorId(ownerId: string): Promise<Vendor | null>;
@@ -105,5 +119,14 @@ export interface IVendorRepository {
     ownerId: string,
     query: VendorMenuItemsQueryDto,
   ): Promise<VendorMenuItemsResult>;
+
+  findVendorIdByOwnerId(ownerId: string): Promise<{ id: string } | null>;
+
+  findVendorMenuItemOwner(productId: string): Promise<VendorMenuItemOwnerView | null>;
+
+  updateVendorMenuItemStatus(data: {
+    productId: string;
+    isActive: boolean;
+  }): Promise<VendorMenuItemStatusView>;
   
 }
