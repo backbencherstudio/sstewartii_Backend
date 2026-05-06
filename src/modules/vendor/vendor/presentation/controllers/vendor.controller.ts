@@ -19,6 +19,7 @@ import {
   UploadTruckGalleryDto,
   UpdateVendorStatusDto,
   VendorMenuItemsQueryDto,
+  UpdateVendorMenuItemStatusDto,
  } from '../dto/vendor.dto';
 
 import { 
@@ -30,6 +31,7 @@ import {
   VendorStatusResponseDto,
   VendorMenuCategoriesResponseDto,
   VendorMenuItemsResponseDto,
+  VendorMenuItemStatusResponseDto,
  } from '../dto/vendor.response.dto';
 
 import { VendorService } from '../../application/vendor.service';
@@ -141,7 +143,7 @@ export class VendorController {
     @Param('productId') productId: string,
     @Body() dto: UpdateVendorMenuItemStatusDto,
   ): Promise<VendorMenuItemStatusResponseDto> {
-    return this.service.updateVendorMenuItemStatus(
+    return this.vendorService.updateVendorMenuItemStatus(
       user.id,
       productId,
       dto,
