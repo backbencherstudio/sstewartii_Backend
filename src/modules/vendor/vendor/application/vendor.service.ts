@@ -5,12 +5,14 @@ import {
   BadRequestException
 } from '@nestjs/common';
 
+import { VendorLiveStatus } from '@prisma/client';
 import type { IVendorRepository } from '../domain/interface/vendor.repository.interface';
 import { VendorMapper } from '../infrastructure/mapper/vendor.mapper';
 
 import { 
   VendorMenuQueryDto,
   UploadTruckGalleryDto,
+  UpdateVendorStatusDto,
  } from '../presentation/dto/vendor.dto';
 
 import { 
@@ -19,6 +21,7 @@ import {
   VendorInfoResponseDto,
   TruckGalleryResponseDto,
   VendorHomeResponseDto,
+  VendorStatusResponseDto,
  } from '../presentation/dto/vendor.response.dto';
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
@@ -294,4 +297,37 @@ export class VendorService {
       endOfDay,
     };
   }
+
+  async updateVendorStatus(
+    ownerId: string,
+    dto: UpdateVendorStatusDto,
+  ): Promise<VendorStatusResponseDto> {
+    const vendor = await this.vendorRepository.updateVendorStatus({
+      ownerId,
+      status: dto.status,
+    });
+
+    return {
+      id: vendor.id,
+      status: vendor.status,
+      isOnline: vendor.status === VendorLiveStatus.ONLINE,
+      label: this.getVendorStatusLabel(vendor.status),
+      statusUpdatedAt: vendor.statusUpdatedAt,
+    };
+  }
+
+  private getVendorStatusLabel(status: VendorLiveStatus): string {
+    switch (status) {
+      case VendorLiveStatus.ONLINE:
+        return 'Online';
+
+      case VendorLiveStatus.TEMPORARILY_CLOSED:
+        return 'Temporarily Closed';
+
+      case VendorLiveStatus.OFFLINE:
+      default:
+        return 'Offline';
+    }
+  }
+
 }
