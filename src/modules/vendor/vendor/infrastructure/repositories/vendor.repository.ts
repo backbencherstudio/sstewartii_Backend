@@ -575,7 +575,6 @@ export class VendorRepository implements IVendorRepository {
     id: string;
     name: string;
     isActive: boolean;
-    updatedAt: Date;
   }> {
     return this.prisma.product.update({
       where: {
@@ -588,7 +587,6 @@ export class VendorRepository implements IVendorRepository {
         id: true,
         name: true,
         isActive: true,
-        updatedAt: true,
       },
     });
   }

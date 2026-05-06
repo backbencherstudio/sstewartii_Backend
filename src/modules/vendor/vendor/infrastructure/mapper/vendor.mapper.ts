@@ -17,6 +17,7 @@ import {
   VendorHomeResponseDto,
   VendorMenuCategoriesResponseDto,
   VendorMenuItemsResponseDto,
+  VendorMenuItemStatusResponseDto,
 } from '../../presentation/dto/vendor.response.dto';
 
 import { Vendor } from '../../domain/entities/vendor.entity';
@@ -375,6 +376,16 @@ export class VendorMapper {
           createdAt: product.createdAt,
         };
       }),
+    };
+  }
+
+  toMenuItemStatusResponse(product: any): VendorMenuItemStatusResponseDto {
+    return {
+      id: product.id,
+      name: product.name,
+      isActive: product.isActive,
+      availabilityLabel: product.isActive ? 'Available' : 'Unavailable',
+      updatedAt: product.updatedAt,
     };
   }
 }

@@ -47,7 +47,6 @@ export interface VendorMenuItemStatusView {
   id: string;
   name: string;
   isActive: boolean;
-  updatedAt: Date;
 }
 
 export interface IVendorRepository {
