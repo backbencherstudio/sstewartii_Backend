@@ -28,6 +28,7 @@ import {
   TruckGalleryResponseDto,
   VendorHomeResponseDto,
   VendorStatusResponseDto,
+  VendorMenuCategoriesResponseDto,
  } from '../presentation/dto/vendor.response.dto';
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
@@ -38,6 +39,7 @@ export class VendorService {
   constructor(
     @Inject('IVendorRepository') 
     private readonly vendorRepository: IVendorRepository,
+
     private readonly storageService: LocalStorageService,
     private readonly vendorMapper: VendorMapper,
   ) {}
@@ -378,5 +380,17 @@ export class VendorService {
       default:
         return 'Offline';
     }
+  }
+
+  async getVendorMenuCategories(
+    ownerId: string,
+  ): Promise<VendorMenuCategoriesResponseDto> {
+    const vendor = await this.vendorRepository.findVendorMenuCategories(ownerId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    return this.vendorMenuMapper.toMenuCategoriesResponse(vendor);
   }
 }
