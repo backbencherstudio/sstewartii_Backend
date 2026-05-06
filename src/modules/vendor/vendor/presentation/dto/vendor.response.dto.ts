@@ -204,3 +204,11 @@ export class VendorMenuItemsResponseDto {
   items!: VendorMenuItemResponseDto[];
 }
 
+export class VendorMenuItemStatusResponseDto {
+  id!: string;
+  name!: string;
+  isActive!: boolean;
+  availabilityLabel!: string;
+  updatedAt!: Date;
+}
+
