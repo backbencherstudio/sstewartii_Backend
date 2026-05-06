@@ -90,5 +90,7 @@ export interface IVendorRepository {
   findGoLiveEligibilityByOwnerId(
     ownerId: string,
   ): Promise<VendorGoLiveEligibilityView | null>;
+
+  findVendorMenuCategories(ownerId: string): Promise<any | null>;
   
 }
