@@ -73,28 +73,31 @@ model Vendor {
   coverImage           String?          
   onboardingStep       Int           @default(1)
 
-  ownerId              String   @unique
-  owner                User     @relation(fields:[ownerId], references:[id])
+  ownerId              String    @unique
+  owner                User      @relation(fields:[ownerId], references:[id])
   kycStatus            KycStatus @default(UNVERIFIED)
   
-  stripeCustomerId     String?  @unique 
-  stripeSubscriptionId String?  @unique 
+  stripeCustomerId     String?   @unique 
+  stripeSubscriptionId String?   @unique 
 
-  subscriptionPlanId   String?
-  subscriptionPlan     SubscriptionPlan? @relation(fields:[subscriptionPlanId], references: [id])
-  subscriptionStatus   SubscriptionStatus @default(INACTIVE)
+  subscriptionPlanId   String? 
+  subscriptionPlan     SubscriptionPlan? @relation(fields:[subscriptionPlanId], references: [id]) 
+  subscriptionStatus   SubscriptionStatus @default(INACTIVE) 
   subscriptionExpiry   DateTime?
 
-  truckReviewAverage   Float    @default(0)
-  truckReviewCount     Int      @default(0)
+  truckReviewAverage   Float     @default(0) 
+  truckReviewCount     Int       @default(0)
 
-  kycProfile           KycProfile?
+  status               VendorLiveStatus @default(OFFLINE)
+  statusUpdatedAt      DateTime?
+
+  kycProfile           KycProfile? 
   products             Product[] 
-  socialLinks          SocialLink[]
-  cuisines             VendorCuisine[]
-  operationHours       OperationHour[]
-  serviceArea          ServiceArea?
-  vendorVerification   VendorVerification?
+  socialLinks          SocialLink[] 
+  cuisines             VendorCuisine[] 
+  operationHours       OperationHour[] 
+  serviceArea          ServiceArea? 
+  vendorVerification   VendorVerification? 
   categories           Category[]
   orders               Order[]
   favoritedBy          FavoriteVendor[]
@@ -658,6 +661,12 @@ model FoodReviewTagMap {
 
   @@id([reviewId, tagId])
   @@index([tagId])
+}
+
+enum VendorLiveStatus {
+  ONLINE
+  TEMPORARILY_CLOSED
+  OFFLINE
 }
 
 enum OrderStatus {
