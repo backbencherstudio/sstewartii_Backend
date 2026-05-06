@@ -14,7 +14,10 @@ import { Vendor } from '../../domain/entities/vendor.entity';
 
 import { VendorMapper } from '../mapper/vendor.mapper';
 
-import { VendorMenuQueryDto } from '../../presentation/dto/vendor.dto';
+import { 
+  VendorMenuQueryDto,
+  VendorMenuItemsQueryDto,
+} from '../../presentation/dto/vendor.dto';
 
 
 @Injectable()
@@ -422,5 +425,116 @@ export class VendorRepository implements IVendorRepository {
         },
       },
     });
+  }
+
+  async findVendorMenuItems(
+    ownerId: string,
+    query: VendorMenuItemsQueryDto,
+  ): Promise<{
+    total: number;
+    items: any[];
+  }> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const search = query.search?.trim();
+
+    const where: Prisma.ProductWhereInput = {
+      vendor: {
+        ownerId,
+      },
+    };
+
+    const andConditions: Prisma.ProductWhereInput[] = [];
+
+    if (search) {
+      andConditions.push({
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            description: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            category: {
+              name: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (query.categoryId) {
+      andConditions.push({
+        categoryId: query.categoryId,
+      });
+    }
+
+    if (typeof query.isActive === 'boolean') {
+      andConditions.push({
+        isActive: query.isActive,
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    const [total, items] = await Promise.all([
+      this.prisma.product.count({
+        where,
+      }),
+
+      this.prisma.product.findMany({
+        where,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          estimateCookTime: true,
+          isActive: true,
+          createdAt: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          images: {
+            orderBy: {
+              position: 'asc',
+            },
+            take: 1,
+            select: {
+              id: true,
+              url: true,
+              position: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      total,
+      items,
+    };
   }
 }

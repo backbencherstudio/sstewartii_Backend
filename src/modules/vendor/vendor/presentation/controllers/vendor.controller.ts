@@ -29,6 +29,7 @@ import {
   VendorHomeResponseDto,
   VendorStatusResponseDto,
   VendorMenuCategoriesResponseDto,
+  VendorMenuItemsResponseDto,
  } from '../dto/vendor.response.dto';
 
 import { VendorService } from '../../application/vendor.service';
@@ -128,6 +129,6 @@ export class VendorController {
     @CurrentUser() user: AuthUser,
     @Query() query: VendorMenuItemsQueryDto,
   ): Promise<VendorMenuItemsResponseDto> {
-    return this.service.getVendorMenuItems(user.id, query);
+    return this.vendorService.getVendorMenuItems(user.id, query);
   }
 }
