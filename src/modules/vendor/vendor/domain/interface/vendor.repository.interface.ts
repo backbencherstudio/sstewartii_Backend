@@ -22,7 +22,6 @@ export interface UpdateVendorStatusInput {
 export interface VendorGoLiveEligibilityView {
   id: string;
   kycStatus: KycStatus;
-  subscriptionStatus: SubscriptionStatus;
   vendorVerification: {
     id: string;
     status: VerificationStatus;

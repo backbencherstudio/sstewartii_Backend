@@ -336,7 +336,6 @@ export class VendorService {
 
   private validateVendorCanGoLive(vendor: {
     kycStatus: KycStatus;
-    subscriptionStatus: SubscriptionStatus;
     vendorVerification: {
       status: VerificationStatus;
     } | null;
@@ -363,14 +362,6 @@ export class VendorService {
         status: vendor.vendorVerification.status,
         message:
           'Verification required. Your business verification must be approved before going online.',
-      });
-    }
-
-    if (vendor.subscriptionStatus !== SubscriptionStatus.ACTIVE) {
-      throw new BadRequestException({
-        code: 'SUBSCRIPTION_NOT_ACTIVE',
-        message:
-          'Active subscription required. Please activate your subscription before going online.',
       });
     }
   }

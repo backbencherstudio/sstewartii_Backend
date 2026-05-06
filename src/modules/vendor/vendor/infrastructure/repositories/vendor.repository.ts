@@ -328,7 +328,6 @@ export class VendorRepository implements IVendorRepository {
   ): Promise<{
     id: string;
     kycStatus: KycStatus;
-    subscriptionStatus: SubscriptionStatus;
     vendorVerification: {
       id: string;
       status: VerificationStatus;
