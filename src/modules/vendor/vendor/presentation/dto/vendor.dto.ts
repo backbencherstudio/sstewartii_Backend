@@ -6,8 +6,10 @@ import {
   Min,
   MaxLength,
   IsBoolean,
+  IsEnum,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
+import { VendorLiveStatus } from '@prisma/client';
 
 export class VendorMenuQueryDto {
   @IsOptional()
@@ -63,4 +65,9 @@ export class VendorReviewsQueryDto {
   @Min(1)
   @Max(50)
   limit?: number = 10;
+}
+
+export class UpdateVendorStatusDto {
+  @IsEnum(VendorLiveStatus)
+  status!: VendorLiveStatus;
 }
