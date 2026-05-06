@@ -1,5 +1,17 @@
 import { Vendor } from "../entities/vendor.entity";
 import { VendorMenuQueryDto } from '../../presentation/dto/vendor.dto';
+import { VendorLiveStatus } from '@prisma/client';
+
+export interface VendorStatusView {
+  id: string;
+  status: VendorLiveStatus;
+  statusUpdatedAt: Date | null;
+}
+
+export interface UpdateVendorStatusInput {
+  ownerId: string;
+  status: VendorLiveStatus;
+}
 
 export interface IVendorRepository {
 
@@ -51,5 +63,13 @@ export interface IVendorRepository {
     pendingOrders: number;
     cancelledOrders: number;
   }>;
+
+  updateVendorStatus(
+    data: UpdateVendorStatusInput,
+  ): Promise<VendorStatusView>;
+
+  findVendorStatusByOwnerId(
+    ownerId: string,
+  ): Promise<VendorStatusView | null>;
 
 }
