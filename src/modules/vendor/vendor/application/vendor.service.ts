@@ -391,6 +391,6 @@ export class VendorService {
       throw new NotFoundException('Vendor not found');
     }
 
-    return this.vendorMenuMapper.toMenuCategoriesResponse(vendor);
+    return this.vendorMapper.toMenuCategoriesResponse(vendor);
   }
 }
