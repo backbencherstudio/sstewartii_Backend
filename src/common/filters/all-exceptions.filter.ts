@@ -22,22 +22,29 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
 
-        const res: any = exceptionResponse;
+        // const res: any = exceptionResponse;
 
-        message = res.message || exception.message;
+        // message = res.message || exception.message;
 
-        if (Array.isArray(res.message)) {
-          errors = res.message;
-          message = 'Validation failed';
-        }
+        // if (Array.isArray(res.message)) {
+        //   errors = res.message;
+        //   message = 'Validation failed';
+        // }
 
-        else if (res.error) {
-          errors = res.error;
-        }
+        // else if (res.error) {
+        //   errors = res.error;
+        // }
 
-        else if (res.errors) {
-          errors = res.errors;
-        }
+        // else if (res.errors) {
+        //   errors = res.errors;
+        // }
+
+        return response.status(status).json({
+          ...exceptionResponse,
+          statusCode: status,
+          path: request.url,
+          timestamp: new Date().toISOString(),
+        });
       }
     } else {
       console.error('Unexpected error:', exception);
