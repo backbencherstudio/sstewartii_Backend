@@ -48,6 +48,7 @@ export class AuthController {
   ) {
 
     const response = await this.authService.login(loginDto);
+    const refreshToken = response.data.refreshToken;
 
     res.cookie('refreshToken', response.data.refreshToken, {
       httpOnly: true, 
@@ -60,6 +61,7 @@ export class AuthController {
       message: response.message,
       data: {
         accessToken: response.data.accessToken,
+        refreshToken: refreshToken,
         user: response.data.user
       }
     };
@@ -107,7 +109,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
 
-    const refreshToken = req.cookies['refreshToken'];
+    const refreshToken =
+      req.cookies['refreshToken'] ||
+      req.body.refreshToken;
+
     if (!refreshToken) throw new UnauthorizedException('Refresh token missing');
 
     const payload = this.jwtService.verify(refreshToken, {
@@ -122,7 +127,7 @@ export class AuthController {
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge:  24 * 60 * 60 * 1000,
     });
     
