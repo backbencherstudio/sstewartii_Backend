@@ -376,4 +376,38 @@ export class OrderRepository implements IOrderRepository {
       },
     });
   }
+
+  async findPendingOrdersByVendorId(vendorId: string): Promise<any[]> {
+    return this.prisma.order.findMany({
+      where: {
+        vendorId,
+        status: OrderStatus.PENDING,
+      },
+      include: {
+        customer: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        orderItems: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+          include: {
+            orderItemChoiceOption: true,
+            orderItemAddOn: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
 }
