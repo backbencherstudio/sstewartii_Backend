@@ -590,4 +590,26 @@ export class VendorRepository implements IVendorRepository {
       },
     });
   }
+
+  async softDeleteVendorMenuItem(productId: string): Promise<{
+    id: string;
+    isDeleted: boolean;
+    deletedAt: Date | null;
+  }> {
+    return this.prisma.product.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        isActive: false,
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+      select: {
+        id: true,
+        isDeleted: true,
+        deletedAt: true,
+      },
+    });
+  }
 }
