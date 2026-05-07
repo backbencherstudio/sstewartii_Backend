@@ -211,3 +211,8 @@ export class VendorMenuItemStatusResponseDto {
   availabilityLabel!: string;
 }
 
+export class DeleteVendorMenuItemResponseDto {
+  id!: string;
+  deleted!: boolean;
+}
+
