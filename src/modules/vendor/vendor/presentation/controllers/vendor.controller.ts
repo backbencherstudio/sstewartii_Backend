@@ -10,6 +10,7 @@ import {
   Body,
   UploadedFiles,
   Patch,
+  Delete,
 } from '@nestjs/common';
 
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -20,6 +21,7 @@ import {
   UpdateVendorStatusDto,
   VendorMenuItemsQueryDto,
   UpdateVendorMenuItemStatusDto,
+  
  } from '../dto/vendor.dto';
 
 import { 
@@ -32,6 +34,7 @@ import {
   VendorMenuCategoriesResponseDto,
   VendorMenuItemsResponseDto,
   VendorMenuItemStatusResponseDto,
+  DeleteVendorMenuItemResponseDto,
  } from '../dto/vendor.response.dto';
 
 import { VendorService } from '../../application/vendor.service';
@@ -148,5 +151,16 @@ export class VendorController {
       productId,
       dto,
     );
+  }
+
+  @Delete('menu/items/:productId')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Menu item deleted successfully.')
+  async deleteVendorMenuItem(
+    @CurrentUser() user: AuthUser,
+    @Param('productId') productId: string,
+  ): Promise<DeleteVendorMenuItemResponseDto> {
+    return this.vendorService.deleteVendorMenuItem(user.id, productId);
   }
 }
