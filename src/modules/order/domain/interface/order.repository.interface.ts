@@ -76,4 +76,6 @@ export interface IOrderRepository {
     orderId: string;
     completedAt: Date;
   }): Promise<any>;
+
+  findPendingOrdersByVendorId(vendorId: string): Promise<any[]>;
 }
