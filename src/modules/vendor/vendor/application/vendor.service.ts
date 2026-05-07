@@ -34,6 +34,7 @@ import {
   VendorMenuCategoriesResponseDto,
   VendorMenuItemsResponseDto,
   VendorMenuItemStatusResponseDto,
+  DeleteVendorMenuItemResponseDto,
  } from '../presentation/dto/vendor.response.dto';
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
@@ -451,5 +452,39 @@ export class VendorService {
       });
 
     return this.vendorMapper.toMenuItemStatusResponse(updatedProduct);
+  }
+
+  async deleteVendorMenuItem(
+    ownerId: string,
+    productId: string,
+  ): Promise<DeleteVendorMenuItemResponseDto> {
+    const vendor = await this.vendorRepository.findVendorIdByOwnerId(ownerId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const product = await this.vendorRepository.findVendorMenuItemOwner(productId);
+
+    if (!product) {
+      throw new NotFoundException('Menu item not found');
+    }
+
+    if (product.vendorId !== vendor.id) {
+      throw new ForbiddenException('You cannot delete this menu item');
+    }
+
+    if (product.isDeleted) {
+      return {
+        id: product.id,
+        deleted: true,
+        deletedAt: null,
+      };
+    }
+
+    const deletedProduct =
+      await this.vendorRepository.softDeleteVendorMenuItem(product.id);
+
+    return this.vendorMenuMapper.toDeleteVendorMenuItemResponse(deletedProduct);
   }
 }
