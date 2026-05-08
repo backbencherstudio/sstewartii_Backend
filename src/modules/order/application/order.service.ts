@@ -12,6 +12,7 @@ import type { IOrderRepository } from '../domain/interface/order.repository.inte
 
 import { OrderMapper } from '../infrastructure/mapper/order.mapper';
 
+import { VendorOrderHistoryQueryDto } from '../presentation/dto/order.dto';
 import { CreateOrderDto } from '../presentation/dto/create-order.dto';
 import { 
   CreateOrderResponseDto,
@@ -22,6 +23,7 @@ import {
   CancelVendorOrderResponseDto,
   VendorOrderActionResponseDto,
   VendorPendingOrdersResponseDto,
+  VendorOrderHistoryResponseDto,
 } from '../presentation/dto/order.response.dto';
 
 import { CustomerService } from '@/modules/customer/customer/application/customer.service';
@@ -431,5 +433,30 @@ export class OrderService {
     );
 
     return this.orderMapper.toVendorPendingOrdersResponse(orders);
+  }
+
+  async getVendorOrderHistory(
+    userId: string,
+    query: VendorOrderHistoryQueryDto,
+  ): Promise<VendorOrderHistoryResponseDto> {
+    const vendor = await this.vendorService.execute(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const result = await this.orderRepository.findHistoryOrdersByVendorId(
+      vendor.id,
+      query,
+    );
+
+    return this.orderMapper.toVendorOrderHistoryResponse({
+      total: result.total,
+      completedCount: result.completedCount,
+      cancelledCount: result.cancelledCount,
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
+      items: result.items,
+    });
   }
 }
