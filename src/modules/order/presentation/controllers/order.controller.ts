@@ -47,6 +47,16 @@ export class OrderController {
     return this.orderService.createOrder(user.id, dto);
   }
 
+  @Get('vendor/pending')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  async getVendorPendingOrders(
+    @CurrentUser() user: AuthUser,
+  ): Promise<VendorPendingOrdersResponseDto> {
+    console.log('hitted this route');
+    return this.orderService.getVendorPendingOrders(user.id);
+  }
+
   @Get('user/:orderId/summary')
   @UseGuards(RoleGuard)
   @Roles(Role.USER)
@@ -139,14 +149,5 @@ export class OrderController {
     @Param('orderId') orderId: string,
   ): Promise<VendorOrderActionResponseDto> {
     return this.orderService.completeVendorOrder(user.id, orderId);
-  }
-
-  @Get('vendor/pending')
-  @UseGuards(RoleGuard)
-  @Roles(Role.VENDOR)
-  async getVendorPendingOrders(
-    @CurrentUser() user: AuthUser,
-  ): Promise<VendorPendingOrdersResponseDto> {
-    return this.orderService.getVendorPendingOrders(user.id);
-  }
+  }  
 } 
