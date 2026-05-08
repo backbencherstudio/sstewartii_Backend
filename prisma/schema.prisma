@@ -16,7 +16,9 @@ model User {
   googleId     String?  @unique
   appleId      String?  @unique
 
-  isEmailVerified Boolean @default(false)
+  isEmailVerified   Boolean @default(false)
+  locationRequired  Boolean @default(false)
+  
   otps         Otp[]
   
   roleId       String
