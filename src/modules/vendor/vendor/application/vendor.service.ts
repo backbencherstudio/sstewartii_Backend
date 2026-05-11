@@ -488,18 +488,18 @@ export class VendorService {
     return this.vendorMapper.toDeleteVendorMenuItemResponse(deletedProduct);
   }
 
- async getTruckGallery(
-    vendorId: string,
+  async getMyTruckGallery(
+    ownerId: string,
   ): Promise<TruckGalleryResponseDto> {
-    const vendor = await this.vendorRepository.findTruckGalleryByVendorId(
-      vendorId,
+    const vendor = await this.vendorRepository.findTruckGalleryByOwnerId(
+      ownerId,
     );
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
     }
 
-    return this.truckGalleryMapper.toResponse(vendor);
+    return this.vendorMapper.toResponse(vendor);
   }
   
 }

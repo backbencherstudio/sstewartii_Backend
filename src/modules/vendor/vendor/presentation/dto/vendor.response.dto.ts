@@ -68,10 +68,6 @@ export class VendorInfoResponseDto {
 }
 
 
-export class UploadTruckGalleryResponseDto {
-  message!: string;
-}
-
 export class TruckGalleryImageResponseDto {
   id!: string;
   url!: string;
@@ -86,6 +82,10 @@ export class TruckGalleryResponseDto {
   isPublic!: boolean;
   total!: number;
   images!: TruckGalleryImageResponseDto[];
+}
+
+export class UploadTruckGalleryResponseDto {
+  message!: string;
 }
 
 export class VendorHomeProfileDto {

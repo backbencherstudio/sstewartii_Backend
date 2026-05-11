@@ -19,7 +19,12 @@ import {
   VendorMenuItemsResponseDto,
   VendorMenuItemStatusResponseDto,
   DeleteVendorMenuItemResponseDto,
+  
 } from '../../presentation/dto/vendor.response.dto';
+
+import type {
+  VendorTruckGalleryView,
+} from '../../domain/interface/vendor.repository.interface';
 
 import { Vendor } from '../../domain/entities/vendor.entity';
 import { MediaService } from '@/common/media/media.service';
@@ -187,29 +192,29 @@ export class VendorMapper {
     };
   }
 
-  toTruckGalleryResponse(vendor: {
-    id: string;
-    truckGalleryImages: {
-      id: string;
-      url: string;
-      caption: string | null;
-      isPrimary: boolean;
-      position: number;
-      createdAt: Date;
-    }[];
-  }): TruckGalleryResponseDto {
-    return {
-      vendorId: vendor.id,
-      items: vendor.truckGalleryImages.map((image) => ({
-        id: image.id,
-        url: this.mediaService.getUrl(image.url),
-        caption: image.caption ?? undefined,
-        isPrimary: image.isPrimary,
-        position: image.position,
-        createdAt: image.createdAt,
-      })),
-    };
-  }
+  // toTruckGalleryResponse(vendor: {
+  //   id: string;
+  //   truckGalleryImages: {
+  //     id: string;
+  //     url: string;
+  //     caption: string | null;
+  //     isPrimary: boolean;
+  //     position: number;
+  //     createdAt: Date;
+  //   }[];
+  // }): TruckGalleryResponseDto {
+  //   return {
+  //     vendorId: vendor.id,
+  //     items: vendor.truckGalleryImages.map((image) => ({
+  //       id: image.id,
+  //       url: this.mediaService.getUrl(image.url),
+  //       caption: image.caption ?? undefined,
+  //       isPrimary: image.isPrimary,
+  //       position: image.position,
+  //       createdAt: image.createdAt,
+  //     })),
+  //   };
+  // }
 
   toVendorHomeResponse(data: {
     vendor: any;
@@ -401,5 +406,25 @@ export class VendorMapper {
       deleted: product.isDeleted,
       deletedAt: product.deletedAt,
     };
+  }
+
+  toResponse(vendor: VendorTruckGalleryView): TruckGalleryResponseDto {
+    return {
+      vendorId: vendor.id,
+      isPublic: true,
+      total: vendor.truckGalleryImages.length,
+      images: vendor.truckGalleryImages.map((image) => ({
+        id: image.id,
+        url: this.resolveImageUrl(image.url),
+        caption: image.caption ?? undefined,
+        isPrimary: image.isPrimary,
+        position: image.position,
+        createdAt: image.createdAt,
+      })),
+    };
+  }
+
+  private resolveImageUrl(path: string): string {
+    return this.mediaService.getUrl(path) ?? path;
   }
 }
