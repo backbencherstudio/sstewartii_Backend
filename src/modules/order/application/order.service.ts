@@ -29,6 +29,7 @@ import {
   VendorPendingOrdersResponseDto,
   VendorOrderHistoryResponseDto,
   CreateOrderReportResponseDto,
+  VendorOrderReportResponseDto,
 } from '../presentation/dto/order.response.dto';
 
 import { CustomerService } from '@/modules/customer/customer/application/customer.service';
@@ -534,5 +535,31 @@ export class OrderService {
       status === OrderStatus.COMPLETED ||
       status === OrderStatus.CANCELLED
     );
+  }
+
+  async getVendorOrderReport(
+    userId: string,
+    orderId: string,
+  ): Promise<VendorOrderReportResponseDto> {
+    const vendor = await this.vendorService.execute(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const report = await this.orderRepository.findVendorOrderReportByOrderId({
+      orderId,
+      vendorId: vendor.id,
+    });
+
+    if (!report) {
+      throw new NotFoundException('Order report not found');
+    }
+
+    if (report.vendorId !== vendor.id) {
+      throw new ForbiddenException('You cannot access this report');
+    }
+
+    return this.orderMapper.toVendorOrderReportResponse(report);
   }
 }
