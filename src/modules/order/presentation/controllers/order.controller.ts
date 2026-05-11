@@ -32,6 +32,7 @@ import {
   VendorPendingOrdersResponseDto,
   VendorOrderHistoryResponseDto,
   CreateOrderReportResponseDto,
+  VendorOrderReportResponseDto
 } from '../dto/order.response.dto';
 
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
@@ -189,5 +190,15 @@ export class OrderController {
       dto,
       files,
     );
+  }
+
+  @Get('vendor/:orderId/report')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  async getVendorOrderReport(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+  ): Promise<VendorOrderReportResponseDto> {
+    return this.orderService.getVendorOrderReport(user.id, orderId);
   }
 } 
