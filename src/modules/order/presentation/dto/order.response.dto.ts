@@ -459,3 +459,29 @@ export class CreateOrderReportResponseDto {
 
   createdAt!: Date;
 }
+
+export class VendorOrderReportImageDto {
+  id!: string;
+  imageUrl!: string;
+  position!: number;
+}
+
+export class VendorOrderReportResponseDto {
+  id!: string;
+  reportingId!: string;
+  orderId!: string;
+  orderNumber!: string;
+  vendorId!: string;
+  customerId!: string;
+  reason!: OrderReportReason;
+  reasonLabel!: string;
+  description?: string;
+  status!: OrderReportStatus;
+  statusLabel!: string;
+  images!: VendorOrderReportImageDto[];
+  submittedAt!: Date;
+  submittedLabel!: string;
+  reviewedAt?: Date | null;
+  resolvedAt?: Date | null;
+  adminNote?: string;
+}
