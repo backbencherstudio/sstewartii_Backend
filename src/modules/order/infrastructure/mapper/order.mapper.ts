@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+
+import { 
+  OrderStatus,
+  OrderReportReason,
+  OrderReportStatus,
+} from '@prisma/client';
 
 import { 
   CreateOrderResponseDto,
@@ -13,6 +18,7 @@ import {
   VendorPendingOrdersResponseDto,
   VendorOrderHistoryResponseDto,
   CreateOrderReportResponseDto,
+  VendorOrderReportResponseDto,
 } from '../../presentation/dto/order.response.dto';
 
 import { MediaService } from '@/common/media/media.service';
@@ -919,5 +925,116 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
 
       createdAt: report.createdAt,
     };
+  }
+
+  toVendorOrderReportResponse(report: any): VendorOrderReportResponseDto {
+    return {
+      id: report.id,
+
+      reportingId: this.buildReportDisplayId(report.id),
+
+      orderId: report.orderId,
+      orderNumber: report.order?.orderNumber ?? '',
+
+      vendorId: report.vendorId,
+      customerId: report.customerId,
+
+      reason: report.reason,
+      reasonLabel: this.getOrderReportReasonLabel(report.reason),
+
+      description: report.description ?? undefined,
+
+      status: report.status,
+      statusLabel: this.getOrderReportStatusLabel(report.status),
+
+      images: report.images.map((image: any) => ({
+        id: image.id,
+        imageUrl: this.mediaService.getUrl(image.imageUrl),
+        position: image.position,
+      })),
+
+      submittedAt: report.createdAt,
+      submittedLabel: this.getSubmittedLabel(report.createdAt),
+
+      reviewedAt: report.reviewedAt ?? null,
+      resolvedAt: report.resolvedAt ?? null,
+      adminNote: report.adminNote ?? undefined,
+    };
+  }
+
+  private buildReportDisplayId(reportId: string): string {
+    const clean = reportId.replace(/-/g, '').slice(0, 5).toUpperCase();
+
+    return `REP-${clean}`;
+  }
+
+  private getOrderReportReasonLabel(reason: OrderReportReason): string {
+    switch (reason) {
+      case OrderReportReason.CUSTOMER_NO_SHOW:
+        return 'Customer No-Show';
+
+      case OrderReportReason.CUSTOMER_UNREACHABLE:
+        return 'Customer Unreachable';
+
+      case OrderReportReason.FAKE_ORDER:
+        return 'Fake Order';
+
+      case OrderReportReason.PAYMENT_ISSUE:
+        return 'Payment Issue';
+
+      case OrderReportReason.ABUSIVE_BEHAVIOR:
+        return 'Abusive Behavior';
+
+      case OrderReportReason.WRONG_ORDER_CLAIM:
+        return 'Wrong Order Claim';
+
+      case OrderReportReason.OTHER:
+      default:
+        return 'Other';
+    }
+  }
+
+  private getOrderReportStatusLabel(status: OrderReportStatus): string {
+    switch (status) {
+      case OrderReportStatus.OPEN:
+        return 'Submitted';
+
+      case OrderReportStatus.IN_REVIEW:
+        return 'In Review';
+
+      case OrderReportStatus.RESOLVED:
+        return 'Resolved';
+
+      case OrderReportStatus.REJECTED:
+        return 'Rejected';
+
+      default:
+        return status;
+    }
+  }
+
+  private getSubmittedLabel(createdAt: Date): string {
+    const diffMs = Date.now() - new Date(createdAt).getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) {
+      return 'Submitted just now';
+    }
+
+    if (diffMinutes < 60) {
+      return `Submitted ${diffMinutes} min ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+      return `Submitted ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    }
+
+    return `Submitted on ${new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(new Date(createdAt))}`;
   }
 }
