@@ -109,4 +109,9 @@ export interface IOrderRepository {
   }): Promise<{ id: string } | null>;
 
   createOrderReport(data: CreateOrderReportInput): Promise<any>;
+
+  findVendorOrderReportByOrderId(data: {
+    orderId: string;
+    vendorId: string;
+  }): Promise<any | null>;
 }
