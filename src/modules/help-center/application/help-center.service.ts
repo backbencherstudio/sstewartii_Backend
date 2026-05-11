@@ -28,47 +28,38 @@ export class HelpCenterService {
 
   async createTicket(
     userId: string,
-    roleName: string,
     dto: CreateHelpTicketDto,
-  ): Promise<HelpTicketResponseDto> {
-    if (roleName === 'USER') {
-      const customer = await this.customerService.findActiveByUserId(userId);
+    ): Promise<HelpTicketResponseDto> {
+    const vendor = await this.vendorService.execute(userId);
 
-      if (!customer) {
-        throw new NotFoundException('Customer not found');
-      }
-
-      const ticket = await this.helpCenterRepository.createHelpTicket({
-        userId,
-        customerId: customer.id,
-        vendorId: null,
-        userType: HelpTicketUserType.CUSTOMER,
-        subject: dto.subject,
-        message: dto.message,
-      });
-
-      return this.helpCenterMapper.toResponse(ticket);
-    }
-
-    if (roleName === 'VENDOR') {
-      const vendor = await this.vendorService.execute(userId);
-
-      if (!vendor) {
-        throw new NotFoundException('Vendor not found');
-      }
-
-      const ticket = await this.helpCenterRepository.createHelpTicket({
+    if (vendor) {
+        const ticket = await this.helpCenterRepository.createHelpTicket({
         userId,
         customerId: null,
         vendorId: vendor.id,
         userType: HelpTicketUserType.VENDOR,
         subject: dto.subject,
         message: dto.message,
-      });
+        });
 
-      return this.helpCenterMapper.toResponse(ticket);
+        return this.helpCenterMapper.toResponse(ticket);
     }
 
-    throw new BadRequestException('Unsupported user role');
+    const customer = await this.customerService.findActiveByUserId(userId);
+
+    if (customer) {
+        const ticket = await this.helpCenterRepository.createHelpTicket({
+        userId,
+        customerId: customer.id,
+        vendorId: null,
+        userType: HelpTicketUserType.CUSTOMER,
+        subject: dto.subject,
+        message: dto.message,
+        });
+
+        return this.helpCenterMapper.toResponse(ticket);
+    }
+
+    throw new NotFoundException('Customer or vendor profile not found');
   }
 }
