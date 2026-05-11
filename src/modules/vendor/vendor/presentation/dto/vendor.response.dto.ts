@@ -67,22 +67,25 @@ export class VendorInfoResponseDto {
   socialLinks!: VendorInfoSocialLinkResponseDto[];
 }
 
+
+export class UploadTruckGalleryResponseDto {
+  message!: string;
+}
+
 export class TruckGalleryImageResponseDto {
   id!: string;
-  url?: string;
+  url!: string;
   caption?: string;
   isPrimary!: boolean;
   position!: number;
   createdAt!: Date;
 }
 
-export class UploadTruckGalleryResponseDto {
-  message!: string;
-}
-
 export class TruckGalleryResponseDto {
   vendorId!: string;
-  items!: TruckGalleryImageResponseDto[];
+  isPublic!: boolean;
+  total!: number;
+  images!: TruckGalleryImageResponseDto[];
 }
 
 export class VendorHomeProfileDto {

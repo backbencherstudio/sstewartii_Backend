@@ -185,40 +185,42 @@ export class VendorRepository implements IVendorRepository {
     });
   }
 
-  // async findTruckGalleryByVendorId(vendorId: string): Promise<{
-  //   id: string;
-  //   truckGalleryImages: {
-  //     id: string;
-  //     url: string;
-  //     caption: string | null;
-  //     isPrimary: boolean;
-  //     position: number;
-  //     createdAt: Date;
-  //   }[];
-  // } | null> {
-  //   return this.prisma.vendor.findUnique({
-  //     where: { id: vendorId },
-  //     select: {
-  //       id: true,
-  //       truckGalleryImages: {
-  //         orderBy: [
-  //           { isPrimary: 'desc' },
-  //           { position: 'asc' },
-  //           { createdAt: 'asc' },
-  //         ],
-  //         select: {
-  //           id: true,
-  //           url: true,
-  //           caption: true,
-  //           isPrimary: true,
-  //           position: true,
-  //           createdAt: true,
-  //         },
-  //       },
-  //     },
-  //   });
-  // }
-
+  async findTruckGalleryByOwnerId(ownerId: string): Promise<{
+    id: string;
+    truckGalleryImages: {
+      id: string;
+      url: string;
+      caption: string | null;
+      isPrimary: boolean;
+      position: number;
+      createdAt: Date;
+    }[];
+  } | null> {
+    return this.prisma.vendor.findUnique({
+      where: {
+        ownerId,
+      },
+      select: {
+        id: true,
+        truckGalleryImages: {
+          orderBy: [
+            { isPrimary: 'desc' },
+            { position: 'asc' },
+            { createdAt: 'asc' },
+          ],
+          select: {
+            id: true,
+            url: true,
+            caption: true,
+            isPrimary: true,
+            position: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+  }
+  
   async findVendorHomeByOwnerId(ownerId: string): Promise<any | null> {
   return this.prisma.vendor.findUnique({
     where: {

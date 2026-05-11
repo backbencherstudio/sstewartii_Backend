@@ -90,13 +90,13 @@ export class VendorController {
     return this.vendorService.uploadTruckGalleryImages(user.id, dto, files);
   }
 
-  // @Public()
-  // @Get(':vendorId/truck-gallery')
-  // async getTruckGallery(
-  //   @Param('vendorId') vendorId: string,
-  // ): Promise<TruckGalleryResponseDto> {
-  //   return this.VendorService.getTruckGallery(vendorId);
-  // }
+  @Public()
+  @Get(':vendorId/truck-gallery')
+  async getTruckGallery(
+    @Param('vendorId') vendorId: string,
+  ): Promise<TruckGalleryResponseDto> {
+    return this.vendorService.getTruckGallery(vendorId);
+  }
 
   @Get('home')
   @UseGuards(RoleGuard)

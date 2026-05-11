@@ -487,5 +487,19 @@ export class VendorService {
 
     return this.vendorMapper.toDeleteVendorMenuItemResponse(deletedProduct);
   }
+
+ async getTruckGallery(
+    vendorId: string,
+  ): Promise<TruckGalleryResponseDto> {
+    const vendor = await this.vendorRepository.findTruckGalleryByVendorId(
+      vendorId,
+    );
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    return this.truckGalleryMapper.toResponse(vendor);
+  }
   
 }

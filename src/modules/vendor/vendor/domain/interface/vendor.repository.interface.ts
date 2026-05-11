@@ -56,6 +56,20 @@ export interface DeleteVendorMenuItemView {
   deletedAt: Date | null;
 }
 
+export interface TruckGalleryImageView {
+  id: string;
+  url: string;
+  caption: string | null;
+  isPrimary: boolean;
+  position: number;
+  createdAt: Date;
+}
+
+export interface VendorTruckGalleryView {
+  id: string;
+  truckGalleryImages: TruckGalleryImageView[];
+}
+
 export interface IVendorRepository {
 
   findByVendorId(ownerId: string): Promise<Vendor | null>;
@@ -81,18 +95,6 @@ export interface IVendorRepository {
       position?: number;
     }[];
   }): Promise<void>;
-
-  // findTruckGalleryByVendorId(vendorId: string): Promise<{
-  //   id: string;
-  //   truckGalleryImages: {
-  //     id: string;
-  //     url: string;
-  //     caption: string | null;
-  //     isPrimary: boolean;
-  //     position: number;
-  //     createdAt: Date;
-  //   }[];
-  // } | null>;
 
   findVendorHomeByOwnerId(ownerId: string): Promise<any | null>;
 
@@ -138,4 +140,8 @@ export interface IVendorRepository {
   softDeleteVendorMenuItem(
     productId: string,
   ): Promise<DeleteVendorMenuItemView>;
+
+  findTruckGalleryByOwnerId(
+    ownerId: string,
+  ): Promise<VendorTruckGalleryView | null>;
 }
