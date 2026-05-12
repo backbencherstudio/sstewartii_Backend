@@ -5,12 +5,16 @@ import { SubscriptionStatus } from '@prisma/client';
 import {
   VendorInsightsOverviewResponseDto,
   VendorRevenueChartResponseDto,
+  VendorPeakHoursResponseDto,
+  TrafficLevel,
 } from '../../presentation/dto/vendor-insights.response.dto';
 import type {
   VendorInsightsDateRange,
   VendorInsightsOverviewRaw,
   VendorRevenueChartRaw,
   VendorRevenueDateRange,
+  VendorPeakHoursRaw,
+  VendorPeakHoursDateRange,
 } from '../../domain/interface/vendor.repository.interface';
 
 @Injectable()
@@ -314,4 +318,241 @@ export class VendorInsightsMapper {
       current.revenue > best.revenue ? current : best,
     );
   }
+
+  toPeakHoursResponse(data: {
+    raw: VendorPeakHoursRaw;
+    range: VendorPeakHoursDateRange;
+    month: string;
+  }): VendorPeakHoursResponseDto {
+    const chart = this.buildHourlyTrafficChart(data.raw.orders);
+
+    const totalOrders = chart.reduce(
+      (sum, point) => sum + point.orderCount,
+      0,
+    );
+
+    const totalRevenue = chart.reduce(
+      (sum, point) => sum + point.revenue,
+      0,
+    );
+
+    return {
+      period: {
+        month: data.month,
+        label: this.getMonthLabel(data.range.startDate),
+        startDate: data.range.startDate,
+        endDate: data.range.endDate,
+      },
+
+      summary: {
+        totalOrders,
+        totalRevenue: this.roundMoney(totalRevenue),
+        peakHour: this.findPeakHour(chart),
+        bestTimeWindow: this.findBestTimeWindow(chart, 3),
+      },
+
+      chart,
+
+      legend: {
+        low: 'Low Traffic',
+        medium: 'Med. Traffic',
+        high: 'High Traffic',
+      },
+    };
+  }
+
+  private buildHourlyTrafficChart(
+    orders: { createdAt: Date; totalAmount: number }[],
+  ) {
+    const hourMap = new Map<
+      number,
+      {
+        orderCount: number;
+        revenue: number;
+      }
+    >();
+
+    for (let hour = 0; hour < 24; hour++) {
+      hourMap.set(hour, {
+        orderCount: 0,
+        revenue: 0,
+      });
+    }
+
+    for (const order of orders) {
+      const hour = new Date(order.createdAt).getUTCHours();
+
+      const current = hourMap.get(hour) ?? {
+        orderCount: 0,
+        revenue: 0,
+      };
+
+      current.orderCount += 1;
+      current.revenue += order.totalAmount;
+
+      hourMap.set(hour, current);
+    }
+
+    const maxOrderCount = Math.max(
+      ...Array.from(hourMap.values()).map((value) => value.orderCount),
+      0,
+    );
+
+    return Array.from(hourMap.entries()).map(([hour, value]) => ({
+      hour,
+      label: this.formatHourLabel(hour),
+      orderCount: value.orderCount,
+      revenue: this.roundMoney(value.revenue),
+      trafficLevel: this.getTrafficLevel(value.orderCount, maxOrderCount),
+    }));
+  }
+
+  private getTrafficLevel(
+    orderCount: number,
+    maxOrderCount: number,
+  ): TrafficLevel {
+    if (orderCount === 0 || maxOrderCount === 0) {
+      return 'LOW';
+    }
+
+    const ratio = orderCount / maxOrderCount;
+
+    if (ratio >= 0.7) {
+      return 'HIGH';
+    }
+
+    if (ratio >= 0.35) {
+      return 'MEDIUM';
+    }
+
+    return 'LOW';
+  }
+
+  private findPeakHour(
+    chart: {
+      hour: number;
+      label: string;
+      orderCount: number;
+      revenue: number;
+      trafficLevel: TrafficLevel;
+    }[],
+  ): {
+    hour: number;
+    label: string;
+    orderCount: number;
+    revenue: number;
+    trafficLevel: TrafficLevel;
+  } | null {
+    const activeHours = chart.filter((point) => point.orderCount > 0);
+
+    if (!activeHours.length) {
+      return null;
+    }
+
+    return activeHours.reduce((best, current) => {
+      if (current.orderCount > best.orderCount) {
+        return current;
+      }
+
+      if (
+        current.orderCount === best.orderCount &&
+        current.revenue > best.revenue
+      ) {
+        return current;
+      }
+
+      return best;
+    });
+  }
+
+  private findBestTimeWindow(
+    chart: {
+      hour: number;
+      label: string;
+      orderCount: number;
+      revenue: number;
+      trafficLevel: TrafficLevel;
+    }[],
+    windowSize: number,
+  ): {
+    startHour: number;
+    endHour: number;
+    label: string;
+    orderCount: number;
+    revenue: number;
+  } | null {
+    if (!chart.length || chart.length < windowSize) {
+      return null;
+    }
+
+    let bestWindow: {
+      startHour: number;
+      endHour: number;
+      orderCount: number;
+      revenue: number;
+    } | null = null;
+
+    for (let index = 0; index <= chart.length - windowSize; index++) {
+      const windowPoints = chart.slice(index, index + windowSize);
+
+      const orderCount = windowPoints.reduce(
+        (sum, point) => sum + point.orderCount,
+        0,
+      );
+
+      const revenue = windowPoints.reduce(
+        (sum, point) => sum + point.revenue,
+        0,
+      );
+
+      const startHour = windowPoints[0].hour;
+      const endHour = windowPoints[windowPoints.length - 1].hour;
+
+      if (
+        !bestWindow ||
+        orderCount > bestWindow.orderCount ||
+        (orderCount === bestWindow.orderCount && revenue > bestWindow.revenue)
+      ) {
+        bestWindow = {
+          startHour,
+          endHour,
+          orderCount,
+          revenue,
+        };
+      }
+    }
+
+    if (!bestWindow || bestWindow.orderCount === 0) {
+      return null;
+    }
+
+    return {
+      startHour: bestWindow.startHour,
+      endHour: bestWindow.endHour,
+      label: `${this.formatHourLabel(bestWindow.startHour)} - ${this.formatHourLabel(
+        bestWindow.endHour + 1,
+      )}`,
+      orderCount: bestWindow.orderCount,
+      revenue: this.roundMoney(bestWindow.revenue),
+    };
+  }
+
+  private formatHourLabel(hour: number): string {
+    const normalizedHour = ((hour % 24) + 24) % 24;
+
+    if (normalizedHour === 0) {
+      return '12 AM';
+    }
+
+    if (normalizedHour < 12) {
+      return `${normalizedHour} AM`;
+    }
+
+    if (normalizedHour === 12) {
+      return '12 PM';
+    }
+
+    return `${normalizedHour - 12} PM`;
+  }
+
 }
