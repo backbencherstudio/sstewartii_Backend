@@ -109,6 +109,7 @@ model Vendor {
   truckGalleryImages   TruckGalleryImage[]
   orderReports         OrderReport[]
   helpTickets          HelpCenterTicket[]
+  profileViews         VendorProfileView[]
   
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -342,14 +343,15 @@ model Customer {
   isActive        Boolean  @default(true)
   preferredRadius Float? 
 
-  carts            Cart[]
-  orders           Order[]
-  favoriteProducts FavoriteProduct[]
-  favoriteVendors  FavoriteVendor[]
-  truckReviews     VendorTruckReview[]
-  foodReviews      FoodReview[]
-  orderReports     OrderReport[]
-  helpTickets      HelpCenterTicket[]
+  carts              Cart[]
+  orders             Order[]
+  favoriteProducts   FavoriteProduct[]
+  favoriteVendors    FavoriteVendor[]
+  truckReviews       VendorTruckReview[]
+  foodReviews        FoodReview[]
+  orderReports       OrderReport[]
+  helpTickets        HelpCenterTicket[]
+  vendorProfileViews VendorProfileView[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -759,6 +761,22 @@ model HelpCenterTicket {
   @@index([status])
   @@index([priority])
   @@index([createdAt])
+}
+
+model VendorProfileView {
+  id         String    @id @default(uuid())
+
+  vendorId   String
+  vendor     Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  viewedAt   DateTime  @default(now())
+
+  @@index([vendorId])
+  @@index([customerId])
+  @@index([viewedAt])
 }
 
 enum OrderReportReason {
