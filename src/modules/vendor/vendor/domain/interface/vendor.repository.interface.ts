@@ -72,6 +72,31 @@ export interface VendorTruckGalleryView {
   truckGalleryImages: TruckGalleryImageView[];
 }
 
+export interface VendorInsightsDateRange {
+  startDate: Date;
+  endDate: Date;
+  previousStartDate: Date;
+  previousEndDate: Date;
+}
+
+export interface VendorInsightsOverviewRaw {
+  vendor: any;
+  revenueOrders: {
+    createdAt: Date;
+    totalAmount: number;
+  }[];
+  previousRevenueTotal: number;
+  profileViews: {
+    viewedAt: Date;
+  }[];
+  previousProfileViewTotal: number;
+  favoriteCount: number;
+  ratingDistribution: {
+    rating: number;
+    count: number;
+  }[];
+}
+
 export interface IVendorRepository {
 
   findByVendorId(ownerId: string): Promise<Vendor | null>;
@@ -146,4 +171,9 @@ export interface IVendorRepository {
   findTruckGalleryByOwnerId(
     ownerId: string,
   ): Promise<VendorTruckGalleryView | null>;
+
+  findVendorInsightsOverviewData(data: {
+    ownerId: string;
+    range: VendorInsightsDateRange;
+  }): Promise<VendorInsightsOverviewRaw | null>;
 }

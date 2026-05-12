@@ -23,6 +23,7 @@ import {
   UpdateVendorMenuItemStatusDto,
   
  } from '../dto/vendor.dto';
+import { VendorInsightsOverviewQueryDto } from '../dto/vendor-insights.query.dto';
 
 import { 
   VendorMenuResponseDto,
@@ -36,6 +37,7 @@ import {
   VendorMenuItemStatusResponseDto,
   DeleteVendorMenuItemResponseDto,
  } from '../dto/vendor.response.dto';
+import { VendorInsightsOverviewResponseDto } from '../dto/vendor-insights.response.dto';
 
 import { VendorService } from '../../application/vendor.service';
 
@@ -164,5 +166,18 @@ export class VendorController {
   ): Promise<TruckGalleryResponseDto> {
     return this.vendorService.getMyTruckGallery(user.id);
   }
-  
+
+  @Get('insights/overview')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  async getVendorInsightsOverview(
+    @CurrentUser() user: AuthUser,
+    @Query() query: VendorInsightsOverviewQueryDto,
+  ): Promise<VendorInsightsOverviewResponseDto> {
+    return this.vendorService.getVendorInsightsOverview(
+      user.id,
+      query,
+    );
+  }
+
 }
