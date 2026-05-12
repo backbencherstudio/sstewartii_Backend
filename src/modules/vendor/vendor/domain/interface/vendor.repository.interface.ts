@@ -97,6 +97,28 @@ export interface VendorInsightsOverviewRaw {
   }[];
 }
 
+export interface VendorRevenueDateRange {
+  startDate: Date;
+  endDate: Date;
+  previousStartDate: Date;
+  previousEndDate: Date;
+}
+
+export interface VendorRevenueOrderRow {
+  createdAt: Date;
+  totalAmount: number;
+}
+
+export interface VendorRevenueChartRaw {
+  vendorId: string;
+
+  currentOrders: VendorRevenueOrderRow[];
+
+  previousRevenueTotal: number;
+
+  completedOrderCount: number;
+}
+
 export interface IVendorRepository {
 
   findByVendorId(ownerId: string): Promise<Vendor | null>;
