@@ -62,3 +62,39 @@ export class VendorInsightsOverviewResponseDto {
   favorites!: FavoriteOverviewDto;
   subscription!: SubscriptionOverviewDto;
 }
+
+export class RevenueChartPeriodDto {
+  month!: string;
+  label!: string;
+  startDate!: Date;
+  endDate!: Date;
+}
+
+export class RevenueChartPointDto {
+  day!: number;
+  date!: string;
+  revenue!: number;
+  orderCount!: number;
+}
+
+export class RevenueChartSummaryDto {
+  totalRevenue!: number;
+  previousRevenue!: number;
+  changePercent!: number;
+
+  completedOrderCount!: number;
+  averageDailyRevenue!: number;
+
+  bestDay!: {
+    day: number;
+    date: string;
+    revenue: number;
+    orderCount: number;
+  } | null;
+}
+
+export class VendorRevenueChartResponseDto {
+  period!: RevenueChartPeriodDto;
+  summary!: RevenueChartSummaryDto;
+  chart!: RevenueChartPointDto[];
+}
