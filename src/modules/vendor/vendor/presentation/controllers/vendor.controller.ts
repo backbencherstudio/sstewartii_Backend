@@ -25,6 +25,7 @@ import {
 import { 
   VendorInsightsOverviewQueryDto,
   VendorInsightsRevenueQueryDto,
+  VendorPeakHoursQueryDto,
 } from '../dto/vendor-insights.query.dto';
 
 import { 
@@ -42,6 +43,7 @@ import {
 import { 
   VendorInsightsOverviewResponseDto,
   VendorRevenueChartResponseDto,
+  VendorPeakHoursResponseDto,
  } from '../dto/vendor-insights.response.dto';
 
 import { VendorService } from '../../application/vendor.service';
@@ -196,6 +198,16 @@ export class VendorController {
       user.id,
       query,
     );
+  }
+
+  @Get('insights/peak-hours')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  async getVendorPeakHours(
+    @CurrentUser() user: AuthUser,
+    @Query() query: VendorPeakHoursQueryDto,
+  ): Promise<VendorPeakHoursResponseDto> {
+    return this.vendorService.getVendorPeakHours(user.id, query);
   }
 
 }
