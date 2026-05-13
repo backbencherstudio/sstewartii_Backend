@@ -12,6 +12,10 @@ import { Prisma,
 import { 
    IVendorRepository,
    VendorInsightsDateRange, 
+   VendorInsightsDateRangeInput,
+   VendorInsightProfileView,
+   VendorFavoriteCountView,
+   VendorInsightOrderView,
   } from '../../domain/interface/vendor.repository.interface';
 import { Vendor } from '../../domain/entities/vendor.entity';
 
@@ -617,5 +621,112 @@ export class VendorRepository implements IVendorRepository {
         deletedAt: true,
       },
     });
+  }
+
+  async findVendorInsightProfileByOwnerId(
+    ownerId: string,
+  ): Promise<VendorInsightProfileView | null> {
+    return this.prisma.vendor.findUnique({
+      where: {
+        ownerId,
+      },
+      select: {
+        id: true,
+        truckReviewAverage: true,
+        truckReviewCount: true,
+        subscriptionStatus: true,
+        subscriptionExpiry: true,
+        subscriptionPlan: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findOrdersForInsights(
+    data: VendorInsightsDateRangeInput,
+  ): Promise<VendorInsightOrderView[]> {
+    return this.prisma.order.findMany({
+      where: {
+        vendorId: data.vendorId,
+        createdAt: {
+          gte: data.startDate,
+          lte: data.endDate,
+        },
+        status: {
+          in: [
+            OrderStatus.PENDING,
+            OrderStatus.CONFIRMED,
+            OrderStatus.PREPARING,
+            OrderStatus.READY_FOR_PICKUP,
+            OrderStatus.COMPLETED,
+            OrderStatus.CANCELLED,
+          ],
+        },
+      },
+      select: {
+        id: true,
+        customerId: true,
+        status: true,
+        totalAmount: true,
+        createdAt: true,
+        completedAt: true,
+        cancelledAt: true,
+        customer: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        orderItems: {
+          select: {
+            id: true,
+            productId: true,
+            productName: true,
+            quantity: true,
+            lineTotal: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
+
+  async countVendorFavorites(
+    vendorId: string,
+  ): Promise<VendorFavoriteCountView> {
+    const total = await this.prisma.favoriteVendor.count({
+      where: {
+        vendorId,
+      },
+    });
+
+    return { total };
+  }
+
+  async countVendorFavoritesInRange(
+    data: VendorInsightsDateRangeInput,
+  ): Promise<VendorFavoriteCountView> {
+    const total = await this.prisma.favoriteVendor.count({
+      where: {
+        vendorId: data.vendorId,
+        createdAt: {
+          gte: data.startDate,
+          lte: data.endDate,
+        },
+      },
+    });
+
+    return { total };
   }
 }
