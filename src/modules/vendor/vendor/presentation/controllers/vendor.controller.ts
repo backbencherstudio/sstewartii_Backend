@@ -169,4 +169,17 @@ export class VendorController {
   ): Promise<TruckGalleryResponseDto> {
     return this.vendorService.getMyTruckGallery(user.id);
   }
+
+  @Get('insights/overview')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  async getVendorInsightsOverview(
+    @CurrentUser() user: AuthUser,
+    @Query() query: VendorInsightsOverviewQueryDto,
+  ): Promise<VendorInsightsOverviewResponseDto> {
+    return this.vendorService.getVendorInsightsOverview(
+      user.id,
+      query,
+    );
+  }
 }
