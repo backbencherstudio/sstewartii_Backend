@@ -220,3 +220,59 @@ export class DeleteVendorMenuItemResponseDto {
   deletedAt!: Date | null;
 }
 
+export class VendorReviewRatingDistributionDto {
+  rating!: number;
+  count!: number;
+  percent!: number;
+}
+
+export class VendorReviewTagDto {
+  id!: string;
+  name!: string;
+}
+
+export class VendorReviewImageDto {
+  id!: string;
+  imageUrl!: string;
+  position!: number;
+}
+
+export class VendorReviewCustomerDto {
+  id!: string;
+  name!: string;
+  avatar?: string;
+}
+
+export class VendorReviewListItemDto {
+  id!: string;
+  rating!: number;
+  reviewText?: string;
+
+  customer!: VendorReviewCustomerDto;
+
+  tags!: VendorReviewTagDto[];
+  images!: VendorReviewImageDto[];
+
+  createdAt!: Date;
+  dateLabel!: string;
+}
+
+export class VendorReviewsResponseDto {
+  summary!: {
+    averageRating: number;
+    totalReviews: number;
+    distribution: VendorReviewRatingDistributionDto[];
+  };
+
+  sort!: 'MOST_RECENT' | 'HIGHEST_RATED' | 'LOWEST_RATED';
+
+  pagination!: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+
+  reviews!: VendorReviewListItemDto[];
+}
+
