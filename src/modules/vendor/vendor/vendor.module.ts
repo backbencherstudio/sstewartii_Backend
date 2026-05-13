@@ -6,6 +6,7 @@ import { VendorRepository } from './infrastructure/repositories/vendor.repositor
 import { MediaModule } from '@/common/media/media.module';
 import { VendorMapper } from './infrastructure/mapper/vendor.mapper';
 import { VendorInsightsMapper } from './infrastructure/mapper/vendor-insights.mapper';
+import { VendorInsightAccessService } from './application/vendor-insight-access.service';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { VendorInsightsMapper } from './infrastructure/mapper/vendor-insights.ma
     PrismaService,
     VendorMapper,
     VendorInsightsMapper,
+    VendorInsightAccessService,
     {
       provide: 'IVendorRepository',
       useClass: VendorRepository,

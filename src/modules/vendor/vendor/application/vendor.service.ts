@@ -48,6 +48,8 @@ import {
  } from '../presentation/dto/vendor-insights.response.dto';
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
+import { VendorInsightAccessService } from './vendor-insight-access.service';
+
 
 @Injectable()
 export class VendorService {
@@ -58,6 +60,7 @@ export class VendorService {
     private readonly storageService: LocalStorageService,
     private readonly vendorMapper: VendorMapper,
     private readonly vendorInsightsMapper: VendorInsightsMapper,
+    private readonly vendorInsightAccessService: VendorInsightAccessService,
   ) {}
 
   async findByVendorId(vendorId: string) {
@@ -510,5 +513,108 @@ export class VendorService {
     }
 
     return this.vendorMapper.toResponse(vendor);
+  }
+
+  async getVendorInsightsOverview(
+    ownerId: string,
+    query: VendorInsightsOverviewQueryDto,
+  ): Promise<VendorInsightsOverviewResponseDto> {
+    const vendor =
+      await this.vendorRepository.findVendorInsightProfileByOwnerId(
+        ownerId,
+      );
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const access = this.vendorInsightAccessService.resolveAccess(vendor);
+
+    const dateRange = this.resolveInsightDateRange(query);
+
+    const orders = await this.vendorRepository.findOrdersForInsights({
+      vendorId: vendor.id,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+    });
+
+    const [totalFavorites, favoritesInRange] = await Promise.all([
+      this.vendorRepository.countVendorFavorites(vendor.id),
+      this.vendorRepository.countVendorFavoritesInRange({
+        vendorId: vendor.id,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      }),
+    ]);
+
+    return this.vendorInsightsMapper.toOverviewResponse({
+      access,
+      range: query.range ?? 'month',
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+      vendor,
+      orders,
+      totalFavorites: totalFavorites.total,
+      favoritesInRange: favoritesInRange.total,
+    });
+  }
+
+  private resolveInsightDateRange(
+    query: VendorInsightsOverviewQueryDto,
+  ): {
+    startDate: Date;
+    endDate: Date;
+  } {
+    const now = new Date();
+    const range = query.range ?? 'month';
+
+    if (range === 'today') {
+      const startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+
+      return { startDate, endDate };
+    }
+
+    if (range === 'week') {
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+
+      return {
+        startDate,
+        endDate: now,
+      };
+    }
+
+    if (range === 'year') {
+      const startDate = new Date(now.getFullYear(), 0, 1);
+      const endDate = new Date(
+        now.getFullYear(),
+        11,
+        31,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      return { startDate, endDate };
+    }
+
+    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endDate = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    return { startDate, endDate };
   }
 }
