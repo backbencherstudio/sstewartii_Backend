@@ -13,6 +13,8 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { VendorLiveStatus } from '@prisma/client';
 
+import { VendorInsightAccessDto } from './vendor-insights.response.dto';
+
 export class VendorMenuQueryDto {
   @IsOptional()
   @IsString()
@@ -139,4 +141,46 @@ export class VendorFollowersQueryDto {
   @Min(1)
   @Max(50)
   limit?: number = 10;
+}
+
+export class VendorFollowerCustomerDto {
+  id!: string;
+  name!: string;
+  avatar?: string;
+}
+
+export class VendorFollowerListItemDto {
+  id!: string;
+
+  customer!: VendorFollowerCustomerDto;
+
+  followedAt!: Date;
+  followerSinceLabel!: string;
+
+  orderCount!: number;
+  orderLabel!: string;
+}
+
+export class VendorFollowersResponseDto {
+  access!: VendorInsightAccessDto;
+
+  locked!: boolean;
+  lockedMessage?: string;
+
+  summary!: {
+    totalFollowers: number;
+    thisMonthFollowers: number;
+    previousMonthFollowers: number;
+    growthPercent: number;
+    growthLabel: string;
+  };
+
+  pagination!: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+
+  followers!: VendorFollowerListItemDto[];
 }
