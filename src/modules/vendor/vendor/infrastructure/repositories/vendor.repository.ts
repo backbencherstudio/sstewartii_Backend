@@ -21,6 +21,8 @@ import {
    VendorAiOrderView,
    VendorReviewSummaryResult,
    VendorReviewResult,
+   VendorFollowersResult,
+   VendorFollowersProfileView,
   } from '../../domain/interface/vendor.repository.interface';
 import { Vendor } from '../../domain/entities/vendor.entity';
 
@@ -920,5 +922,105 @@ export class VendorRepository implements IVendorRepository {
     return [
       { createdAt: 'desc' },
     ];
+  }
+
+   async findFollowersProfileByOwnerId(
+    ownerId: string,
+  ): Promise<VendorFollowersProfileView | null> {
+    return this.prisma.vendor.findUnique({
+      where: {
+        ownerId,
+      },
+      select: {
+        id: true,
+        subscriptionStatus: true,
+        subscriptionPlan: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async countVendorFollowers(vendorId: string): Promise<number> {
+    return this.prisma.favoriteVendor.count({
+      where: {
+        vendorId,
+      },
+    });
+  }
+
+  async countVendorFollowersInRange(data: {
+    vendorId: string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<number> {
+    return this.prisma.favoriteVendor.count({
+      where: {
+        vendorId: data.vendorId,
+        createdAt: {
+          gte: data.startDate,
+          lte: data.endDate,
+        },
+      },
+    });
+  }
+
+  async findVendorFollowers(data: {
+    vendorId: string;
+    page: number;
+    limit: number;
+  }): Promise<VendorFollowersResult> {
+    const skip = (data.page - 1) * data.limit;
+
+    const [total, followers] = await Promise.all([
+      this.prisma.favoriteVendor.count({
+        where: {
+          vendorId: data.vendorId,
+        },
+      }),
+
+      this.prisma.favoriteVendor.findMany({
+        where: {
+          vendorId: data.vendorId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: data.limit,
+        select: {
+          id: true,
+          createdAt: true,
+          customer: {
+            select: {
+              id: true,
+              avatar: true,
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+              orders: {
+                where: {
+                  vendorId: data.vendorId,
+                },
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      total,
+      followers,
+    };
   }
 }
