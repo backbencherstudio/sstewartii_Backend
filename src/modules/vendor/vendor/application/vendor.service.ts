@@ -26,6 +26,7 @@ import {
   UpdateVendorStatusDto,
   VendorMenuItemsQueryDto,
   UpdateVendorMenuItemStatusDto,
+  VendorReviewsQueryDtoMe,
  } from '../presentation/dto/vendor.dto';
 import { 
   VendorInsightsOverviewQueryDto,
@@ -43,6 +44,7 @@ import {
   VendorMenuItemsResponseDto,
   VendorMenuItemStatusResponseDto,
   DeleteVendorMenuItemResponseDto,
+  VendorReviewsResponseDto,
  } from '../presentation/dto/vendor.response.dto';
  import { 
   VendorInsightsOverviewResponseDto,
@@ -651,6 +653,33 @@ export class VendorService {
       endDate: dateRange.endDate,
       vendor,
       orders,
+    });
+  }
+
+  async getVendorRatingsAndReviews(
+    ownerId: string,
+    query: VendorReviewsQueryDtoMe,
+  ): Promise<VendorReviewsResponseDto> {
+    const vendor = await this.vendorReviewRepository.findVendorIdByOwnerId(
+      ownerId,
+    );
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const [summary, result] = await Promise.all([
+      this.vendorRepository.getVendorReviewSummary(vendor.id),
+      this.vendorRepository.findVendorReviews(vendor.id, query),
+    ]);
+
+    return this.vendorMapper.toRviewResponse({
+      summary,
+      total: result.total,
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
+      sort: query.sort ?? 'MOST_RECENT',
+      reviews: result.reviews,
     });
   }
 }
