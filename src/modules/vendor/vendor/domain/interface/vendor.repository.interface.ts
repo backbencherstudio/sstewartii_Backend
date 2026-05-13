@@ -3,6 +3,7 @@ import {
   VerificationStatus,
   KycStatus,
   SubscriptionStatus,
+  OrderStatus,
 } from '@prisma/client';
 
 import { Vendor } from "../entities/vendor.entity";
@@ -89,6 +90,55 @@ export interface VendorPeakHoursOrderRow {
   totalAmount: number;
 }
 
+export interface VendorInsightProfileView {
+  id: string;
+  truckReviewAverage: number;
+  truckReviewCount: number;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionExpiry: Date | null;
+  subscriptionPlan: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface VendorInsightOrderItemView {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  lineTotal: number;
+}
+
+export interface VendorInsightOrderView {
+  id: string;
+  customerId: string;
+  status: OrderStatus;
+  totalAmount: number;
+  createdAt: Date;
+  completedAt: Date | null;
+  cancelledAt: Date | null;
+  customer: {
+    id: string;
+    user: {
+      name: string | null;
+      email: string;
+    };
+  };
+  orderItems: VendorInsightOrderItemView[];
+}
+
+export interface VendorFavoriteCountView {
+  total: number;
+}
+
+export interface VendorInsightsDateRangeInput {
+  vendorId: string;
+  startDate: Date;
+  endDate: Date;
+}
+
+
 export interface IVendorRepository {
 
   findByVendorId(ownerId: string): Promise<Vendor | null>;
@@ -163,4 +213,18 @@ export interface IVendorRepository {
   findTruckGalleryByOwnerId(
     ownerId: string,
   ): Promise<VendorTruckGalleryView | null>;
+
+  findVendorInsightProfileByOwnerId(
+    ownerId: string,
+  ): Promise<VendorInsightProfileView | null>;
+
+  findOrdersForInsights(
+    data: VendorInsightsDateRangeInput,
+  ): Promise<VendorInsightOrderView[]>;
+
+  countVendorFavorites(vendorId: string): Promise<VendorFavoriteCountView>;
+
+  countVendorFavoritesInRange(
+    data: VendorInsightsDateRangeInput,
+  ): Promise<VendorFavoriteCountView>;
 }
