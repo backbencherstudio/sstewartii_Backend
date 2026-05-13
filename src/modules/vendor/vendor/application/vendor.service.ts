@@ -660,7 +660,7 @@ export class VendorService {
     ownerId: string,
     query: VendorReviewsQueryDtoMe,
   ): Promise<VendorReviewsResponseDto> {
-    const vendor = await this.vendorReviewRepository.findVendorIdByOwnerId(
+    const vendor = await this.vendorRepository.findVendorIdByOwnerId(
       ownerId,
     );
 
