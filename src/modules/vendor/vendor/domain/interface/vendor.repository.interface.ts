@@ -138,7 +138,45 @@ export interface VendorInsightsDateRangeInput {
   endDate: Date;
 }
 
+export interface VendorAiProfileView {
+  id: string;
+  businessName: string | null;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionPlan: {
+    id: string;
+    name: string;
+  } | null;
+  serviceArea: {
+    id: string;
+    address: string | null;
+    latitude: number;
+    longitude: number;
+    radius: number;
+  } | null;
+}
 
+export interface VendorAiOrderItemView {
+  productId: string;
+  productName: string;
+  quantity: number;
+  lineTotal: number;
+}
+
+export interface VendorAiOrderView {
+  id: string;
+  status: OrderStatus;
+  totalAmount: number;
+  createdAt: Date;
+  orderItems: VendorAiOrderItemView[];
+}
+
+export interface VendorAiDateRangeInput {
+  vendorId: string;
+  startDate: Date;
+  endDate: Date;
+}
+
+// Main interface
 export interface IVendorRepository {
 
   findByVendorId(ownerId: string): Promise<Vendor | null>;
@@ -227,4 +265,12 @@ export interface IVendorRepository {
   countVendorFavoritesInRange(
     data: VendorInsightsDateRangeInput,
   ): Promise<VendorFavoriteCountView>;
+
+  findAiProfileByOwnerId(
+    ownerId: string,
+  ): Promise<VendorAiProfileView | null>;
+
+  findOrdersForAiGuidance(
+    data: VendorAiDateRangeInput,
+  ): Promise<VendorAiOrderView[]>;
 }
