@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { 
+    VendorProfileSetupResponseDto,
+    CuisineResponseDto,
+ } from '../../presentation/dto/profile-setup-flow.response.dto';
+import { 
+    VendorProfileSetupView,
+    CuisineView,
+ } from '../../domain/interface/profile.setup.interface';
+
 import { MediaService } from '@/common/media/media.service';
-import { VendorProfileSetupResponseDto } from '../../presentation/dto/profile-setup-flow.response.dto';
-import { VendorProfileSetupView } from '../../domain/interface/profile.setup.interface';
 
 @Injectable()
 export class VendorProfileSetupMapper {
