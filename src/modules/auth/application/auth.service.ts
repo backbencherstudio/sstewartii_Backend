@@ -110,16 +110,6 @@ export class AuthService {
         userId: user.id,
         email: user.email,
       });
-
-      // throw new ForbiddenException({
-      //   success: false,
-      //   code: 'EMAIL_NOT_VERIFIED',
-      //   verificationRequired: true,
-      //   message: 'Email not verified. OTP sent to your email.',
-      //   data: {
-      //     email: user.email,
-      //   },
-      // });
     }
 
     const token = await this.getTokens(user.id, user.email, user.role.name);
@@ -281,10 +271,17 @@ export class AuthService {
 
   async requestEmailVerification(email: string): Promise<void> {
     const user = await this.userRepository.findByEmail(email);
-    if (!user) throw new BadRequestException('User not found');
-    if (user.isEmailVerified) throw new BadRequestException('Email is already verified');
 
-    await this.generateAndSendOtp(user, 'EMAIL_VERIFICATION');
+    if (!user) throw new BadRequestException('User not found');
+
+    if (user.isEmailVerified) throw new BadRequestException('Email is already verified');
+    
+    await this.authOtpQueueService.addEmailVerificationOtpJob({
+        userId: user.id,
+        email: user.email,
+    });
+
+    //await this.generateAndSendOtp(user, 'EMAIL_VERIFICATION');
   }
 
   private async generateAndSendOtp(

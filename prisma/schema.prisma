@@ -158,6 +158,9 @@ model Product {
   categoryId        String?
   category          Category? @relation(fields: [categoryId], references: [id])
 
+  cuisineId         String?
+  cuisine           Cuisine?  @relation(fields: [cuisineId], references: [id])
+
   foodReviewAverage Float     @default(0)
   foodReviewCount   Int       @default(0)
 
@@ -172,6 +175,12 @@ model Product {
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now()) @updatedAt
+
+  @@index([vendorId])
+  @@index([categoryId])
+  @@index([cuisineId])
+  @@index([isActive])
+  @@index([isDeleted])
 }
 
 model SocialLink {
@@ -182,9 +191,15 @@ model SocialLink {
 }
 
 model Cuisine {
-  id      String           @id @default(uuid())
-  name    String           @unique
+  id       String           @id @default(uuid())
+  name     String           @unique
+  imageUrl String?
+
   vendors VendorCuisine[]
+  products  Product[]
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now()) @updatedAt
 }
 
 model VendorCuisine {
