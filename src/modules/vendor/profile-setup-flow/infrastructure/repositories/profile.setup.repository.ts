@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { 
+  Injectable, 
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+ } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+
 import { 
   IProfileSetupRepository,
   VendorProfileSetupView,
+  CuisineView,
 } from '../../domain/interface/profile.setup.interface';
 
 import { 
@@ -10,7 +17,9 @@ import {
   OperationHourDto,
   ServiceAreaDto,
   UpdateServiceAreaDto,
+  CreateCuisineDto,
  } from '../../presentation/dto/profile-setup-flow.dto';
+ import { CuisineResponseDto } from '../../presentation/dto/profile-setup-flow.response.dto';
 
 @Injectable()
 export class ProfileSetupRepository implements IProfileSetupRepository {
@@ -114,7 +123,7 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
               },
             },
           });
-          
+
           if (cuisineInput.imageUrl) {
             await tx.cuisine.updateMany({
               where: {
@@ -286,6 +295,37 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
     });
   }
 
+ async findByName(name: string): Promise<CuisineView | null> {
+    return this.prisma.cuisine.findUnique({
+      where: {
+        name,
+      },
+      select: {
+        id: true,
+        name: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
 
-  
+  async createCuisine(data: {
+    name: string;
+    imageUrl?: string;
+  }): Promise<CuisineView> {
+    return this.prisma.cuisine.create({
+      data: {
+        name: data.name,
+        imageUrl: data.imageUrl,
+      },
+      select: {
+        id: true,
+        name: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
 }

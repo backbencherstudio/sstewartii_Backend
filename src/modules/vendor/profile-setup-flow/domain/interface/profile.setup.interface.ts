@@ -3,6 +3,15 @@ import { OperationHourDto } from "../../presentation/dto/profile-setup-flow.dto"
 import { ServiceAreaDto } from "../../presentation/dto/profile-setup-flow.dto";
 import { UpdateServiceAreaDto } from "../../presentation/dto/profile-setup-flow.dto";
 
+
+export interface CuisineView {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface VendorProfileSetupView {
   id: string;
   businessName: string | null;
@@ -49,5 +58,10 @@ export interface IProfileSetupRepository {
     userId: string,
     dto: UpdateServiceAreaDto,
   ): Promise<void> 
+
+  createCuisine(data: {
+    name: string;
+    imageUrl?: string;
+  }): Promise<CuisineView>;
   
 }

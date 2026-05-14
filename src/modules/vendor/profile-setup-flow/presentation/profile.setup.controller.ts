@@ -102,7 +102,7 @@ export class ProfileSetupFlowController {
     @Body() dto: CreateCuisineDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<CuisineResponseDto> {
-    return this.cuisineService.createCuisine(dto, file);
+    return this.service.createCuisine(dto, file);
   }
 
 }
