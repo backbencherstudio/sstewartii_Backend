@@ -1,11 +1,17 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import type { IProfileSetupRepository } from '../domain/interface/profile.setup.interface';
+import type { IVendorRepository } from '../../vendor/domain/interface/vendor.repository.interface';
+
 import { SetupProfileDto } from '../presentation/dto/profile-setup-flow.dto';
+
+import { 
+  ServiceAreaDto,
+  UpdateServiceAreaDto,
+ } from '../presentation/dto/profile-setup-flow.dto';
+import { VendorProfileSetupResponseDto } from '../presentation/dto/profile-setup-flow.response.dto';
+
 import type { IStorageService } from 'src/common/storage/storage.interface';
 import { UpsertOperationHoursDto } from '../presentation/dto/profile-setup-flow.dto';
-import { ServiceAreaDto } from '../presentation/dto/profile-setup-flow.dto';
-import { UpdateServiceAreaDto } from '../presentation/dto/profile-setup-flow.dto';
-import type { IVendorRepository } from '../../vendor/domain/interface/vendor.repository.interface';
 
 @Injectable()
 export class ProfileSetupFlowService {
@@ -21,15 +27,28 @@ export class ProfileSetupFlowService {
     private readonly vendorRepo: IVendorRepository,
   ) {}
 
-  async saveProfile(vendorId: string, dto: SetupProfileDto, file?: Express.Multer.File): Promise<void> {
-    
+ async saveProfile(
+    userId: string,
+    dto: SetupProfileDto,
+    file?: Express.Multer.File,
+  ): Promise<VendorProfileSetupResponseDto> {
     let imageUrl: string | undefined;
 
     if (file) {
-      imageUrl = await this.storageService.uploadFile(file, 'vendor/profile');
+      imageUrl = await this.storageService.uploadFile(
+        file,
+        'vendor/profile',
+      );
     }
 
-    return this.vendorRepository.updateProfileAndSyncRelations(vendorId, dto, imageUrl);
+    const vendor =
+      await this.vendorRepository.updateProfileAndSyncRelations(
+        userId,
+        dto,
+        imageUrl,
+      );
+
+    return this.vendorProfileSetupMapper.toResponse(vendor);
   }
 
   async upsertOperationHours(

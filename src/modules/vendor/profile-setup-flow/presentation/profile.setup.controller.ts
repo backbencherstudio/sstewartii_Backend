@@ -1,5 +1,16 @@
-import { Controller, Req, Post, Body, Request, UploadedFile, UseInterceptors, UseGuards, Patch } from '@nestjs/common';
+import {
+  Controller, 
+  Req,
+  Post, 
+  Body, 
+  Request, 
+  UploadedFile, 
+  UseInterceptors, 
+  UseGuards, 
+  Patch 
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
 import { ProfileSetupFlowService } from '../application/profile.setup.service';
 import { SetupProfileDto } from './dto/profile-setup-flow.dto';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
@@ -7,12 +18,16 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { RoleGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
-import { UpsertOperationHoursDto } from './dto/profile-setup-flow.dto';
-import { ServiceAreaDto } from './dto/profile-setup-flow.dto';
+import { 
+  UpsertOperationHoursDto,
+  ServiceAreaDto,
+ } from './dto/profile-setup-flow.dto';
+ 
 import { UpdateServiceAreaDto } from './dto/profile-setup-flow.dto';
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
 import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interface';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { VendorProfileSetupResponseDto } from './dto/profile-setup-flow.response.dto';
 
 @ApiTags('vendor/profile-setup')
 @Controller('vendor/profile-setup')
@@ -28,8 +43,7 @@ export class ProfileSetupFlowController {
     @Request() req: any,
     @Body() dto: SetupProfileDto,
     @UploadedFile() file?: Express.Multer.File,
-  ): Promise<void> {
-    
+  ): Promise<VendorProfileSetupResponseDto> {
     return this.service.saveProfile(req.user.id, dto, file);
   }
 
