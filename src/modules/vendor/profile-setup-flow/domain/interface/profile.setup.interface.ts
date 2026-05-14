@@ -3,13 +3,37 @@ import { OperationHourDto } from "../../presentation/dto/profile-setup-flow.dto"
 import { ServiceAreaDto } from "../../presentation/dto/profile-setup-flow.dto";
 import { UpdateServiceAreaDto } from "../../presentation/dto/profile-setup-flow.dto";
 
+export interface VendorProfileSetupView {
+  id: string;
+  businessName: string | null;
+  publicEmail: string | null;
+  contactNumber: string | null;
+  bio: string | null;
+  coverImage: string | null;
+  onboardingStep: number;
+
+  cuisines: {
+    cuisine: {
+      id: string;
+      name: string;
+      imageUrl: string | null;
+    };
+  }[];
+
+  socialLinks: {
+    id: string;
+    url: string | null;
+  }[];
+}
+
+// main interface
 export interface IProfileSetupRepository {
   
   updateProfileAndSyncRelations(
-    vendorId: string,
+    userId: string,
     data: SetupProfileDto,
     imageUrl?: string,
-  ): Promise<void>;
+  ): Promise<VendorProfileSetupView>;
 
   createOperationHourVersion(
     userId: string, 
