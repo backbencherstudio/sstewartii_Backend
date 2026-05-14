@@ -12,18 +12,22 @@ import { OAuth2Client } from 'google-auth-library';
 import * as crypto from 'crypto';
 import { MailService } from 'src/common/mail/mail.service';
 import { VerifyOtpDto  } from '../presentation/dto/mail/otp.dto';
+import { AuthOtpQueueService } from '../infrastructure/queues/auth-otp-queue.service';
 
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
 
   constructor(
-    @Inject('IUserRepository') private readonly userRepository: IUserRepository,
-    @Inject('IOtpRepository') private readonly otpRepository: IOtpRepository,
+    @Inject('IUserRepository')
+    private readonly userRepository: IUserRepository,
+
+    @Inject('IOtpRepository') 
+    private readonly otpRepository: IOtpRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
-    
+    private readonly authOtpQueueService: AuthOtpQueueService,
   ) {
      this.googleClient = new OAuth2Client(
      this.configService.get<string>('google.clientId'),
@@ -59,7 +63,12 @@ export class AuthService {
 
     const savedUser = await this.userRepository.create(newUser, roleType);
 
-    await this.generateAndSendOtp(savedUser, 'EMAIL_VERIFICATION');
+   // await this.generateAndSendOtp(savedUser, 'EMAIL_VERIFICATION');
+
+    await this.authOtpQueueService.addEmailVerificationOtpJob({
+      userId: savedUser.id,
+      email: savedUser.email,
+    });
 
     return {
       message: 'Registration Successfull',
@@ -97,10 +106,10 @@ export class AuthService {
 
     if (!user.isEmailVerified) {
 
-      await this.generateAndSendOtp(
-        user,
-        'EMAIL_VERIFICATION',
-      );
+      await this.authOtpQueueService.addEmailVerificationOtpJob({
+        userId: user.id,
+        email: user.email,
+      });
 
       // throw new ForbiddenException({
       //   success: false,

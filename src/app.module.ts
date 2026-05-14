@@ -21,6 +21,7 @@ import { OrderModule } from './modules/order/order.module';
 import { ReviewModule } from './modules/review/review.module';
 import { MediaModule } from './common/media/media.module';
 import { HelpCenterModule } from './modules/help-center/help-center.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -33,6 +34,28 @@ import { HelpCenterModule } from './modules/help-center/help-center.module';
     rootPath: join(process.cwd(), 'uploads'),
     serveRoot: '/uploads', 
     }),
+
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: Number(process.env.REDIS_PORT ?? 6379),
+      },
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+        removeOnComplete: {
+          age: 60 * 60 * 24,
+          count: 1000,
+        },
+        removeOnFail: {
+          age: 60 * 60 * 24 * 7,
+        },
+      },
+    }),
+
     AuthModule,
     VendorProfileSetupModule,
     StorageModule,

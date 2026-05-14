@@ -11,6 +11,10 @@ import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './infrastructure/strategies/google.strategy';
 import { OtpRepository } from './infrastructure/repositories/otp.repository';
 import { MailService } from 'src/common/mail/mail.service';
+import { AuthOtpQueueService } from './infrastructure/queues/auth-otp-queue.service';
+import { AuthOtpProcessor } from './infrastructure/queues/auth-otp.processor';
+import { BullModule } from '@nestjs/bullmq';
+import { AUTH_QUEUE } from '@/common/queues/queue.constants';
 
 @Module({
   imports:[
@@ -26,12 +30,18 @@ import { MailService } from 'src/common/mail/mail.service';
       },
       }),
     }),
+
+    BullModule.registerQueue({
+      name: AUTH_QUEUE,
+    }),
   ],
   controllers:[AuthController],
   providers:[
     AuthService,
     PrismaService,
     MailService,
+    AuthOtpQueueService,
+    AuthOtpProcessor,
     {
       provide: 'IUserRepository',
       useClass: UserRepository,
