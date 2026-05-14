@@ -1,10 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { IProfileSetupRepository } from '../../domain/interface/profile.setup.interface';
-import { SetupProfileDto } from '../../presentation/dto/profile-setup-flow.dto';
-import { OperationHourDto } from '../../presentation/dto/profile-setup-flow.dto';
-import { ServiceAreaDto } from '../../presentation/dto/profile-setup-flow.dto';
-import { UpdateServiceAreaDto } from '../../presentation/dto/profile-setup-flow.dto';
+import { 
+  IProfileSetupRepository,
+  VendorProfileSetupView,
+} from '../../domain/interface/profile.setup.interface';
+
+import { 
+  SetupProfileDto,
+  OperationHourDto,
+  ServiceAreaDto,
+  UpdateServiceAreaDto,
+ } from '../../presentation/dto/profile-setup-flow.dto';
 
 @Injectable()
 export class ProfileSetupRepository implements IProfileSetupRepository {
@@ -14,11 +20,10 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
     userId: string,
     data: SetupProfileDto,
     imageUrl?: string,
-  ): Promise<void> {
+  ): Promise<VendorProfileSetupView> {
     const { socialLinks, cuisines, ...profileData } = data;
 
-    await this.prisma.$transaction(async (tx) => {
-      
+    return this.prisma.$transaction(async (tx) => {
       let vendor = await tx.vendor.findUnique({
         where: { ownerId: userId },
         select: { id: true },
@@ -64,24 +69,99 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
           where: { vendorId },
         });
 
-        if (cuisines.length > 0) {
-          for (const name of cuisines) {
+        for (const cuisineInput of cuisines) {
+          const cuisineName = cuisineInput.name.trim();
+
+          if (!cuisineName) {
+            continue;
+          }
+
+          if (cuisineInput.id) {
             await tx.vendorCuisine.create({
               data: {
-                vendor: {
-                  connect: { id: vendorId },
+                vendorId,
+                cuisineId: cuisineInput.id,
+              },
+            });
+
+            if (cuisineInput.imageUrl) {
+              await tx.cuisine.update({
+                where: { id: cuisineInput.id },
+                data: {
+                  imageUrl: cuisineInput.imageUrl,
                 },
-                cuisine: {
-                  connectOrCreate: {
-                    where: { name },
-                    create: { name },
+              });
+            }
+
+            continue;
+          }
+
+          await tx.vendorCuisine.create({
+            data: {
+              vendor: {
+                connect: { id: vendorId },
+              },
+              cuisine: {
+                connectOrCreate: {
+                  where: {
+                    name: cuisineName,
+                  },
+                  create: {
+                    name: cuisineName,
+                    imageUrl: cuisineInput.imageUrl,
                   },
                 },
+              },
+            },
+          });
+          
+          if (cuisineInput.imageUrl) {
+            await tx.cuisine.updateMany({
+              where: {
+                name: cuisineName,
+                imageUrl: null,
+              },
+              data: {
+                imageUrl: cuisineInput.imageUrl,
               },
             });
           }
         }
       }
+
+      const updatedVendor = await tx.vendor.findUniqueOrThrow({
+        where: { id: vendorId },
+        select: {
+          id: true,
+          businessName: true,
+          publicEmail: true,
+          contactNumber: true,
+          bio: true,
+          coverImage: true,
+          onboardingStep: true,
+
+          cuisines: {
+            include: {
+              cuisine: {
+                select: {
+                  id: true,
+                  name: true,
+                  imageUrl: true,
+                },
+              },
+            },
+          },
+
+          socialLinks: {
+            select: {
+              id: true,
+              url: true,
+            },
+          },
+        },
+      });
+
+      return updatedVendor;
     });
   }
   
