@@ -13,6 +13,8 @@ import {
   IsDateString, 
   ValidateIf,
   IsNotEmpty,
+  MinLength,
+  MaxLength,
  } from 'class-validator';
 
 import { Type, Transform, plainToInstance  } from 'class-transformer';
@@ -162,4 +164,11 @@ export class UpdateServiceAreaDto extends PartialType(ServiceAreaDto) {
   validateAtLeastOne() {
     throw new Error('At least one field must be provided');
   } 
+}
+
+export class CreateCuisineDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(80)
+  name!: string;
 }

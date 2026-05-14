@@ -22,3 +22,11 @@ export class VendorProfileSetupResponseDto {
   cuisines!: VendorProfileCuisineResponseDto[];
   socialLinks!: VendorProfileSocialLinkResponseDto[];
 }
+
+export class CuisineResponseDto {
+  id!: string;
+  name!: string;
+  imageUrl?: string;
+  createdAt!: Date;
+  updatedAt!: Date;
+}

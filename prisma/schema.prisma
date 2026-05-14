@@ -195,7 +195,7 @@ model Cuisine {
   name     String           @unique
   imageUrl String?
 
-  vendors VendorCuisine[]
+  vendors   VendorCuisine[]
   products  Product[]
 
   createdAt DateTime        @default(now())
