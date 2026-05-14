@@ -22,10 +22,12 @@ import {
   UpsertOperationHoursDto,
   ServiceAreaDto,
   CreateCuisineDto,
+  SetupProfileDto,
  } from './dto/profile-setup-flow.dto';
 
  import { 
   CuisineResponseDto,
+  VendorProfileSetupResponseDto,
  } from './dto/profile-setup-flow.response.dto';
 
 import { UpdateServiceAreaDto } from './dto/profile-setup-flow.dto';
@@ -38,6 +40,18 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 export class ProfileSetupFlowController {
   constructor(private readonly service: ProfileSetupFlowService) {}
 
+  @Post('truck-profile-setup')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @UseInterceptors(FileInterceptor('coverImage'))
+  @ResponseMessage('Step 1: Profile details saved successfully')
+  async setupStepOne(
+    @Request() req: any,
+    @Body() dto: SetupProfileDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<VendorProfileSetupResponseDto> {
+    return this.service.saveProfile(req.user.id, dto, file);
+  }
 
   @Post('operation-hours')
   @UseGuards(RoleGuard)
