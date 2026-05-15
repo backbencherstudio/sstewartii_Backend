@@ -1,67 +1,44 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ICategoryRepository } from '../../domain/interfaces/category.interface';
+import { Prisma } from '@prisma/client';
+import { 
+  ICategoryRepository,
+  CategorySearchView,
+ } from '../../domain/interfaces/category.interface';
 import { Category } from '../../domain/entities/category.entity';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Category): Promise<Category> {
-    const created = await this.prisma.category.create({
-      data: {
-        id: data.id,
-        name: data.name,
-        vendorId: data.vendorId,
+ async searchCategories(keyword?: string): Promise<CategorySearchView[]> {
+    const search = keyword?.trim();
+
+    const where: Prisma.CategoryWhereInput = {
+      isActive: true,
+      ...(search && {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      }),
+    };
+
+    return this.prisma.category.findMany({
+      where,
+      take: 20,
+      orderBy: [
+        {
+          position: 'asc',
+        },
+        {
+          name: 'asc',
+        },
+      ],
+      select: {
+        id: true,
+        name: true,
       },
     });
-
-    return new Category(
-      created.id,
-      created.name,
-      created.vendorId,
-      created.createdAt,
-      created.updatedAt,
-    );
-  }
-
-  async findByVendorId(vendorId: string): Promise<Category[]> {
-    const records = await this.prisma.category.findMany({
-      where: { vendorId },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    return records.map(
-      (c) =>
-        new Category(
-          c.id,
-          c.name,
-          c.vendorId,
-          c.createdAt,
-          c.updatedAt,
-        ),
-    );
-  }
-
-  async findByName(
-    vendorId: string,
-    name: string,
-  ): Promise<Category | null> {
-    const record = await this.prisma.category.findFirst({
-      where: {
-        vendorId,
-        name,
-      },
-    });
-
-    if (!record) return null;
-
-    return new Category(
-      record.id,
-      record.name,
-      record.vendorId,
-      record.createdAt,
-      record.updatedAt,
-    );
   }
 }
