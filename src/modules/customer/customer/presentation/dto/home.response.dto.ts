@@ -11,6 +11,7 @@ export class HomeLocationDto {
 }
 
 export class HomeCategoryDto {
+  id!:string;
   name!: string;
 }
 
