@@ -50,6 +50,7 @@ export class ProfileSetupFlowController {
     @Body() dto: SetupProfileDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<VendorProfileSetupResponseDto> {
+    
     return this.service.saveProfile(req.user.id, dto, file);
   }
 
