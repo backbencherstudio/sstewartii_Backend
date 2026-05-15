@@ -27,7 +27,6 @@ import { ProductResponseDto } from '../dto/product.response.dto';
 import { SearchProductQueryDto } from '../dto/searchQuery.dto';
 import { UpdateProductStatusDto } from '../dto/product.dto';
 import { ApiResponses } from '@/common/types/api-response.type';
-import { ProductDetailResponseDto } from '../dto/product.response.dto';
 
 @ApiTags('Product')
 @Controller('product')
@@ -59,47 +58,47 @@ export class ProductController {
     return this.service.createProduct(user.id, dto, files);
   }
 
-  @Get('get/my-products')
-  @UseGuards(RoleGuard)
-  @Roles(Role.VENDOR)
-  async getMyProducts(
-    @CurrentUser() user: AuthUser,
-  ): Promise<ProductResponseDto[]> {
-    return this.service.getVendorProducts(user.id);
-  }
+  // @Get('get/my-products')
+  // @UseGuards(RoleGuard)
+  // @Roles(Role.VENDOR)
+  // async getMyProducts(
+  //   @CurrentUser() user: AuthUser,
+  // ): Promise<ProductResponseDto[]> {
+  //   return this.service.getVendorProducts(user.id);
+  // }
 
-  @Get('vendor-product/search')
-  @UseGuards(RoleGuard)
-  @Roles(Role.VENDOR)
-  async searchProducts(
-    @CurrentUser() user: AuthUser,
-    @Query() query: SearchProductQueryDto,
-  ) {
-    return this.service.searchProducts(user.id, query);
-  }
+  // @Get('vendor-product/search')
+  // @UseGuards(RoleGuard)
+  // @Roles(Role.VENDOR)
+  // async searchProducts(
+  //   @CurrentUser() user: AuthUser,
+  //   @Query() query: SearchProductQueryDto,
+  // ) {
+  //   return this.service.searchProducts(user.id, query);
+  // }
 
-  @Patch(':productId/status')
-  @UseGuards(RoleGuard)
-  @Roles(Role.VENDOR)
-  @ApiOperation({ summary: 'Update product availability status' })
-  @ApiParam({ name: 'productId', description: 'Product UUID' })
-  async updateProductStatus(
-  @CurrentUser() user: AuthUser,
-    @Param('productId', ParseUUIDPipe) productId: string,
-    @Body() dto: UpdateProductStatusDto,
-  ): Promise<ApiResponses<ProductResponseDto>> {
-    const data = await this.service.updateProductStatus(
-      user.id,
-      productId,
-      dto,
-    );
+  // @Patch(':productId/status')
+  // @UseGuards(RoleGuard)
+  // @Roles(Role.VENDOR)
+  // @ApiOperation({ summary: 'Update product availability status' })
+  // @ApiParam({ name: 'productId', description: 'Product UUID' })
+  // async updateProductStatus(
+  // @CurrentUser() user: AuthUser,
+  //   @Param('productId', ParseUUIDPipe) productId: string,
+  //   @Body() dto: UpdateProductStatusDto,
+  // ): Promise<ApiResponses<ProductResponseDto>> {
+  //   const data = await this.service.updateProductStatus(
+  //     user.id,
+  //     productId,
+  //     dto,
+  //   );
 
-    return {
-      success: true,
-      message: `Product marked as ${dto.isActive ? 'active' : 'inactive'} successfully`,
-      data,
-    };
-  }
+  //   return {
+  //     success: true,
+  //     message: `Product marked as ${dto.isActive ? 'active' : 'inactive'} successfully`,
+  //     data,
+  //   };
+  // }
 
   @Delete('delete-product/:productId')
   @UseGuards(RoleGuard)
@@ -114,12 +113,12 @@ export class ProductController {
     return this.service.deleteProduct(user.id, productId);
   }
 
-  @Get('get-specific/:id')
-  @Public()
-  async getProductDetail(
-    @Param('id') id: string,
-  ): Promise<ProductDetailResponseDto> {
-    return this.service.getProductDetail(id);
-  }
+  // @Get('get-specific/:id')
+  // @Public()
+  // async getProductDetail(
+  //   @Param('id') id: string,
+  // ): Promise<ProductResponseDto> {
+  //   return this.service.getProductDetail(id);
+  // }
 
 }

@@ -2,8 +2,12 @@
 
 import { Prisma } from '@prisma/client';
 import { Product } from '../../domain/entities/product.entity';
-import { ProductResponseDto } from '../../presentation/dto/product.response.dto';
+import { 
+  ProductResponseDto,
+ } from '../../presentation/dto/product.response.dto';
 import { ProductCart } from '../../domain/entities/product.entity';
+import { Injectable } from '@nestjs/common';
+import { MediaService } from '@/common/media/media.service';
 
 type PrismaProductFull = Prisma.ProductGetPayload<{
   include: {
@@ -19,7 +23,9 @@ type ProductCartPrisma = Prisma.ProductGetPayload<{
   };
 }>;
 
+@Injectable()
 export class ProductMapper {
+  constructor(private readonly mediaService: MediaService) {}
 
   static toDomain(raw: PrismaProductFull): Product {
     const entity          = new Product();
@@ -35,19 +41,64 @@ export class ProductMapper {
     return entity;
   }
 
-  static toResponse(entity: Product & { category?: { id: string; name: string } | null }): ProductResponseDto {
-    const dto         = new ProductResponseDto();
-    dto.id            = entity.id;
-    dto.name          = entity.name;
-    dto.description   = entity.description;
-    dto.price         = entity.price;
-    dto.isActive      = entity.isActive;
+  toResponse(product: any): ProductResponseDto {
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      estimateCookTime: product.estimateCookTime,
+      isActive: product.isActive,
 
-    dto.category = entity.category
-      ? { id: entity.category.id, name: entity.category.name }
-      : undefined;
+      category: product.category
+        ? {
+            id: product.category.id,
+            name: product.category.name,
+          }
+        : undefined,
 
-    return dto;
+      cuisine: product.cuisine
+        ? {
+            id: product.cuisine.id,
+            name: product.cuisine.name,
+            imageUrl: product.cuisine.imageUrl
+              ? this.resolveMediaUrl(product.cuisine.imageUrl)
+              : undefined,
+          }
+        : undefined,
+
+      images: product.images.map((image: any) => ({
+        id: image.id,
+        url: this.resolveMediaUrl(image.url),
+        isPrimary: image.isPrimary,
+        position: image.position,
+      })),
+
+      sizeOptions: product.sizeOptions.map((size: any) => ({
+        id: size.id,
+        name: size.name,
+        price: size.price,
+        isRequired: size.isRequired,
+      })),
+
+      choiceOptions: product.choiceOptions.map((choice: any) => ({
+        id: choice.id,
+        name: choice.name,
+        price: choice.price,
+        isRequired: choice.isRequired,
+      })),
+
+      addOns: product.addOns.map((addOn: any) => ({
+        id: addOn.id,
+        name: addOn.name,
+        price: addOn.price,
+        isRequired: addOn.isRequired,
+      })),
+    };
+  }
+
+  private resolveMediaUrl(path: string): string {
+    return this.mediaService.getUrl(path) ?? path;
   }
 }
 

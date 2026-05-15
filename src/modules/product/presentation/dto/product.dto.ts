@@ -17,6 +17,11 @@ class SizeOptionDto {
   @Type(() => Number)
   @IsNumber()
   price!: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isRequired?: boolean;
 }
 
 class ChoiceOptionDto {
@@ -26,6 +31,11 @@ class ChoiceOptionDto {
   @Type(() => Number)
   @IsNumber()
   price!: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isRequired?: boolean;
 }
 
 class AddOnDto {
@@ -35,6 +45,11 @@ class AddOnDto {
   @Type(() => Number)
   @IsNumber()
   price!: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isRequired?: boolean;
 }
 
 function parseAndTransform<T>(value: any, cls: new () => T): T[] {
@@ -64,6 +79,7 @@ export class CreateProductDto {
   @IsNumber()
   estimateCookTime!: number;
 
+  @IsOptional()
   @IsUUID('4')
   categoryId?: string;
 

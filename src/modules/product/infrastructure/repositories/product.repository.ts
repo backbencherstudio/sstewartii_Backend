@@ -6,6 +6,7 @@ import { ProductMapper } from '../mappers/product.mapper';
 import { Prisma } from '@prisma/client';
 import { ProductCart } from '../../domain/entities/product.entity';
 import { ProductCartMapper } from '../mappers/product.mapper';
+import { CreateProductDto } from '../../presentation/dto/product.dto';
 
   type ProductDetailPrisma = Prisma.ProductGetPayload<{
     include: {
@@ -58,12 +59,12 @@ export class ProductRepository implements IProductRepository {
 
   async createFullProduct(data: {
     vendorId: string;
-    dto: any;
+    dto: CreateProductDto;
     images: string[];
-  }): Promise<Product> {
+  }): Promise<any> {
     const { vendorId, dto, images } = data;
 
-    const raw = await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
           name: dto.name,
@@ -71,7 +72,9 @@ export class ProductRepository implements IProductRepository {
           price: dto.price,
           estimateCookTime: dto.estimateCookTime,
           vendorId,
-          categoryId: dto.categoryId,
+
+          categoryId: dto.categoryId ?? null,
+          cuisineId: dto.cuisineId ?? null,
         },
       });
 
@@ -88,38 +91,123 @@ export class ProductRepository implements IProductRepository {
 
       if (dto.sizeOptions?.length) {
         await tx.sizeOption.createMany({
-          data: dto.sizeOptions.map((s) => ({
-            ...s,
+          data: dto.sizeOptions.map((size) => ({
             productId: product.id,
+            name: size.name,
+            price: size.price,
+            isRequired: size.isRequired ?? false,
           })),
         });
       }
 
       if (dto.choiceOptions?.length) {
         await tx.choiceOption.createMany({
-          data: dto.choiceOptions.map((c) => ({
-            ...c,
+          data: dto.choiceOptions.map((choice) => ({
             productId: product.id,
+            name: choice.name,
+            price: choice.price,
+            isRequired: choice.isRequired ?? false,
           })),
         });
       }
 
       if (dto.addOns?.length) {
         await tx.addOn.createMany({
-          data: dto.addOns.map((a) => ({
-            ...a,
+          data: dto.addOns.map((addOn) => ({
             productId: product.id,
+            name: addOn.name,
+            price: addOn.price,
+            isRequired: addOn.isRequired ?? false,
           })),
         });
       }
 
-      return tx.product.findUniqueOrThrow({
-          where: { id: product.id },
-          include: { category: true },
+      if (dto.cuisineId) {
+        await tx.vendorCuisine.upsert({
+          where: {
+            vendorId_cuisineId: {
+              vendorId,
+              cuisineId: dto.cuisineId,
+            },
+          },
+          update: {},
+          create: {
+            vendorId,
+            cuisineId: dto.cuisineId,
+          },
         });
-      });
+      }
 
-   return ProductMapper.toDomain(raw);
+      return tx.product.findUniqueOrThrow({
+        where: {
+          id: product.id,
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          cuisine: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+            },
+          },
+          images: {
+            orderBy: [
+              {
+                isPrimary: 'desc',
+              },
+              {
+                position: 'asc',
+              },
+            ],
+            select: {
+              id: true,
+              url: true,
+              isPrimary: true,
+              position: true,
+            },
+          },
+          sizeOptions: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              isRequired: true,
+            },
+          },
+          choiceOptions: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              isRequired: true,
+            },
+          },
+          addOns: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              isRequired: true,
+            },
+          },
+        },
+      });
+    });
   }
   
   async findProductByVendorId(vendorId: string): Promise<Product[]> {
@@ -260,5 +348,35 @@ export class ProductRepository implements IProductRepository {
         },
       },
     });
+  }
+
+  async existsCuisineById(cuisineId: string): Promise<boolean> {
+    const cuisine = await this.prisma.cuisine.findUnique({
+      where: {
+        id: cuisineId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return !!cuisine;
+  }
+
+  async existsCategoryForVendor(data: {
+    categoryId: string;
+    vendorId: string;
+  }): Promise<boolean> {
+    const category = await this.prisma.category.findFirst({
+      where: {
+        id: data.categoryId,
+        vendorId: data.vendorId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return !!category;
   }
 }

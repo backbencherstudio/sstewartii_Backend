@@ -15,7 +15,6 @@ import { ProductResponseDto } from '../presentation/dto/product.response.dto';
 import { ProductMapper } from '../infrastructure/mappers/product.mapper';
 import { SearchProductQueryDto } from '../presentation/dto/searchQuery.dto';
 import { UpdateProductStatusDto } from '../presentation/dto/product.dto';
-import { ProductDetailResponseDto } from '../presentation/dto/product.response.dto';
 import { ProductCart } from '../domain/entities/product.entity';
 import { MediaService } from '@/common/media/media.service';
 
@@ -35,6 +34,7 @@ export class ProductService {
     private readonly storage: IStorageService,
     
     private readonly mediaService: MediaService,
+    private readonly productMapper: ProductMapper,
   ) {}
 
   async findActiveProductForCart( 
@@ -53,7 +53,7 @@ export class ProductService {
     return this.cuisineRepo.findByVendorId(vendor.id);
   }
 
-  async createProduct(
+ async createProduct(
     userId: string,
     dto: CreateProductDto,
     files: Express.Multer.File[],
@@ -68,10 +68,34 @@ export class ProductService {
       throw new BadRequestException('At least one image required');
     }
 
-    const folder = `vendor/product/productImages`;
+    if (dto.categoryId) {
+      const categoryExists =
+        await this.productRepo.existsCategoryForVendor({
+          categoryId: dto.categoryId,
+          vendorId: vendor.id,
+        });
+
+      if (!categoryExists) {
+        throw new BadRequestException(
+          'Invalid category for this vendor',
+        );
+      }
+    }
+
+    if (dto.cuisineId) {
+      const cuisineExists = await this.productRepo.existsCuisineById(
+        dto.cuisineId,
+      );
+
+      if (!cuisineExists) {
+        throw new BadRequestException('Invalid cuisine');
+      }
+    }
+
+    const folder = 'vendor/product/productImages';
 
     const imageUrls = await Promise.all(
-      (files || []).map((file) =>
+      files.map((file) =>
         this.storage.uploadFile(file, folder),
       ),
     );
@@ -82,77 +106,77 @@ export class ProductService {
       images: imageUrls,
     });
 
-    return ProductMapper.toResponse(product);
+    return this.productMapper.toResponse(product);
   }
 
-  async getVendorProducts(userId: string): Promise<ProductResponseDto[]> {
-    const vendor = await this.vendorRepo.findByOwnerId(userId);
+  // async getVendorProducts(userId: string): Promise<ProductResponseDto[]> {
+  //   const vendor = await this.vendorRepo.findByOwnerId(userId);
 
-    if (!vendor) {
-      throw new BadRequestException('Vendor not found');
-    }
+  //   if (!vendor) {
+  //     throw new BadRequestException('Vendor not found');
+  //   }
 
-    const products = await this.productRepo.findProductByVendorId(vendor.id);
+  //   const products = await this.productRepo.findProductByVendorId(vendor.id);
 
-    return products.map(ProductMapper.toResponse);
-  }
+  //   return products.map(ProductMapper.toResponse);
+  // }
 
-  async searchProducts(
-    userId: string,
-    query: SearchProductQueryDto,
-  ): Promise<ProductResponseDto[]> {
+  // async searchProducts(
+  //   userId: string,
+  //   query: SearchProductQueryDto,
+  // ): Promise<ProductResponseDto[]> {
 
-    const vendor = await this.vendorRepo.findByOwnerId(userId);
+  //   const vendor = await this.vendorRepo.findByOwnerId(userId);
 
-    if (!vendor) {
-      throw new BadRequestException('Vendor not found');
-    }
+  //   if (!vendor) {
+  //     throw new BadRequestException('Vendor not found');
+  //   }
 
-    const products = await this.productRepo.searchProducts({
-      vendorId: vendor.id,
-      search: query.search,
-      category: query.category,
-      isActive: query.isActive,
-      page: query.page,
-      limit: query.limit,
-    });
+  //   const products = await this.productRepo.searchProducts({
+  //     vendorId: vendor.id,
+  //     search: query.search,
+  //     category: query.category,
+  //     isActive: query.isActive,
+  //     page: query.page,
+  //     limit: query.limit,
+  //   });
 
-    return products.map(ProductMapper.toResponse);
-  }
+  //   return products.map(ProductMapper.toResponse);
+  // }
 
-  async updateProductStatus(
-    userId: string,
-    productId: string,
-    dto: UpdateProductStatusDto,
-  ): Promise<ProductResponseDto> {
-    const vendor = await this.vendorRepo.findByOwnerId(userId);
+  // async updateProductStatus(
+  //   userId: string,
+  //   productId: string,
+  //   dto: UpdateProductStatusDto,
+  // ): Promise<ProductResponseDto> {
+  //   const vendor = await this.vendorRepo.findByOwnerId(userId);
 
-    if (!vendor) {
-      throw new BadRequestException('Vendor not found');
-    }
+  //   if (!vendor) {
+  //     throw new BadRequestException('Vendor not found');
+  //   }
 
-    const product = await this.productRepo.findProductByIdAndVendorId(
-      productId,
-      vendor.id,
-    );
+  //   const product = await this.productRepo.findProductByIdAndVendorId(
+  //     productId,
+  //     vendor.id,
+  //   );
 
-    if (!product) {
-      throw new NotFoundException('Product not found or does not belong to this vendor');
-    }
+  //   if (!product) {
+  //     throw new NotFoundException('Product not found or does not belong to this vendor');
+  //   }
 
-    if (product.isActive === dto.isActive) {
-      throw new BadRequestException(
-        `Product is already ${dto.isActive ? 'active' : 'inactive'}`,
-      );
-    }
+  //   if (product.isActive === dto.isActive) {
+  //     throw new BadRequestException(
+  //       `Product is already ${dto.isActive ? 'active' : 'inactive'}`,
+  //     );
+  //   }
 
-    const updated = await this.productRepo.updateProductStatus(
-      productId,
-      dto.isActive,
-    );
+  //   const updated = await this.productRepo.updateProductStatus(
+  //     productId,
+  //     dto.isActive,
+  //   );
 
-    return ProductMapper.toResponse(updated);
-  }
+  //   return ProductMapper.toResponse(updated);
+  // }
 
   async deleteProduct(
     userId: string,
@@ -176,63 +200,63 @@ export class ProductService {
     await this.productRepo.deleteProduct(productId);
   }
 
-  async getProductDetail(
-    productId: string,
-  ): Promise<ProductDetailResponseDto> {
-    const product = await this.productRepo.findProductDetailById(productId);
+  // async getProductDetail(
+  //   productId: string,
+  // ): Promise<ProductResponseDto> {
+  //   const product = await this.productRepo.findProductDetailById(productId);
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
+  //   if (!product) {
+  //     throw new NotFoundException('Product not found');
+  //   }
 
-    return {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      isActive: product.isActive,
-      estimateCookTime: product.estimateCookTime,
+  //   return {
+  //     id: product.id,
+  //     name: product.name,
+  //     description: product.description,
+  //     price: product.price,
+  //     isActive: product.isActive,
+  //     estimateCookTime: product.estimateCookTime,
 
-      category: product.category
-        ? {
-            id: product.category.id,
-            name: product.category.name,
-          }
-        : undefined,
+  //     category: product.category
+  //       ? {
+  //           id: product.category.id,
+  //           name: product.category.name,
+  //         }
+  //       : undefined,
 
-      images: product.images.map((img) => ({
-        id: img.id,
-        url: this.mediaService.getUrl(img.url),
-        isPrimary: img.isPrimary,
-        position: img.position,
-      })),
+  //     images: product.images.map((img) => ({
+  //       id: img.id,
+  //       url: this.mediaService.getUrl(img.url),
+  //       isPrimary: img.isPrimary,
+  //       position: img.position,
+  //     })),
 
-      cuisines: product.vendor.cuisines.map((vc) => ({
-        id: vc.cuisine.id,
-        name: vc.cuisine.name,
-      })),
+  //     cuisines: product.vendor.cuisines.map((vc) => ({
+  //       id: vc.cuisine.id,
+  //       name: vc.cuisine.name,
+  //     })),
 
-      sizeOptions: product.sizeOptions.map((s) => ({
-        id: s.id,
-        name: s.name,
-        price: s.price,
-        isRequired: s.isRequired,
-      })),
+  //     sizeOptions: product.sizeOptions.map((s) => ({
+  //       id: s.id,
+  //       name: s.name,
+  //       price: s.price,
+  //       isRequired: s.isRequired,
+  //     })),
 
-      choiceOptions: product.choiceOptions.map((c) => ({
-        id: c.id,
-        name: c.name,
-        price: c.price,
-        isRequired: c.isRequired,
-      })),
+  //     choiceOptions: product.choiceOptions.map((c) => ({
+  //       id: c.id,
+  //       name: c.name,
+  //       price: c.price,
+  //       isRequired: c.isRequired,
+  //     })),
 
-      addOns: product.addOns.map((a) => ({
-        id: a.id,
-        name: a.name,
-        price: a.price,
-        isRequired: a.isRequired,
-      })),
-    };
-  }
+  //     addOns: product.addOns.map((a) => ({
+  //       id: a.id,
+  //       name: a.name,
+  //       price: a.price,
+  //       isRequired: a.isRequired,
+  //     })),
+  //   };
+  // }
   
 }

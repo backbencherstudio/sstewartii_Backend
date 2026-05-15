@@ -3,16 +3,19 @@ export class ProductResponseDto {
   name!: string;
   description!: string;
   price!: number;
+  estimateCookTime!: number;
   isActive!: boolean;
 
   category?: {
     id: string;
     name: string;
   };
-}
 
-export class ProductDetailResponseDto extends ProductResponseDto {
-  estimateCookTime!: number;
+  cuisine?: {
+    id: string;
+    name: string;
+    imageUrl?: string;
+  };
 
   images!: {
     id: string;
@@ -20,12 +23,6 @@ export class ProductDetailResponseDto extends ProductResponseDto {
     isPrimary: boolean;
     position: number;
   }[];
-
- cuisine?: {
-    id: string;
-    name: string;
-    imageUrl?: string;
-  };
 
   sizeOptions!: {
     id: string;

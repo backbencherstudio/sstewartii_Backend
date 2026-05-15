@@ -11,6 +11,7 @@ import { StorageModule } from '@/common/storage/storage.module';
 import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { ProductRepository } from './infrastructure/repositories/product.repository';
 import { MediaModule } from '@/common/media/media.module';
+import { ProductMapper } from './infrastructure/mappers/product.mapper';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MediaModule } from '@/common/media/media.module';
   providers: [
     CategoryService,
     ProductService,
+    ProductMapper,
     {
       provide: 'ICategoryRepository',
       useClass: CategoryRepository,
