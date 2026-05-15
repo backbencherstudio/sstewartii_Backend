@@ -12,6 +12,7 @@ import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { ProductRepository } from './infrastructure/repositories/product.repository';
 import { MediaModule } from '@/common/media/media.module';
 import { ProductMapper } from './infrastructure/mappers/product.mapper';
+import { CategoryMapper } from './infrastructure/mappers/category.mapper';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProductMapper } from './infrastructure/mappers/product.mapper';
     CategoryService,
     ProductService,
     ProductMapper,
+    CategoryMapper,
     {
       provide: 'ICategoryRepository',
       useClass: CategoryRepository,
