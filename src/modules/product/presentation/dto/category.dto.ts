@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateCategoryDto {
+import { IsOptional, IsString, MaxLength } from 'class-validator';
+
+export class CategorySearchQueryDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ example: 'Burger' })
-  name!: string;
+  @MaxLength(80)
+  keyword?: string;
 }
