@@ -5,6 +5,7 @@ import {
   IsArray,
   ValidateNested,
   IsBoolean,
+  IsUUID,
 } from 'class-validator';
 import { Type, Transform, plainToInstance } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -67,6 +68,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  cuisineId?: string;
 
   @IsOptional()
   @Transform(({ value }) => parseAndTransform(value, SizeOptionDto))
