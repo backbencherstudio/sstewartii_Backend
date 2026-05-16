@@ -19,7 +19,7 @@ export class HomeService {
     private readonly mediaService: MediaService,
   ) {}
 
- async getHome(userId: string): Promise<HomeResponseDto> {
+  async getHome(userId: string): Promise<HomeResponseDto> {
     const customer =
       await this.homeRepository.findCustomerHomeProfileByUserId(userId);
 
