@@ -321,17 +321,6 @@ export class VendorMenuProductCuisineDto {
   imageUrl?: string;
 }
 
-export class VendorMenuProductDto {
-  id!: string;
-  name!: string;
-  description!: string;
-  price!: number;
-  estimateCookTime!: number;
-  isActive!: boolean;
-  images!: VendorMenuProductImageDto[];
-  cuisine?: VendorMenuProductCuisineDto;
-}
-
 export class VendorMenuCategoryDto {
   id!: string;
   name!: string;
@@ -345,3 +334,37 @@ export class VendorMenuResponseDto {
   categories!: VendorMenuCategoryDto[];
 }
 
+export class VendorMenuHeaderDto {
+  id!: string;
+  businessName!: string;
+  coverImage?: string;
+  bio?: string;
+  cityLabel?: string;
+  distanceKm?: number;
+  isOpen!: boolean;
+  statusLabel!: string;
+  reviewAverage!: number;
+  reviewCount!: number;
+  cuisines!: string[];
+}
+
+export class VendorMenuProductDto {
+  id!: string;
+  name!: string;
+  description!: string;
+  price!: number;
+  estimateCookTime!: number;
+  image?: string;
+  categoryName?: string;
+}
+
+export class VendorMenuSectionDto {
+  categoryId!: string;
+  categoryName!: string;
+  products!: VendorMenuProductDto[];
+}
+
+export class VendorMenuDetailResponseDto {
+  vendor!: VendorMenuHeaderDto;
+  sections!: VendorMenuSectionDto[];
+}

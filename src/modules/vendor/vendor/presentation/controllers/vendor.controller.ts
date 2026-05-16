@@ -42,6 +42,7 @@ import {
   DeleteVendorMenuItemResponseDto,
   VendorReviewsResponseDto,
   VendorFollowersResponseDto,
+  VendorMenuDetailResponseDto,
  } from '../dto/vendor.response.dto';
 import { 
   VendorInsightsOverviewResponseDto,
@@ -76,7 +77,7 @@ export class VendorController {
   async getVendorMenu(
     @Param('vendorId') vendorId: string,
     @Query() query: VendorMenuQueryDto,
-  ): Promise<VendorMenuResponseDto> {
+  ): Promise<VendorMenuDetailResponseDto> {
     return this.vendorService.getVendorMenu(vendorId, query);
   }
 

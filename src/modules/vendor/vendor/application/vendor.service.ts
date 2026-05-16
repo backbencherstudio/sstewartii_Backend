@@ -47,6 +47,7 @@ import {
   DeleteVendorMenuItemResponseDto,
   VendorReviewsResponseDto,
   VendorFollowersResponseDto,
+  VendorMenuDetailResponseDto,
  } from '../presentation/dto/vendor.response.dto';
  import { 
   VendorInsightsOverviewResponseDto,
@@ -89,43 +90,48 @@ export class VendorService {
     return vendor;
   }
 
-  async getVendorMenu(
-    vendorId: string,
-    query: VendorMenuQueryDto,
-    customerLocation?: { latitude: number; longitude: number },
-  ): Promise<VendorMenuResponseDto> {
-    const vendor = await this.vendorRepository.findVendorMenuById(vendorId, query);
+ async getVendorMenu(
+  vendorId: string,
+  query: VendorMenuQueryDto,
+  customerLocation?: { latitude: number; longitude: number },
+): Promise<VendorMenuDetailResponseDto> {
+  const vendor = await this.vendorRepository.findVendorMenuById(
+    vendorId,
+    query,
+  );
 
-    if (!vendor) {  
-      throw new NotFoundException('Vendor not found');
-    }
-
-    let distanceKm: number | undefined;
-
-    if (
-      customerLocation &&
-      vendor.serviceArea?.latitude !== null &&
-      vendor.serviceArea?.latitude !== undefined &&
-      vendor.serviceArea?.longitude !== null &&
-      vendor.serviceArea?.longitude !== undefined
-    ) {
-      distanceKm = this.calculateDistanceKm(
-        customerLocation.latitude,
-        customerLocation.longitude,
-        vendor.serviceArea.latitude,
-        vendor.serviceArea.longitude,
-      );
-    }
-
-    const availability = this.resolveAvailability(vendor.operationHours ?? []);
-
-    return this.vendorMapper.toMenuResponse(vendor, {
-      distanceKm,
-      isOpen: availability.isOpen,
-      statusLabel: availability.label,
-      cityLabel: this.extractCityLabel(vendor.serviceArea?.address),
-    });
+  if (!vendor) {
+    throw new NotFoundException('Vendor not found');
   }
+
+  let distanceKm: number | undefined;
+
+  if (
+    customerLocation &&
+    vendor.serviceArea?.latitude !== null &&
+    vendor.serviceArea?.latitude !== undefined &&
+    vendor.serviceArea?.longitude !== null &&
+    vendor.serviceArea?.longitude !== undefined
+  ) {
+    distanceKm = this.calculateDistanceKm(
+      customerLocation.latitude,
+      customerLocation.longitude,
+      vendor.serviceArea.latitude,
+      vendor.serviceArea.longitude,
+    );
+  }
+
+  const availability = this.resolveAvailability(
+    vendor.operationHours ?? [],
+  );
+
+  return this.vendorMapper.toMenuResponse(vendor, {
+    distanceKm,
+    isOpen: availability.isOpen,
+    statusLabel: availability.label,
+    cityLabel: this.extractCityLabel(vendor.serviceArea?.address),
+  });
+}
 
   private calculateDistanceKm(
     lat1: number,

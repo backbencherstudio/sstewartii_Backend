@@ -9,7 +9,6 @@ import {
   UploadTruckGalleryResponseDto,
   TruckGalleryResponseDto,
   VendorHomeResponseDto,
-  VendorMenuCategoriesResponseDto,
   VendorMenuItemsResponseDto,
   VendorMenuItemStatusResponseDto,
   DeleteVendorMenuItemResponseDto,
@@ -18,6 +17,7 @@ import {
   VendorMenuResponseDto,
   VendorInfoResponseDto,
   VendorFollowersResponseDto,
+  VendorMenuDetailResponseDto ,
 } from '../../presentation/dto/vendor.response.dto';
 
 import {
@@ -58,7 +58,7 @@ export class VendorMapper {
     });
   }
 
-  toMenuResponse(
+ toMenuResponse(
     vendor: any,
     extra: {
       distanceKm?: number;
@@ -66,7 +66,7 @@ export class VendorMapper {
       statusLabel: string;
       cityLabel?: string;
     },
-  ): VendorMenuResponseDto {
+  ): VendorMenuDetailResponseDto {
     const grouped = new Map<
       string,
       {
@@ -102,7 +102,9 @@ export class VendorMapper {
         description: product.description,
         price: product.price,
         estimateCookTime: product.estimateCookTime,
-        image: this.mediaService.getUrl(product.images?.[0]?.url),
+        image: product.images?.[0]?.url
+          ? this.mediaService.getUrl(product.images[0].url)
+          : undefined,
         categoryName,
       });
     }
@@ -111,7 +113,9 @@ export class VendorMapper {
       vendor: {
         id: vendor.id,
         businessName: vendor.businessName ?? 'Unnamed Vendor',
-        coverImage: this.mediaService.getUrl(vendor.coverImage),
+        coverImage: vendor.coverImage
+          ? this.mediaService.getUrl(vendor.coverImage)
+          : undefined,
         bio: vendor.bio ?? undefined,
         cityLabel: extra.cityLabel,
         distanceKm:
@@ -120,14 +124,15 @@ export class VendorMapper {
             : undefined,
         isOpen: extra.isOpen,
         statusLabel: extra.statusLabel,
-        reviewAverage: Number((vendor.reviewAverage ?? 0).toFixed(1)),
-        reviewCount: vendor.reviewCount ?? 0,
-        cuisines: vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+        reviewAverage: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
+        reviewCount: vendor.truckReviewCount ?? 0,
+        cuisines:
+          vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
       },
       sections: Array.from(grouped.values()),
     };
   }
-
+  
   static toInfoResponse(vendor: any): VendorInfoResponseDto {
     return {
       id: vendor.id,
@@ -297,50 +302,70 @@ export class VendorMapper {
       };
     }
 
-    toMenuCategoriesResponse(vendor: any): VendorMenuCategoriesResponseDto {
-      const categories = vendor.categories ?? [];
+  toMenuCategoriesResponse(vendor: any): VendorMenuResponseDto {
+    const categoryMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        products: any[];
+      }
+    >();
 
-      const mappedCategories = categories.map((category: any) => {
-        const products = category.products ?? [];
+    const uncategorizedKey = 'uncategorized';
 
-        return {
-          id: category.id,
-          name: category.name,
-          itemCount: products.length,
-          items: products.map((product: any) => {
-            const images = product.images ?? [];
-            const firstImage = images[0];
+    for (const product of vendor.products ?? []) {
+      const categoryId = product.category?.id ?? uncategorizedKey;
+      const categoryName = product.category?.name ?? 'Uncategorized';
 
-            return {
-              id: product.id,
-              name: product.name,
-              description: product.description ?? undefined,
-              price: product.price,
-              estimateCookTime: product.estimateCookTime,
-              isActive: product.isActive,
-              availabilityLabel: product.isActive ? 'Available' : 'Unavailable',
-              image: firstImage?.url
-                ? this.mediaService.getUrl(firstImage.url)
+      const existing = categoryMap.get(categoryId);
+
+      if (existing) {
+        existing.products.push(product);
+      } else {
+        categoryMap.set(categoryId, {
+          id: categoryId,
+          name: categoryName,
+          products: [product],
+        });
+      }
+    }
+
+    const categories = Array.from(categoryMap.values()).map((category) => ({
+      id: category.id,
+      name: category.name,
+      itemCount: category.products.length,
+      products: category.products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        estimateCookTime: product.estimateCookTime,
+        isActive: product.isActive,
+
+        cuisine: product.cuisine
+          ? {
+              id: product.cuisine.id,
+              name: product.cuisine.name,
+              imageUrl: product.cuisine.imageUrl
+                ? this.resolveMediaUrl(product.cuisine.imageUrl)
                 : undefined,
-              images: images.map((image: any) => ({
-                id: image.id,
-                url: this.mediaService.getUrl(image.url),
-                position: image.position,
-              })),
-            };
-          }),
-        };
-      });
+            }
+          : undefined,
 
-      const totalItems = mappedCategories.reduce(
-        (sum: number, category: any) => sum + category.itemCount,
-        0,
-      );
+        images: (product.images ?? []).map((image: any) => ({
+          id: image.id,
+          url: image.url ? this.resolveMediaUrl(image.url) : undefined,
+          isPrimary: image.isPrimary,
+          position: image.position,
+        })),
+      })),
+    }));
 
     return {
-      totalCategories: mappedCategories.length,
-      totalItems,
-      categories: mappedCategories,
+      totalCategories: categories.length,
+      totalItems: (vendor.products ?? []).length,
+      categories,
     };
   }
 
