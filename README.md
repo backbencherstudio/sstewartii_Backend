@@ -1,100 +1,280 @@
-<<<<<<< HEAD
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Project Name
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+ Multi-vendor-food-ordering-delivery-app-backend built with **NestJS**, **Prisma**, and **PostgreSQL**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This repository contains the backend source code, database schema, migrations, authentication flow, vendor/customer modules, product/menu management, order management, and supporting services.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Node.js**
+- **NestJS**
+- **TypeScript**
+- **Prisma ORM**
+- **PostgreSQL**
+- **JWT Authentication**
+- **Role-Based Access Control**
+- **Multer/File Upload**
+- **Redis + BullMQ** for background jobs
+- **Docker** optional for local services
 
-```bash
-$ npm install
+---
+
+## Main Features
+
+### Authentication
+
+- User registration
+- Email verification with OTP
+- Login with access and refresh tokens
+- Role-based authentication
+- Vendor and customer account support
+- Background OTP email queue using BullMQ
+
+### Vendor
+
+- Vendor profile setup
+- Service area setup
+- Operation hours setup
+- Vendor online/offline status
+- Vendor verification flow
+- Menu/product management
+- Gallery management
+- Vendor insights and metrics
+
+### Customer
+
+- Customer home screen API
+- Location-based vendor discovery
+- Popular cuisines
+- Category browsing
+- Top picks
+- Recommended vendors
+- Favorite vendors and products
+
+### Product/Menu
+
+- Product creation with images
+- Global seeded categories
+- Cuisine support
+- Size options
+- Choice options
+- Add-ons
+- Product status update
+- Soft delete support
+
+### Orders
+
+- Create order
+- Order summary
+- Order tracking
+- Vendor pending orders
+- Vendor active orders
+- Accept order
+- Ready for pickup
+- Complete order
+- Cancel order
+- Order history
+- Vendor/customer reporting
+
+### Reviews and Favorites
+
+- Favorite vendors
+- Favorite products
+- Vendor/truck reviews
+- Food reviews
+- Rating aggregation support
+
+---
+
+## Project Structure
+
+```txt
+src/
+├── common/
+│   ├── decorators/
+│   ├── guards/
+│   ├── media/
+│   ├── storage/
+│   ├── queues/
+│   └── utils/
+│
+├── modules/
+│   ├── auth/
+│   ├── customer/
+|   |   └── cart/
+│   ├── help-center/
+│   ├── order/
+│   ├── product/
+│   ├── review/
+│   ├── vendor/
+|   |   ├── kyc/
+|   |   ├── profile-setup-flow/
+|   |   ├── vendor/
+|   |   ├── vendor-verification/
+│         
+├── prisma/
+│   └── prisma.service.ts
+│
+└── main.ts
 ```
 
-## Compile and run the project
+Each module generally follows a clean architecture style:
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```txt
+module/
+├── application/
+├── domain/
+│   └── interface/
+├── infrastructure/
+│   ├── repositories/
+│   └── mapper/
+└── presentation/
+    ├── dto/
+    └── controller.ts
 ```
 
-## Run tests
+---
+
+## Prerequisites
+
+Make sure you have installed:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+node -v
+npm -v
 ```
 
-## Deployment
+Recommended versions:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+```txt
+Node.js >= 20
+npm >= 10
+PostgreSQL >= 14
+Redis >= 7
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+---
+
+## Installation
+
+Clone the repository:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+git clone https://github.com/sahadat96/nestjs-multi-vendor-food-ordering-delivery-app-backend.git
+cd YOUR_REPOSITORY
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Install dependencies:
 
-## Resources
+```bash
+npm install
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+---
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Environment Variables
 
-## Support
+Create a `.env` file in the project root.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```env
+# Application
+NODE_ENV=development
+PORT=3000
+APP_URL=http://localhost:3000
 
-## Stay in touch
+# Database
+DATABASE_URL="postgresql://postgres:password@localhost:5432/database_name?schema=public"
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# JWT
+JWT_ACCESS_SECRET=your_access_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+JWT_ACCESS_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN=7d
 
-## License
+# Redis / Queue
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# Mail
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USER=your_mail_user
+MAIL_PASS=your_mail_password
+MAIL_FROM=no-reply@example.com
 
+# Admin Seed
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=Admin@123456
+ADMIN_NAME=Super Admin
+
+# File Upload / Media
+MEDIA_BASE_URL=http://localhost:3000
+UPLOAD_DIR=uploads
+```
+---
+
+## Database Setup
+
+Generate Prisma client:
+
+```bash
+npx prisma generate
+```
+
+Run migrations:
+
+```bash
+npx prisma migrate dev
+```
+
+Seed database:
+
+```bash
+npx prisma db seed
+```
+---
+
+## Redis Setup
+
+Using Docker:
+
+```bash
+docker run --name multi-vendor-food-ordering-redis -p 6379:6379 -d redis:7
+```
+
+Check running containers:
+
+```bash
+docker ps
+```
+
+---
+
+## Running the Application
+
+Development:
+
+```bash
+npm run start:dev
+```
+
+Production build:
+
+```bash
+npm run build
+npm run start:prod
+```
+
+---
+
+## Maintainer
+
+Developed and maintained by:
+
+```txt
+Sahadat Hossain
+sahadatsoftdev96@gmail.com
+https://github.com/sahadat96
+```
