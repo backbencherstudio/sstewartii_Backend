@@ -7,7 +7,10 @@ import {
   VendorVerificationListQueryDto,
   VendorVerificationSort,
  } from '../presentation/dto/admin.dto';
-import { VendorVerificationManagementResponseDto } from '../presentation/dto/admin.response.dto';
+import { 
+  VendorVerificationManagementResponseDto,
+  AdminVendorVerificationDetailResponseDto,
+ } from '../presentation/dto/admin.response.dto';
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 import { VerificationStatus } from '@prisma/client';
 
@@ -16,7 +19,6 @@ export class AdminVendorVerificationService {
   constructor(
     @Inject('IAdminVendorVerificationRepository')
     private readonly repository: IAdminVendorVerificationRepository,
-
     private readonly adminMapper: AdminMapper,
   ) {}
 
@@ -44,5 +46,18 @@ export class AdminVendorVerificationService {
       page,
       limit,
     });
+  }
+
+  async getVerificationDetail(
+    verificationId: string,
+  ): Promise<AdminVendorVerificationDetailResponseDto> {
+    const verification =
+      await this.repository.findDetailById(verificationId);
+
+    if (!verification) {
+      throw new NotFoundException('Vendor verification not found');
+    }
+
+    return this.adminMapper.toDetailResponse(verification);
   }
 }
