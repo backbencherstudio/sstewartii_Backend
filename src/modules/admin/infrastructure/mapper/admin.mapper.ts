@@ -4,11 +4,11 @@ import { Injectable } from '@nestjs/common';
 import {
   VendorVerificationManagementResponseDto,
   VendorVerificationListItemDto,
-} from '../../presentation/dto/vendor-verification.response.dto';
+} from '../../presentation/dto/admin.response.dto';
 import type {
   VendorVerificationListResult,
   VendorVerificationStatsResult,
-} from '../../domain/interface/admin-vendor-verification.repository.interface';
+} from '../../domain/interface/admin.repository.interface';
 
 @Injectable()
 export class AdminMapper {

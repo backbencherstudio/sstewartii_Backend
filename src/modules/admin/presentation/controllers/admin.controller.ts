@@ -5,7 +5,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { AdminVendorVerificationService } from '../application/admin-vendor-verification.service';
+import { AdminVendorVerificationService } from '../../application/admin.service';
 import { VendorVerificationListQueryDto } from '../dto/admin.dto';
 import { VendorVerificationManagementResponseDto } from '../dto/admin.response.dto';
 import { RoleGuard } from '@/common/guards/roles.guard';
