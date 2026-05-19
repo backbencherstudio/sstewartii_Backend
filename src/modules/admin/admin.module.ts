@@ -6,6 +6,7 @@ import { AdminVendorVerificationService } from './application/admin.service';
 import { AdminVendorVerificationRepository } from './infrastructure/repositories/admin.repository';
 import { AdminMapper } from './infrastructure/mapper/admin.mapper';
 import { PrismaService } from '@/prisma/prisma.service';
+import { MediaService } from '@/common/media/media.service';
 
 @Module({
   controllers: [
@@ -15,6 +16,7 @@ import { PrismaService } from '@/prisma/prisma.service';
     AdminVendorVerificationService,
     AdminMapper,
     PrismaService,
+    MediaService,
     {
       provide: 'IAdminVendorVerificationRepository',
       useClass: AdminVendorVerificationRepository,

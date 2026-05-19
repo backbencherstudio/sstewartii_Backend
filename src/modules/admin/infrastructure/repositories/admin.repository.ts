@@ -1,5 +1,3 @@
-// src/modules/admin/vendor-verification/infrastructure/repositories/admin-vendor-verification.repository.ts
-
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { VerificationStatus } from '@prisma/client';
@@ -146,5 +144,43 @@ export class AdminVendorVerificationRepository
       avgReviewTimeDays,
       rejectionRate,
     };
+  }
+
+  async findDetailById(verificationId: string): Promise<any | null> {
+    return this.prisma.vendorVerification.findUnique({
+      where: {
+        id: verificationId,
+      },
+      select: {
+        id: true,
+        businessLicense: true,
+        healthPermit: true,
+        insuranceProof: true,
+
+        status: true,
+        rejectionReason: true,
+        submittedAt: true,
+        reviewedAt: true,
+
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            publicEmail: true,
+            contactNumber: true,
+            coverImage: true,
+            createdAt: true,
+
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 }

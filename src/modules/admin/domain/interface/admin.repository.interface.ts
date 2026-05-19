@@ -26,4 +26,6 @@ export interface IAdminVendorVerificationRepository {
   ): Promise<VendorVerificationListResult>;
 
   getManagementStats(): Promise<VendorVerificationStatsResult>;
+
+  findDetailById(verificationId: string): Promise<any | null>;
 }

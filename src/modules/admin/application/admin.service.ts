@@ -1,6 +1,7 @@
 import { 
   Inject, 
   Injectable,
+  NotFoundException,
  } from '@nestjs/common';
 import type { IAdminVendorVerificationRepository } from '../domain/interface/admin.repository.interface';
 import { 
