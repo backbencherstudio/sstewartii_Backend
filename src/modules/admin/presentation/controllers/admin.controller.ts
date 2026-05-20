@@ -70,6 +70,7 @@ export class AdminController {
     return this.service.getOverview(query);
   }
 
+  //Get revenue
   @Get('revenue')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
