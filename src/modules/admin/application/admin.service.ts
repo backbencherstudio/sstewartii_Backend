@@ -9,12 +9,16 @@ import {
   VendorVerificationSort,
   AdminVendorVerificationDocumentType,
   AdminDashboardOverviewQueryDto,
+  AdminDashboardRevenueQueryDto,
+  DashboardRevenueRange,
+  DashboardRevenueMetric,
  } from '../presentation/dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
   AdminVendorVerificationDetailResponseDto,
   AdminVendorVerificationFileResponseDto,
   AdminDashboardOverviewResponseDto,
+  AdminDashboardRevenueResponseDto,
  } from '../presentation/dto/admin.response.dto';
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 import { VerificationStatus } from '@prisma/client';
@@ -83,14 +87,28 @@ export class AdminVendorVerificationService {
     });
   }
 
-    async getOverview(
-      query: AdminDashboardOverviewQueryDto,
-    ): Promise<AdminDashboardOverviewResponseDto> {
-    
-      void query;
+  async getOverview(
+    query: AdminDashboardOverviewQueryDto,
+  ): Promise<AdminDashboardOverviewResponseDto> {
+  
+    void query;
 
-      const overview = await this.repository.getOverview();
+    const overview = await this.repository.getOverview();
 
-      return this.adminMapper.toOverviewResponse(overview);
-    }
+    return this.adminMapper.toOverviewResponse(overview);
+  }
+
+  async getRevenueChart(
+    query: AdminDashboardRevenueQueryDto,
+  ): Promise<AdminDashboardRevenueResponseDto> {
+    const range = query.range ?? DashboardRevenueRange.YEAR;
+    const metric = query.metric ?? DashboardRevenueMetric.REVENUE;
+
+    const revenue = await this.repository.getRevenueChart({
+      range,
+      metric,
+    });
+
+    return this.adminMapper.toRevenueResponse(revenue);
+  }
 }

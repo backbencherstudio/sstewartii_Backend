@@ -59,3 +59,24 @@ export class AdminDashboardOverviewQueryDto {
   @IsEnum(DashboardRange)
   range?: DashboardRange = DashboardRange.MONTH;
 }
+
+export enum DashboardRevenueRange {
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum DashboardRevenueMetric {
+  REVENUE = 'revenue',
+  SALES = 'sales',
+}
+
+export class AdminDashboardRevenueQueryDto {
+  @IsOptional()
+  @IsEnum(DashboardRevenueRange)
+  range?: DashboardRevenueRange = DashboardRevenueRange.YEAR;
+
+  @IsOptional()
+  @IsEnum(DashboardRevenueMetric)
+  metric?: DashboardRevenueMetric = DashboardRevenueMetric.REVENUE;
+}

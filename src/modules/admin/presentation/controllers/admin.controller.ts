@@ -11,12 +11,14 @@ import {
   VendorVerificationListQueryDto,
   AdminVendorVerificationDocumentType,
   AdminDashboardOverviewQueryDto,
+  AdminDashboardRevenueQueryDto,
  } from '../dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
   AdminVendorVerificationDetailResponseDto,
   AdminVendorVerificationFileResponseDto,
   AdminDashboardOverviewResponseDto,
+  AdminDashboardRevenueResponseDto,
 } from '../dto/admin.response.dto';
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -59,12 +61,21 @@ export class AdminController {
     );
   }
 
-  @Get('overview')
+  @Get('dashboard/overview')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   async getOverview(
     @Query() query: AdminDashboardOverviewQueryDto,
   ): Promise<AdminDashboardOverviewResponseDto> {
     return this.service.getOverview(query);
+  }
+
+  @Get('revenue')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  async getRevenueChart(
+    @Query() query: AdminDashboardRevenueQueryDto,
+  ): Promise<AdminDashboardRevenueResponseDto> {
+    return this.service.getRevenueChart(query);
   }
 }

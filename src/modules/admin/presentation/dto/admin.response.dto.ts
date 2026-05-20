@@ -1,5 +1,10 @@
 import { VerificationStatus } from '@prisma/client';
 
+import {
+  DashboardRevenueMetric,
+  DashboardRevenueRange,
+} from './admin.dto';
+
 export class VendorVerificationStatsDto {
   totalPending!: number;
   rejectedVerifications!: number;
@@ -124,5 +129,22 @@ export class AdminDashboardOverviewResponseDto {
   summary!: AdminDashboardSummaryDto;
   alerts!: AdminDashboardAlertsDto;
   vendorsByStatus!: AdminDashboardVendorStatusDto;
+  lastUpdatedAt!: Date;
+}
+
+export class AdminDashboardRevenueChartItemDto {
+  label!: string;
+  value!: number;
+}
+
+export class AdminDashboardRevenueResponseDto {
+  range!: DashboardRevenueRange;
+  metric!: DashboardRevenueMetric;
+  currency!: string;
+
+  total!: number;
+
+  items!: AdminDashboardRevenueChartItemDto[];
+
   lastUpdatedAt!: Date;
 }
