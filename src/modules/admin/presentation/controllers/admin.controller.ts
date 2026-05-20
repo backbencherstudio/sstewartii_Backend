@@ -7,10 +7,14 @@ import {
 } from '@nestjs/common';
 
 import { AdminVendorVerificationService } from '../../application/admin.service';
-import { VendorVerificationListQueryDto } from '../dto/admin.dto';
+import { 
+  VendorVerificationListQueryDto,
+  AdminVendorVerificationDocumentType,
+ } from '../dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
   AdminVendorVerificationDetailResponseDto,
+  AdminVendorVerificationFileResponseDto,
 } from '../dto/admin.response.dto';
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -27,7 +31,7 @@ export class AdminController {
   @Roles(Role.ADMIN)
   async getVendorVerificationManagement(
     @Query() query: VendorVerificationListQueryDto,
-  ): Promise<VendorVerificationManagementResponseDto> {
+  ): Promise<VendorVerificationManagementResponseDto>   {
     return this.service.getManagementList(query);
   }
 
@@ -38,5 +42,18 @@ export class AdminController {
     @Param('verificationId') verificationId: string,
   ): Promise<AdminVendorVerificationDetailResponseDto> {
     return this.service.getVerificationDetail(verificationId);
+  }
+
+  @Get(':verificationId/documents/:documentType')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  async getVendorVerificationDocumentFile(
+    @Param('verificationId') verificationId: string,
+    @Param('documentType') documentType: AdminVendorVerificationDocumentType,
+  ): Promise<AdminVendorVerificationFileResponseDto> {
+    return this.service.getVerificationDocumentFile(
+      verificationId,
+      documentType,
+    );
   }
 }
