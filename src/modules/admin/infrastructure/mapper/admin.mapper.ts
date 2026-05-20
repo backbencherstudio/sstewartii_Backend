@@ -12,11 +12,13 @@ import {
   VendorVerificationListItemDto,
   AdminVendorVerificationDetailResponseDto,
   AdminVendorVerificationFileResponseDto,
+  AdminDashboardOverviewResponseDto,
 } from '../../presentation/dto/admin.response.dto';
 
 import type {
   VendorVerificationListResult,
   VendorVerificationStatsResult,
+  AdminDashboardOverviewRaw,
 } from '../../domain/interface/admin.repository.interface';
 import { MediaService } from '@/common/media/media.service';
 
@@ -230,7 +232,7 @@ export class AdminMapper {
      };
    }
 
-   private getDocumentFilePath(
+  private getDocumentFilePath(
      verification: any,
      documentType: AdminVendorVerificationDocumentType,
    ): string | null {
@@ -249,47 +251,80 @@ export class AdminMapper {
       }
     }
 
-    private getDocumentLabel(
-      documentType: AdminVendorVerificationDocumentType,
-    ): string {
-    switch (documentType) {
-        case AdminVendorVerificationDocumentType.BUSINESS_LICENSE:
-        return 'Business License';
+  private getDocumentLabel(
+    documentType: AdminVendorVerificationDocumentType,
+  ): string {
+  switch (documentType) {
+      case AdminVendorVerificationDocumentType.BUSINESS_LICENSE:
+      return 'Business License';
 
-        case AdminVendorVerificationDocumentType.HEALTH_PERMIT:
-        return 'Health Permit';
+      case AdminVendorVerificationDocumentType.HEALTH_PERMIT:
+      return 'Health Permit';
 
-        case AdminVendorVerificationDocumentType.INSURANCE_PROOF:
-        return 'Proof of Insurance';
+      case AdminVendorVerificationDocumentType.INSURANCE_PROOF:
+      return 'Proof of Insurance';
+
+      default:
+      return 'Document';
+    }
+  }
+
+  private extractFileName1(path: string): string {
+    return path.split('/').pop() ?? path;
+  }
+
+  private resolveMimeType(path: string): string | undefined {
+    const extension = path.split('.').pop()?.toLowerCase();
+
+    switch (extension) {
+        case 'pdf':
+        return 'application/pdf';
+
+        case 'jpg':
+        case 'jpeg':
+        return 'image/jpeg';
+
+        case 'png':
+        return 'image/png';
+
+        case 'webp':
+        return 'image/webp';
 
         default:
-        return 'Document';
-     }
+        return undefined;
     }
+  }
 
-    private extractFileName1(path: string): string {
-     return path.split('/').pop() ?? path;
-    }
+  toOverviewResponse(
+    data: AdminDashboardOverviewRaw,
+  ): AdminDashboardOverviewResponseDto {
+    return {
+      summary: {
+        totalVendors: data.totalVendors,
+        totalCustomers: data.totalCustomers,
+        activeTrucksToday: data.activeTrucksToday,
+        platformRevenue: Number(data.platformRevenue.toFixed(2)),
+        currency: data.currency,
+      },
 
-    private resolveMimeType(path: string): string | undefined {
-     const extension = path.split('.').pop()?.toLowerCase();
+      alerts: {
+        issuesNeedAttention: data.issuesNeedAttention,
+        pendingOnboarding: data.pendingOnboarding,
+        inactiveVendors: data.inactiveVendors,
+        todayRevenue: Number(data.todayRevenue.toFixed(2)),
+        currency: data.currency,
+      },
 
-     switch (extension) {
-         case 'pdf':
-         return 'application/pdf';
+      vendorsByStatus: {
+        pending: data.vendorsByStatus.pending,
+        verified: data.vendorsByStatus.verified,
+        expired: data.vendorsByStatus.expired,
+        suspended: data.vendorsByStatus.suspended,
+        rejected: data.vendorsByStatus.rejected,
+        total: data.vendorsByStatus.total,
+      },
 
-         case 'jpg':
-         case 'jpeg':
-         return 'image/jpeg';
-
-         case 'png':
-         return 'image/png';
-
-         case 'webp':
-         return 'image/webp';
-
-         default:
-         return undefined;
-     }
-    }
+      lastUpdatedAt: new Date(),
+    };
+  }
 }

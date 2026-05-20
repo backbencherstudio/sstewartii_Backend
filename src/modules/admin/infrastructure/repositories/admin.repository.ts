@@ -212,7 +212,7 @@ export class AdminVendorVerificationRepository
     });
   }
 
-   async getOverview(): Promise<AdminDashboardOverviewRaw> {
+  async getOverview(): Promise<AdminDashboardOverviewRaw> {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
