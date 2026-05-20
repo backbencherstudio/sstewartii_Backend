@@ -115,15 +115,24 @@ model Vendor {
 }
 
 model SubscriptionPlan {
-  id             String   @id @default(uuid())
-  name           String   
-  price          Float    
-  durationDays   Int      
-  maxProducts    Int      
+  id                      String   @id @default(uuid())
+  name                    String   
+  code                    String   @unique
+  price                   Float    
+  durationDays            Int      
+  maxProducts             Int      
+  stripePriceId           String   @unique 
+  currency                String   @default("USD")
+  revenueCatEntitlementId String?
+  appleProductId          String?
+  googleProductId         String?
+  isActive                Boolean  @default(true)
+  position                Int      @default(0)
 
-  stripePriceId  String   @unique 
+  vendors                 Vendor[]
 
-  vendors        Vendor[] 
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model KycProfile {
