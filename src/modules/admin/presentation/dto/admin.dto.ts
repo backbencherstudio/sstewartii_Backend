@@ -46,3 +46,16 @@ export class VendorVerificationDocumentParamDto {
   @IsEnum(AdminVendorVerificationDocumentType)
   documentType!: AdminVendorVerificationDocumentType;
 }
+
+export enum DashboardRange {
+  TODAY = 'today',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export class AdminDashboardOverviewQueryDto {
+  @IsOptional()
+  @IsEnum(DashboardRange)
+  range?: DashboardRange = DashboardRange.MONTH;
+}

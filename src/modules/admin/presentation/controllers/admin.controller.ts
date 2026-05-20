@@ -10,11 +10,13 @@ import { AdminVendorVerificationService } from '../../application/admin.service'
 import { 
   VendorVerificationListQueryDto,
   AdminVendorVerificationDocumentType,
+  AdminDashboardOverviewQueryDto,
  } from '../dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
   AdminVendorVerificationDetailResponseDto,
   AdminVendorVerificationFileResponseDto,
+  AdminDashboardOverviewResponseDto,
 } from '../dto/admin.response.dto';
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -55,5 +57,14 @@ export class AdminController {
       verificationId,
       documentType,
     );
+  }
+
+  @Get('overview')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  async getOverview(
+    @Query() query: AdminDashboardOverviewQueryDto,
+  ): Promise<AdminDashboardOverviewResponseDto> {
+    return this.service.getOverview(query);
   }
 }

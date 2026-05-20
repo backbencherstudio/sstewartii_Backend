@@ -94,3 +94,35 @@ export class AdminVendorVerificationFileResponseDto {
   fileUrl!: string;
   mimeType?: string;
 }
+
+export class AdminDashboardSummaryDto {
+  totalVendors!: number;
+  totalCustomers!: number;
+  activeTrucksToday!: number;
+  platformRevenue!: number;
+  currency!: string;
+}
+
+export class AdminDashboardAlertsDto {
+  issuesNeedAttention!: number;
+  pendingOnboarding!: number;
+  inactiveVendors!: number;
+  todayRevenue!: number;
+  currency!: string;
+}
+
+export class AdminDashboardVendorStatusDto {
+  pending!: number;
+  verified!: number;
+  expired!: number;
+  suspended!: number;
+  rejected!: number;
+  total!: number;
+}
+
+export class AdminDashboardOverviewResponseDto {
+  summary!: AdminDashboardSummaryDto;
+  alerts!: AdminDashboardAlertsDto;
+  vendorsByStatus!: AdminDashboardVendorStatusDto;
+  lastUpdatedAt!: Date;
+}

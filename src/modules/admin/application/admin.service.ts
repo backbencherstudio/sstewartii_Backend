@@ -8,11 +8,14 @@ import {
   VendorVerificationListQueryDto,
   VendorVerificationSort,
   AdminVendorVerificationDocumentType,
+  AdminDashboardOverviewQueryDto,
+  ,
  } from '../presentation/dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
   AdminVendorVerificationDetailResponseDto,
   AdminVendorVerificationFileResponseDto,
+  AdminDashboardOverviewResponseDto,
  } from '../presentation/dto/admin.response.dto';
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 import { VerificationStatus } from '@prisma/client';
@@ -80,4 +83,15 @@ export class AdminVendorVerificationService {
       documentType,
     });
   }
+
+    async getOverview(
+      query: AdminDashboardOverviewQueryDto,
+    ): Promise<AdminDashboardOverviewResponseDto> {
+    
+      void query;
+
+      const overview = await this.repository.getOverview();
+
+      return this.adminMapper.toOverviewResponse(overview);
+    }
 }
