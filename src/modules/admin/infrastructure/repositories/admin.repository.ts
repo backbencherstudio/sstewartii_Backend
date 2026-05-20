@@ -1,12 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { VerificationStatus } from '@prisma/client';
+import { 
+  VerificationStatus,
+  KycStatus,
+  SubscriptionStatus,
+  VendorLiveStatus,
+ } from '@prisma/client';
 import { VendorVerificationSort } from '../../presentation/dto/admin.dto';
 import type {
   FindVendorVerificationsInput,
   IAdminVendorVerificationRepository,
   VendorVerificationListResult,
   VendorVerificationStatsResult,
+  AdminDashboardOverviewRaw,
 } from '../../domain/interface/admin.repository.interface';
 
 @Injectable()
@@ -204,5 +210,185 @@ export class AdminVendorVerificationRepository
         },
       },
     });
+  }
+
+   async getOverview(): Promise<AdminDashboardOverviewRaw> {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const [
+      totalVendors,
+      totalCustomers,
+      activeTrucksToday,
+
+      pendingVerifications,
+      rejectedVerifications,
+      approvedVerifications,
+
+      expiredSubscriptions,
+      inactiveVendors,
+      pendingOnboarding,
+
+      activeSubscriptions,
+      todaySubscriptions,
+      totalVerificationCount,
+    ] = await Promise.all([
+      this.prisma.vendor.count(),
+
+      this.prisma.customer.count(),
+
+      this.prisma.vendor.count({
+        where: {
+          status: VendorLiveStatus.ONLINE,
+        },
+      }),
+
+      this.prisma.vendorVerification.count({
+        where: {
+          status: VerificationStatus.PENDING,
+        },
+      }),
+
+      this.prisma.vendorVerification.count({
+        where: {
+          status: VerificationStatus.REJECTED,
+        },
+      }),
+
+      this.prisma.vendorVerification.count({
+        where: {
+          status: VerificationStatus.APPROVED,
+        },
+      }),
+
+      this.prisma.vendorSubscription.count({
+        where: {
+          status: SubscriptionStatus.EXPIRED,
+        },
+      }),
+
+      this.prisma.vendor.count({
+        where: {
+          OR: [
+            {
+              status: VendorLiveStatus.OFFLINE,
+            },
+            {
+              subscriptionStatus: {
+                in: [
+                  SubscriptionStatus.INACTIVE,
+                  SubscriptionStatus.EXPIRED,
+                  SubscriptionStatus.CANCELLED,
+                ],
+              },
+            },
+          ],
+        },
+      }),
+
+      this.prisma.vendor.count({
+        where: {
+          OR: [
+            {
+              onboardingStep: {
+                lt: 4,
+              },
+            },
+            {
+              kycStatus: {
+                in: [KycStatus.UNVERIFIED, KycStatus.PENDING_REVIEW],
+              },
+            },
+          ],
+        },
+      }),
+
+      this.prisma.vendorSubscription.findMany({
+        where: {
+          status: SubscriptionStatus.ACTIVE,
+        },
+        include: {
+          subscriptionPlan: {
+            select: {
+              price: true,
+              currency: true,
+            },
+          },
+        },
+      }),
+
+      this.prisma.vendorSubscription.findMany({
+        where: {
+          status: SubscriptionStatus.ACTIVE,
+          createdAt: {
+            gte: startOfToday,
+            lte: endOfToday,
+          },
+        },
+        include: {
+          subscriptionPlan: {
+            select: {
+              price: true,
+              currency: true,
+            },
+          },
+        },
+      }),
+
+      this.prisma.vendorVerification.count(),
+    ]);
+
+    const currency =
+      activeSubscriptions[0]?.subscriptionPlan?.currency ??
+      todaySubscriptions[0]?.subscriptionPlan?.currency ??
+      'USD';
+
+    const platformRevenue = activeSubscriptions.reduce((sum, item) => {
+      return sum + (item.subscriptionPlan?.price ?? 0);
+    }, 0);
+
+    const todayRevenue = todaySubscriptions.reduce((sum, item) => {
+      return sum + (item.subscriptionPlan?.price ?? 0);
+    }, 0);
+
+    const suspended = await this.prisma.vendor.count({
+      where: {
+        subscriptionStatus: SubscriptionStatus.CANCELLED,
+      },
+    });
+
+    const verified = approvedVerifications;
+
+    const pending = pendingVerifications;
+
+    const rejected = rejectedVerifications;
+
+    const expired = expiredSubscriptions;
+
+    return {
+      totalVendors,
+      totalCustomers,
+      activeTrucksToday,
+
+      platformRevenue,
+      todayRevenue,
+      currency,
+
+      issuesNeedAttention: pendingVerifications + expiredSubscriptions,
+      pendingOnboarding,
+      inactiveVendors,
+
+      vendorsByStatus: {
+        pending,
+        verified,
+        expired,
+        suspended,
+        rejected,
+        total: totalVendors || totalVerificationCount,
+      },
+    };
   }
 }
