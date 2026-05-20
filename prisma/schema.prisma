@@ -109,6 +109,7 @@ model Vendor {
   orderReports         OrderReport[]
   helpTickets          HelpCenterTicket[]
   profileViews         VendorProfileView[]
+  subscription         VendorSubscription?
   
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -130,9 +131,33 @@ model SubscriptionPlan {
   position                Int      @default(0)
 
   vendors                 Vendor[]
+  subscriptions           VendorSubscription[]
 
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+}
+
+model VendorSubscription {
+  id                  String @id @default(uuid())
+  vendorId            String @unique
+  vendor              Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  subscriptionPlanId  String?
+  subscriptionPlan    SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+
+  provider            SubscriptionProvider
+  status              SubscriptionStatus
+
+  revenueCatAppUserId String?
+  entitlementId       String?
+  productId           String?
+  store               SubscriptionStore?
+
+  currentPeriodEnd    DateTime?
+  rawProviderData     Json?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model KycProfile {
@@ -808,6 +833,20 @@ model VendorProfileView {
   @@index([vendorId])
   @@index([customerId])
   @@index([viewedAt])
+}
+
+enum SubscriptionProvider {
+  REVENUECAT
+  STRIPE
+  MANUAL
+}
+
+enum SubscriptionStore {
+  APP_STORE
+  PLAY_STORE
+  STRIPE
+  PROMOTIONAL
+  UNKNOWN
 }
 
 enum OrderReportReason {
