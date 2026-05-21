@@ -94,6 +94,10 @@ export class CustomerRepository implements ICustomerRepository {
       serviceArea: {
         isNot: null,
       },
+
+      // onboardingStep: {
+      //   gte: 4,
+      // },
     };
 
     const andConditions: Prisma.VendorWhereInput[] = [];
@@ -135,73 +139,96 @@ export class CustomerRepository implements ICustomerRepository {
       });
     }
 
-  if (category) {
-    andConditions.push({
-      products: {
-        some: {
-          isActive: true,
-          isDeleted: false,
-          category: {
-            name: {
-              contains: category,
-              mode: Prisma.QueryMode.insensitive,
+    if (category) {
+      andConditions.push({
+        products: {
+          some: {
+            isActive: true,
+            isDeleted: false,
+            category: {
+              name: {
+                contains: category,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    return this.prisma.vendor.findMany({
+      where,
+      select: {
+        id: true,
+        businessName: true,
+        coverImage: true,
+
+        status: true,
+        statusUpdatedAt: true,
+
+        truckReviewAverage: true,
+        truckReviewCount: true,
+
+        serviceArea: true,
+        operationHours: true,
+
+        cuisines: {
+          include: {
+            cuisine: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+
+        products: {
+          where: {
+            isActive: true,
+            isDeleted: false,
+          },
+          take: 1,
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            id: true,
+            images: {
+              orderBy: [
+                {
+                  isPrimary: 'desc',
+                },
+                {
+                  position: 'asc',
+                },
+              ],
+              take: 1,
+              select: {
+                id: true,
+                url: true,
+              },
             },
           },
         },
       },
+      orderBy: [
+        {
+          truckReviewAverage: 'desc',
+        },
+        {
+          truckReviewCount: 'desc',
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
     });
   }
-
-  if (andConditions.length > 0) {
-    where.AND = andConditions;
-  }
-
-  return this.prisma.vendor.findMany({
-    where,
-    include: {
-      serviceArea: true,
-      operationHours: true,
-
-      cuisines: {
-        include: {
-          cuisine: true,
-        },
-      },
-
-      products: {
-        where: {
-          isActive: true,
-          isDeleted: false,
-        },
-        take: 1,
-        include: {
-          images: {
-            orderBy: [
-              {
-                isPrimary: 'desc',
-              },
-              {
-                position: 'asc',
-              },
-            ],
-            take: 1,
-          },
-        },
-      },
-    },
-    orderBy: [
-      {
-        truckReviewAverage: 'desc',
-      },
-      {
-        truckReviewCount: 'desc',
-      },
-      {
-        createdAt: 'desc',
-      },
-    ],
-  });
-}
 
   async findTopPickProducts(
     query: TopPicksQueryDto,

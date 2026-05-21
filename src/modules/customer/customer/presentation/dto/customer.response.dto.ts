@@ -1,30 +1,10 @@
+import { VendorLiveStatus } from '@prisma/client';
+
 export class CustomerResponseDto {
   id!: string;
   latitude?: number;
   longitude?: number;
   address?: string;
-}
-
-export class NearbyVendorCardResponseDto {
-  id!: string;
-  businessName!: string;
-  coverImage?: string;
-  distanceKm!: number;
-  cityLabel?: string;
-  isOpen!: boolean;
-  statusLabel!: string;
-  cuisines!: string[];
-  rating!: number;
-  reviewCount!: number;
-  isFavorite!: boolean;
-}
-
-export class NearbyVendorsResponseDto {
-  items!: NearbyVendorCardResponseDto[];
-  page!: number;
-  limit!: number;
-  total!: number;
-  totalPages!: number;
 }
 
 export class TopPickProductCardResponseDto {
@@ -94,16 +74,12 @@ export class FoodCardResponseDto {
   description!: string;
   price!: number;
   image?: string;
-
   vendorId!: string;
   vendorName!: string;
-
   categoryName?: string;
   cuisines!: string[];
-
   rating!: number;
   reviewCount!: number;
-
   distanceKm!: number;
   isOpen!: boolean;
   statusLabel!: string;
@@ -123,15 +99,11 @@ export class FavoriteProductItemResponseDto {
   description!: string;
   price!: number;
   image?: string;
-
   vendorId!: string;
   vendorName!: string;
-
   categoryName?: string;
-
   rating!: number;
   reviewCount!: number;
-
   isFavorited!: boolean;
 }
 
@@ -147,18 +119,13 @@ export class FavoriteVendorItemResponseDto {
   id!: string;
   businessName!: string;
   coverImage?: string;
-
   cuisines!: string[];
-
   rating!: number;
   reviewCount!: number;
-
   cityLabel?: string;
   distanceKm?: number;
-
   isOpen!: boolean;
   statusLabel!: string;
-
   isFavorited!: boolean;
 }
 
@@ -172,48 +139,36 @@ export class FavoriteVendorsResponseDto {
 
 export class AdvancedSearchFoodItemResponseDto {
   type!: 'FOOD';
-
   id!: string;
   name!: string;
   description!: string;
   price!: number;
   image?: string;
-
   vendorId!: string;
   vendorName!: string;
-
   categoryName?: string;
   cuisines!: string[];
-
   rating!: number;
   reviewCount!: number;
-
   distanceKm!: number;
   isOpen!: boolean;
   statusLabel!: string;
-
   isFavorited!: boolean;
 }
 
 export class AdvancedSearchTruckItemResponseDto {
   type!: 'TRUCK';
-
   id!: string;
   businessName!: string;
   coverImage?: string;
-
   cityLabel?: string;
   address?: string;
-
   cuisines!: string[];
-
   rating!: number;
   reviewCount!: number;
-
   distanceKm!: number;
   isOpen!: boolean;
   statusLabel!: string;
-
   isFavorited!: boolean;
 }
 
@@ -225,6 +180,29 @@ export class CustomerAdvancedSearchResponseDto {
     AdvancedSearchFoodItemResponseDto | AdvancedSearchTruckItemResponseDto
   >;
 
+  page!: number;
+  limit!: number;
+  total!: number;
+  totalPages!: number;
+}
+
+export class NearbyVendorCardResponseDto {
+  id!: string;
+  businessName!: string;
+  coverImage?: string;
+  distanceKm!: number;
+  cityLabel?: string;
+  vendorStatus!: VendorLiveStatus;
+  isOpen!: boolean;
+  statusLabel!: string;
+  cuisines!: string[];
+  rating!: number;
+  reviewCount!: number;
+  isFavorite!: boolean;
+}
+
+export class NearbyVendorsResponseDto {
+  items!: NearbyVendorCardResponseDto[];
   page!: number;
   limit!: number;
   total!: number;

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerEntity } from '../../domain/entities/customer.entity';
 
+import { VendorLiveStatus } from '@prisma/client';
+
 import {
   CustomerResponseDto,
   NearbyVendorCardResponseDto,
@@ -29,39 +31,41 @@ export class CustomerMapper {
     };
   }
 
- toNearbyVendorCard(
-  vendor: any,
-  favoriteVendorIdSet: Set<string>,
-): NearbyVendorCardResponseDto {
-  const productImage = vendor.products?.[0]?.images?.[0]?.url;
+  toNearbyVendorCard(
+    vendor: any,
+    favoriteVendorIdSet: Set<string>,
+  ): NearbyVendorCardResponseDto {
+    const productImage = vendor.products?.[0]?.images?.[0]?.url;
 
-  return {
-    id: vendor.id,
-    businessName: vendor.businessName ?? 'Unnamed Vendor',
+    return {
+      id: vendor.id,
+      businessName: vendor.businessName ?? 'Unnamed Vendor',
 
-    coverImage:
-      this.media.getUrl(vendor.coverImage) ??
-      this.media.getUrl(productImage) ??
-      undefined,
+      coverImage:
+        this.media.getUrl(vendor.coverImage) ??
+        this.media.getUrl(productImage) ??
+        undefined,
 
-    distanceKm: Number(vendor.distanceKm.toFixed(1)),
+      distanceKm: Number((vendor.distanceKm ?? 0).toFixed(1)),
 
-    cityLabel: CustomerMapper.extractCityLabel(
-      vendor.serviceArea?.address,
-    ),
+      cityLabel: CustomerMapper.extractCityLabel(
+        vendor.serviceArea?.address,
+      ),
 
-    isOpen: vendor.availability?.isOpen ?? false,
-    statusLabel: vendor.availability?.label ?? 'Unknown',
+      vendorStatus: vendor.status as VendorLiveStatus,
 
-    cuisines:
-      vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+      isOpen: vendor.availability?.isOpen ?? false,
+      statusLabel: vendor.availability?.label ?? 'Closed',
 
-    rating: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
-    reviewCount: vendor.truckReviewCount ?? 0,
+      cuisines:
+        vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
 
-    isFavorite: favoriteVendorIdSet.has(vendor.id),
-  };
-}
+      rating: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
+      reviewCount: vendor.truckReviewCount ?? 0,
+
+      isFavorite: favoriteVendorIdSet.has(vendor.id),
+    };
+  }
 
   toTopPickProductCard(product: any): TopPickProductCardResponseDto {
     return {

@@ -5,10 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { VendorLiveStatus } from '@prisma/client';
+
 import type { ICustomerRepository } from '../domain/interface/customer.repository.interface';
 import { CustomerEntity } from '../domain/entities/customer.entity';
 
 import { CustomerMapper } from '../infrastructure/mapper/customer.mapper';
+
 
 import { 
   NearbyVendorsQueryDto, 
@@ -71,7 +74,7 @@ export class CustomerService {
     return CustomerMapper.toResponse(finalCustomer);
   }
 
-  async getNearbyVendors(
+ async getNearbyVendors(
     userId: string,
     query: NearbyVendorsQueryDto,
   ): Promise<NearbyVendorsResponseDto> {
@@ -96,6 +99,13 @@ export class CustomerService {
     const favoriteVendorIdSet = new Set(favoriteVendorIds);
 
     const enriched = vendors
+      .filter((vendor) => {
+        return (
+          vendor.serviceArea &&
+          vendor.serviceArea.latitude !== null &&
+          vendor.serviceArea.longitude !== null
+        );
+      })
       .map((vendor) => {
         const distanceKm = this.calculateDistanceKm(
           customer.latitude!,
@@ -107,15 +117,24 @@ export class CustomerService {
         const radiusKm = vendor.serviceArea.radius ?? 0;
         const withinRadius = radiusKm > 0 ? distanceKm <= radiusKm : true;
 
+        const availability = this.resolveVendorAvailability(
+          vendor.status,
+          vendor.operationHours ?? [],
+        );
+
         return {
           ...vendor,
           distanceKm,
           withinRadius,
-          availability: this.resolveAvailability(vendor.operationHours),
+          availability,
         };
       })
       .filter((vendor) => vendor.withinRadius)
       .sort((a, b) => {
+        if (a.availability.isOpen !== b.availability.isOpen) {
+          return a.availability.isOpen ? -1 : 1;
+        }
+
         if (a.distanceKm !== b.distanceKm) {
           return a.distanceKm - b.distanceKm;
         }
@@ -138,14 +157,19 @@ export class CustomerService {
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
+
     const total = enriched.length;
     const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
     const start = (page - 1) * limit;
     const paginated = enriched.slice(start, start + limit);
 
     return {
       items: paginated.map((vendor) =>
-        this.mapper.toNearbyVendorCard(vendor, favoriteVendorIdSet),
+        this.mapper.toNearbyVendorCard(
+          vendor,
+          favoriteVendorIdSet,
+        ),
       ),
       page,
       limit,
@@ -984,5 +1008,121 @@ export class CustomerService {
           return a.distanceKm - b.distanceKm;
       }
     });
+  }
+
+  private resolveVendorAvailability(
+    vendorStatus: VendorLiveStatus,
+    operationHours: Array<{
+      dayOfWeek: number;
+      openTime: string | null;
+      closeTime: string | null;
+      isClosed: boolean;
+      activeFrom?: Date;
+      activeTo?: Date | null;
+    }>,
+  ): {
+    isOpen: boolean;
+    label: string;
+  } {
+    /**
+     * Vendor manual status has highest priority.
+     */
+    if (vendorStatus === VendorLiveStatus.OFFLINE) {
+      return {
+        isOpen: false,
+        label: 'Closed',
+      };
+    }
+
+    if (vendorStatus === VendorLiveStatus.TEMPORARILY_CLOSED) {
+      return {
+        isOpen: false,
+        label: 'Temporarily Closed',
+      };
+    }
+
+    /**
+     * Only ONLINE vendors can be considered open.
+     */
+    const now = new Date();
+    const today = now.getDay();
+
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes(),
+    ).padStart(2, '0')}`;
+
+    const todaysHours = operationHours
+      .filter((hour) => {
+        if (hour.dayOfWeek !== today) {
+          return false;
+        }
+
+        if (hour.isClosed) {
+          return false;
+        }
+
+        if (!hour.openTime || !hour.closeTime) {
+          return false;
+        }
+
+        if (hour.activeFrom && hour.activeFrom > now) {
+          return false;
+        }
+
+        if (hour.activeTo && hour.activeTo < now) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        return (a.openTime ?? '').localeCompare(b.openTime ?? '');
+      });
+
+    if (!todaysHours.length) {
+      return {
+        isOpen: false,
+        label: 'Closed',
+      };
+    }
+
+    const currentSlot = todaysHours.find((hour) => {
+      return currentTime >= hour.openTime! && currentTime <= hour.closeTime!;
+    });
+
+    if (currentSlot) {
+      return {
+        isOpen: true,
+        label: 'Open Now',
+      };
+    }
+
+    const nextSlot = todaysHours.find((hour) => {
+      return hour.openTime! > currentTime;
+    });
+
+    if (nextSlot) {
+      return {
+        isOpen: false,
+        label: `Opens at ${this.formatTimeLabel(nextSlot.openTime!)}`,
+      };
+    }
+
+    return {
+      isOpen: false,
+      label: 'Closed',
+    };
+  }
+
+  private formatTimeLabel(time: string): string {
+    const [hourRaw, minuteRaw] = time.split(':');
+
+    const hour = Number(hourRaw);
+    const minute = minuteRaw ?? '00';
+
+    const suffix = hour >= 12 ? 'pm' : 'am';
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+
+    return `${displayHour}:${minute}${suffix}`;
   }
 }
