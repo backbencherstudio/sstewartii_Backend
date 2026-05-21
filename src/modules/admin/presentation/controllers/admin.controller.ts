@@ -70,8 +70,7 @@ export class AdminController {
     return this.service.getOverview(query);
   }
 
-  //Get revenue
-  @Get('revenue')
+  @Get('dashboard/revenue')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   async getRevenueChart(

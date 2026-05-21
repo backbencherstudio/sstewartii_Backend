@@ -14,9 +14,9 @@ export class NearbyVendorCardResponseDto {
   isOpen!: boolean;
   statusLabel!: string;
   cuisines!: string[];
-
   rating!: number;
   reviewCount!: number;
+  isFavorite!: boolean;
 }
 
 export class NearbyVendorsResponseDto {
@@ -32,13 +32,10 @@ export class TopPickProductCardResponseDto {
   name!: string;
   image?: string;
   price!: number;
-
   vendorId!: string;
   vendorName!: string;
-
   rating!: number;
   reviewCount!: number;
-
   categoryName?: string;
   distanceKm!: number;
 }

@@ -69,6 +69,21 @@ export class CustomerRepository implements ICustomerRepository {
     });
   }
 
+  async findFavoriteVendorIdsByCustomerId(
+    customerId: string,
+  ): Promise<string[]> {
+    const favorites = await this.prisma.favoriteVendor.findMany({
+      where: {
+        customerId,
+      },
+      select: {
+        vendorId: true,
+      },
+    });
+
+    return favorites.map((item) => item.vendorId);
+  }
+
   async findNearbyVendorCandidates(
     query: NearbyVendorsQueryDto,
   ): Promise<any[]> {
@@ -108,6 +123,7 @@ export class CustomerRepository implements ICustomerRepository {
             products: {
               some: {
                 isActive: true,
+                isDeleted: false,
                 name: {
                   contains: search,
                   mode: Prisma.QueryMode.insensitive,
@@ -119,76 +135,73 @@ export class CustomerRepository implements ICustomerRepository {
       });
     }
 
-    // if (category) {
-    //   andConditions.push({
-    //     OR: [
-    //       {
-    //         categories: {
-    //           some: {
-    //             name: {
-    //               contains: category,
-    //               mode: Prisma.QueryMode.insensitive,
-    //             },
-    //           },
-    //         },
-    //       },
-    //       {
-    //         products: {
-    //           some: {
-    //             isActive: true,
-    //             category: {
-    //               name: {
-    //                 contains: category,
-    //                 mode: Prisma.QueryMode.insensitive,
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     ],
-    //   });
-    // }
-
-    if (andConditions.length > 0) {
-      where.AND = andConditions;
-    }
-
-    return this.prisma.vendor.findMany({
-      where,
-      include: {
-        serviceArea: true,
-        operationHours: true,
-        cuisines: {
-          include: {
-            cuisine: true,
-          },
-        },
-        products: {
-          where: {
-            isActive: true,
-          },
-          take: 1,
-          include: {
-            images: {
-              orderBy: { position: 'asc' },
-              take: 1,
+  if (category) {
+    andConditions.push({
+      products: {
+        some: {
+          isActive: true,
+          isDeleted: false,
+          category: {
+            name: {
+              contains: category,
+              mode: Prisma.QueryMode.insensitive,
             },
           },
         },
       },
-      orderBy: [
-        {
-          truckReviewAverage: 'desc',
-        },
-        {
-          truckReviewCount: 'desc',
-        },
-        {
-          createdAt: 'desc',
-        },
-      ],
     });
   }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
+  }
+
+  return this.prisma.vendor.findMany({
+    where,
+    include: {
+      serviceArea: true,
+      operationHours: true,
+
+      cuisines: {
+        include: {
+          cuisine: true,
+        },
+      },
+
+      products: {
+        where: {
+          isActive: true,
+          isDeleted: false,
+        },
+        take: 1,
+        include: {
+          images: {
+            orderBy: [
+              {
+                isPrimary: 'desc',
+              },
+              {
+                position: 'asc',
+              },
+            ],
+            take: 1,
+          },
+        },
+      },
+    },
+    orderBy: [
+      {
+        truckReviewAverage: 'desc',
+      },
+      {
+        truckReviewCount: 'desc',
+      },
+      {
+        createdAt: 'desc',
+      },
+    ],
+  });
+}
 
   async findTopPickProducts(
     query: TopPicksQueryDto,

@@ -88,7 +88,12 @@ export class CustomerService {
       );
     }
 
-    const vendors = await this.repo.findNearbyVendorCandidates(query);
+    const [vendors, favoriteVendorIds] = await Promise.all([
+      this.repo.findNearbyVendorCandidates(query),
+      this.repo.findFavoriteVendorIdsByCustomerId(customer.id),
+    ]);
+
+    const favoriteVendorIdSet = new Set(favoriteVendorIds);
 
     const enriched = vendors
       .map((vendor) => {
@@ -115,11 +120,20 @@ export class CustomerService {
           return a.distanceKm - b.distanceKm;
         }
 
-        if ((b.reviewAverage ?? 0) !== (a.reviewAverage ?? 0)) {
-          return (b.reviewAverage ?? 0) - (a.reviewAverage ?? 0);
+        if (
+          (b.truckReviewAverage ?? 0) !==
+          (a.truckReviewAverage ?? 0)
+        ) {
+          return (
+            (b.truckReviewAverage ?? 0) -
+            (a.truckReviewAverage ?? 0)
+          );
         }
 
-        return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+        return (
+          (b.truckReviewCount ?? 0) -
+          (a.truckReviewCount ?? 0)
+        );
       });
 
     const page = query.page ?? 1;
@@ -131,7 +145,7 @@ export class CustomerService {
 
     return {
       items: paginated.map((vendor) =>
-        this.mapper.toNearbyVendorCard(vendor),
+        this.mapper.toNearbyVendorCard(vendor, favoriteVendorIdSet),
       ),
       page,
       limit,

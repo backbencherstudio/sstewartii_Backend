@@ -93,4 +93,5 @@ export interface ICustomerRepository {
 
   findFavoriteVendorIds(customerId: string): Promise<string[]>;
 
+  findFavoriteVendorIdsByCustomerId(customerId: string): Promise<string[]>;
 }

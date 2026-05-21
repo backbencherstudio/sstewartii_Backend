@@ -29,23 +29,39 @@ export class CustomerMapper {
     };
   }
 
-  toNearbyVendorCard(vendor: any): NearbyVendorCardResponseDto {
-    return {
-      id: vendor.id,
-      businessName: vendor.businessName ?? 'Unnamed Vendor',
-      coverImage: this.media.getUrl(vendor.coverImage) ??
-        vendor.products?.[0]?.images?.[0]?.url ??
-        undefined,
-      distanceKm: Number(vendor.distanceKm.toFixed(1)),
-      cityLabel: CustomerMapper.extractCityLabel(vendor.serviceArea?.address),
-      isOpen: vendor.availability?.isOpen ?? false,
-      statusLabel: vendor.availability?.label ?? 'Unknown',
-      cuisines: vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+ toNearbyVendorCard(
+  vendor: any,
+  favoriteVendorIdSet: Set<string>,
+): NearbyVendorCardResponseDto {
+  const productImage = vendor.products?.[0]?.images?.[0]?.url;
 
-      rating: Number((vendor.reviewAverage ?? 0).toFixed(1)),
-      reviewCount: vendor.reviewCount ?? 0,
-    };
-  }
+  return {
+    id: vendor.id,
+    businessName: vendor.businessName ?? 'Unnamed Vendor',
+
+    coverImage:
+      this.media.getUrl(vendor.coverImage) ??
+      this.media.getUrl(productImage) ??
+      undefined,
+
+    distanceKm: Number(vendor.distanceKm.toFixed(1)),
+
+    cityLabel: CustomerMapper.extractCityLabel(
+      vendor.serviceArea?.address,
+    ),
+
+    isOpen: vendor.availability?.isOpen ?? false,
+    statusLabel: vendor.availability?.label ?? 'Unknown',
+
+    cuisines:
+      vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+
+    rating: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
+    reviewCount: vendor.truckReviewCount ?? 0,
+
+    isFavorite: favoriteVendorIdSet.has(vendor.id),
+  };
+}
 
   toTopPickProductCard(product: any): TopPickProductCardResponseDto {
     return {
