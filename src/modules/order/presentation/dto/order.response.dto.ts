@@ -170,64 +170,6 @@ export class OrderTrackResponseDto {
   totalAmount!: number;
 }
 
-export class VendorActiveOrderCustomerDto {
-  id!: string;
-  name!: string;
-  imageUrl?: string;
-}
-
-export class VendorActiveOrderChoiceOptionDto {
-  id!: string;
-  choiceOptionId?: string | null;
-  name!: string;
-  price!: number;
-}
-
-export class VendorActiveOrderAddOnDto {
-  id!: string;
-  addOnId?: string | null;
-  name!: string;
-  price!: number;
-}
-
-export class VendorActiveOrderItemDto {
-  id!: string;
-  productName!: string;
-  quantity!: number;
-  unitPrice!: number;
-  sizeName?: string;
-  sizePrice!: number;
-  choiceOptions!: VendorActiveOrderChoiceOptionDto[];
-  addOns!: VendorActiveOrderAddOnDto[];
-  lineTotal!: number;
-  displayText!: string;
-}
-
-export class VendorActiveOrderListItemDto {
-  id!: string;
-  orderNumber!: string;
-  status!: OrderStatus;
-  customer!: VendorActiveOrderCustomerDto;
-  items!: VendorActiveOrderItemDto[];
-  itemCount!: number;
-  uniqueItemCount!: number;
-  itemSummaryLabel!: string;
-  totalAmount!: number;
-  createdAt!: Date;
-  estimatedReadyAt?: Date | null;
-  statusLabel!: string;
-  actionLabel!: string;
-  timeLabel!: string;
-  isLate!: boolean;
-  minutesLate!: number;
-  minutesLeft!: number;
-}
-
-export class VendorActiveOrdersResponseDto {
-  total!: number;
-  items!: VendorActiveOrderListItemDto[];
-}
-
 export class VendorOrderDetailCustomerDto {
   id!: string;
   name!: string;
@@ -443,20 +385,14 @@ export class OrderReportImageResponseDto {
 
 export class CreateOrderReportResponseDto {
   id!: string;
-
   orderId!: string;
   orderNumber!: string;
-
   vendorId!: string;
   customerId!: string;
-
   reason!: OrderReportReason;
   description?: string;
-
   status!: OrderReportStatus;
-
   images!: OrderReportImageResponseDto[];
-
   createdAt!: Date;
 }
 
@@ -484,4 +420,85 @@ export class VendorOrderReportResponseDto {
   reviewedAt?: Date | null;
   resolvedAt?: Date | null;
   adminNote?: string;
+}
+
+export class VendorActiveOrderCustomerDto {
+  id!: string;
+  name!: string;
+  imageUrl?: string;
+}
+
+export class VendorActiveOrderChoiceOptionDto {
+  id!: string;
+  choiceOptionId?: string | null;
+  name!: string;
+  price!: number;
+}
+
+export class VendorActiveOrderAddOnDto {
+  id!: string;
+  addOnId?: string | null;
+  name!: string;
+  price!: number;
+}
+
+export class VendorActiveOrderItemDto {
+  id!: string;
+  productName!: string;
+  quantity!: number;
+  unitPrice!: number;
+  sizeName?: string | null;
+  sizePrice!: number;
+  choiceOptions!: VendorActiveOrderChoiceOptionDto[];
+  addOns!: VendorActiveOrderAddOnDto[];
+  lineTotal!: number;
+  displayText!: string;
+}
+
+export type VendorOrderActionType =
+  | 'MARK_READY_FOR_PICKUP'
+  | 'COMPLETE_ORDER'
+  | 'NONE';
+
+export type VendorOrderStatusUiType =
+  | 'CONFIRMED'
+  | 'PREPPING'
+  | 'READY_FOR_PICKUP';
+
+export class VendorActiveOrderActionDto {
+  label!: string;
+  type!: VendorOrderActionType;
+  enabled!: boolean;
+}
+
+export class VendorActiveOrderStatusUiDto {
+  label!: string;
+  type!: VendorOrderStatusUiType;
+}
+
+export class VendorActiveOrderListItemDto {
+  id!: string;
+  orderNumber!: string;
+  status!: OrderStatus;
+  customer!: VendorActiveOrderCustomerDto;
+  items!: VendorActiveOrderItemDto[];
+  itemCount!: number;
+  uniqueItemCount!: number;
+  itemSummaryLabel!: string;
+  totalAmount!: number;
+  createdAt!: Date;
+  estimatedReadyAt?: Date | null;
+  statusLabel!: string;
+  actionLabel!: string;
+  action!: VendorActiveOrderActionDto;
+  statusUi!: VendorActiveOrderStatusUiDto;
+  timeLabel!: string;
+  isLate!: boolean;
+  minutesLate!: number;
+  minutesLeft!: number;
+}
+
+export class VendorActiveOrdersResponseDto {
+  total!: number;
+  items!: VendorActiveOrderListItemDto[];
 }

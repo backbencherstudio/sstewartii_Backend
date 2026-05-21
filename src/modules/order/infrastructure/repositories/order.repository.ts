@@ -154,7 +154,6 @@ export class OrderRepository implements IOrderRepository {
         vendorId,
         status: {
           in: [
-            OrderStatus.PENDING,
             OrderStatus.CONFIRMED,
             OrderStatus.PREPARING,
             OrderStatus.READY_FOR_PICKUP,
@@ -184,6 +183,9 @@ export class OrderRepository implements IOrderRepository {
         },
       },
       orderBy: [
+        {
+          estimatedReadyAt: 'asc',
+        },
         {
           createdAt: 'asc',
         },

@@ -252,7 +252,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
 
         const timeMeta = OrderMapper.getVendorOrderTimeMeta(order, now);
 
-        return {
+       return {
           id: order.id,
           orderNumber: order.orderNumber,
           status: order.status,
@@ -263,7 +263,9 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
               order.customer.user?.name ??
               order.customer.user?.email ??
               'Customer',
-            imageUrl: this.mediaService.getUrl(order.customer.avatar),
+            imageUrl: order.customer.avatar
+              ? this.mediaService.getUrl(order.customer.avatar)
+              : undefined,
           },
 
           items: order.orderItems.map((item: any) =>
@@ -282,6 +284,9 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
           statusLabel: OrderMapper.getVendorOrderStatusLabel(order.status),
           actionLabel: OrderMapper.getVendorOrderActionLabel(order.status),
 
+          action: OrderMapper.getVendorOrderAction(order.status),
+          statusUi: OrderMapper.getVendorOrderStatusUi(order.status),
+
           timeLabel: timeMeta.timeLabel,
           isLate: timeMeta.isLate,
           minutesLate: timeMeta.minutesLate,
@@ -289,6 +294,67 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
         };
       }),
     };
+  }
+
+  static getVendorOrderAction(status: OrderStatus): {
+    label: string;
+    type: 'MARK_READY_FOR_PICKUP' | 'COMPLETE_ORDER' | 'NONE';
+    enabled: boolean;
+  } {
+    switch (status) {
+      case OrderStatus.CONFIRMED:
+      case OrderStatus.PREPARING:
+        return {
+          label: 'Ready for pickup',
+          type: 'MARK_READY_FOR_PICKUP',
+          enabled: true,
+        };
+
+      case OrderStatus.READY_FOR_PICKUP:
+        return {
+          label: 'Complete Order',
+          type: 'COMPLETE_ORDER',
+          enabled: true,
+        };
+
+      default:
+        return {
+          label: '',
+          type: 'NONE',
+          enabled: false,
+        };
+    }
+  }
+
+  static getVendorOrderStatusUi(status: OrderStatus): {
+    label: string;
+    type: 'CONFIRMED' | 'PREPPING' | 'READY_FOR_PICKUP';
+  } {
+    switch (status) {
+      case OrderStatus.CONFIRMED:
+        return {
+          label: 'Confirmed',
+          type: 'CONFIRMED',
+        };
+
+      case OrderStatus.PREPARING:
+        return {
+          label: 'Prepping',
+          type: 'PREPPING',
+        };
+
+      case OrderStatus.READY_FOR_PICKUP:
+        return {
+          label: 'Ready For Pickup',
+          type: 'READY_FOR_PICKUP',
+        };
+
+      default:
+        return {
+          label: 'Confirmed',
+          type: 'CONFIRMED',
+        };
+    }
   }
 
   private static toVendorActiveOrderItem(item: any) {
@@ -342,26 +408,31 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
 
   private static getVendorOrderStatusLabel(status: OrderStatus): string {
     switch (status) {
-      case OrderStatus.PENDING:
-        return 'New Order';
-
       case OrderStatus.CONFIRMED:
+        return 'Confirmed';
+
       case OrderStatus.PREPARING:
-        return 'Preparing';
+        return 'Prepping';
 
       case OrderStatus.READY_FOR_PICKUP:
         return 'Ready For Pickup';
 
+      case OrderStatus.PENDING:
+        return 'New Order';
+
+      case OrderStatus.COMPLETED:
+        return 'Completed';
+
+      case OrderStatus.CANCELLED:
+        return 'Cancelled';
+
       default:
-        return status;
+        return 'Unknown';
     }
   }
 
   private static getVendorOrderActionLabel(status: OrderStatus): string {
     switch (status) {
-      case OrderStatus.PENDING:
-        return 'Accept Order';
-
       case OrderStatus.CONFIRMED:
       case OrderStatus.PREPARING:
         return 'Ready for pickup';
@@ -369,21 +440,24 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       case OrderStatus.READY_FOR_PICKUP:
         return 'Complete Order';
 
+      case OrderStatus.PENDING:
+        return 'Accept Order';
+
       default:
-        return 'View Details';
+        return '';
     }
   }
 
   private static getVendorOrderTimeMeta(
     order: any,
-    now: Date,
+    now: Date = new Date(),
   ): {
     timeLabel: string;
     isLate: boolean;
     minutesLate: number;
     minutesLeft: number;
   } {
-    if (order.status === OrderStatus.PENDING) {
+    if (!order.estimatedReadyAt) {
       return {
         timeLabel: OrderMapper.formatTime(order.createdAt),
         isLate: false,
@@ -392,45 +466,12 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       };
     }
 
-    if (order.status === OrderStatus.READY_FOR_PICKUP) {
-      return {
-        timeLabel: 'Ready now',
-        isLate: false,
-        minutesLate: 0,
-        minutesLeft: 0,
-      };
-    }
+    const estimatedReadyAt = new Date(order.estimatedReadyAt);
 
-    if (
-      order.status === OrderStatus.CONFIRMED ||
-      order.status === OrderStatus.PREPARING
-    ) {
-      if (!order.estimatedReadyAt) {
-        return {
-          timeLabel: 'Preparing',
-          isLate: false,
-          minutesLate: 0,
-          minutesLeft: 0,
-        };
-      }
+    const diffMs = estimatedReadyAt.getTime() - now.getTime();
+    const diffMinutes = Math.ceil(diffMs / (1000 * 60));
 
-      const estimatedReadyAt = new Date(order.estimatedReadyAt);
-
-      const diffMinutes = Math.ceil(
-        (estimatedReadyAt.getTime() - now.getTime()) / 60000,
-      );
-
-      if (diffMinutes < 0) {
-        const minutesLate = Math.abs(diffMinutes);
-
-        return {
-          timeLabel: `${minutesLate} min late`,
-          isLate: true,
-          minutesLate,
-          minutesLeft: 0,
-        };
-      }
-
+    if (diffMinutes > 0) {
       return {
         timeLabel: `${diffMinutes} min left`,
         isLate: false,
@@ -439,10 +480,12 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       };
     }
 
+    const minutesLate = Math.abs(diffMinutes);
+
     return {
-      timeLabel: '',
-      isLate: false,
-      minutesLate: 0,
+      timeLabel: `${minutesLate} min late`,
+      isLate: true,
+      minutesLate,
       minutesLeft: 0,
     };
   }
@@ -452,7 +495,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-    }).format(new Date(date));
+    }).format(date);
   }
 
   toVendorOrderDetailResponse(
