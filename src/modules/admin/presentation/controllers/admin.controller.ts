@@ -4,6 +4,7 @@ import {
   Query,
   UseGuards,
   Param,
+  Patch,
 } from '@nestjs/common';
 
 import { AdminVendorVerificationService } from '../../application/admin.service';
@@ -23,6 +24,7 @@ import {
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { Role } from '@/common/enums/role.enum';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 
 @Controller('admin')
 export class AdminController {
@@ -77,5 +79,15 @@ export class AdminController {
     @Query() query: AdminDashboardRevenueQueryDto,
   ): Promise<AdminDashboardRevenueResponseDto> {
     return this.service.getRevenueChart(query);
+  }
+
+  @Patch('vendor-verifications/:verificationId/approve')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  @ResponseMessage('Vendor verification approved successfully.')
+  async approveVendorVerification(
+    @Param('verificationId') verificationId: string,
+  ) {
+    return this.service.approveVendorVerification(verificationId);
   }
 }
