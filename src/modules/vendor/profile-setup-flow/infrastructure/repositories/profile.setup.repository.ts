@@ -45,6 +45,7 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
         vendor = await tx.vendor.create({
           data: {
             ownerId: userId,
+            vendorCode: await this.generateUniqueVendorCode(tx),
           },
           select: {
             id: true,
@@ -227,6 +228,7 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
         vendor = await tx.vendor.create({
           data: {
             ownerId: userId,
+            vendorCode: await this.generateUniqueVendorCode(tx),
           },
           select: { id: true },
         });
@@ -336,5 +338,27 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
         updatedAt: true,
       },
     });
+  }
+
+  private async generateUniqueVendorCode(tx: any): Promise<string> {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const randomNumber = Math.floor(100000 + Math.random() * 900000);
+      const vendorCode = `#${randomNumber}`;
+
+      const existing = await tx.vendor.findUnique({
+        where: {
+          vendorCode,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!existing) {
+        return vendorCode;
+      }
+    }
+
+    throw new Error('Failed to generate unique vendor code');
   }
 }
