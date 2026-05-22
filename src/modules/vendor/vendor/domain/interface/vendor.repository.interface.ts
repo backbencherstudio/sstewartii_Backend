@@ -345,4 +345,9 @@ export interface IVendorRepository {
     page: number;
     limit: number;
   }): Promise<VendorFollowersResult>;
+
+  createVendorProfileViewOncePerDay(data: {
+    vendorId: string;
+    customerId?: string;
+  }): Promise<void>;
 }

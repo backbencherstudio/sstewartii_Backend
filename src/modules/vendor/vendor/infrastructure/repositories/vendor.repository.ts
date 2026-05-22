@@ -151,6 +151,7 @@ export class VendorRepository implements IVendorRepository {
         },
       },
     });
+    
 
     return vendor;
   }
@@ -1046,4 +1047,43 @@ export class VendorRepository implements IVendorRepository {
       followers,
     };
   }
+
+  async createVendorProfileViewOncePerDay(data: {
+    vendorId: string;
+    customerId?: string;
+  }): Promise<void> {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    if (data.customerId) {
+      const existing = await this.prisma.vendorProfileView.findFirst({
+        where: {
+          vendorId: data.vendorId,
+          customerId: data.customerId,
+          viewedAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existing) {
+        return;
+      }
+    }
+
+    await this.prisma.vendorProfileView.create({
+      data: {
+        vendorId: data.vendorId,
+        customerId: data.customerId,
+      },
+    });
+  }
+
 }

@@ -56,6 +56,7 @@ import {
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { VendorInsightAccessService } from './vendor-insight-access.service';
+import { CustomerService } from '@/modules/customer/customer/application/customer.service';
 
 
 @Injectable()
@@ -68,6 +69,7 @@ export class VendorService {
     private readonly vendorMapper: VendorMapper,
     private readonly vendorInsightsMapper: VendorInsightsMapper,
     private readonly vendorInsightAccessService: VendorInsightAccessService,
+   // private readonly customerService: CustomerService,
   ) {}
 
   async findByVendorId(vendorId: string) {
@@ -90,48 +92,51 @@ export class VendorService {
     return vendor;
   }
 
- async getVendorMenu(
-  vendorId: string,
-  query: VendorMenuQueryDto,
-  customerLocation?: { latitude: number; longitude: number },
-): Promise<VendorMenuDetailResponseDto> {
-  const vendor = await this.vendorRepository.findVendorMenuById(
-    vendorId,
-    query,
-  );
-
-  if (!vendor) {
-    throw new NotFoundException('Vendor not found');
-  }
-
-  let distanceKm: number | undefined;
-
-  if (
-    customerLocation &&
-    vendor.serviceArea?.latitude !== null &&
-    vendor.serviceArea?.latitude !== undefined &&
-    vendor.serviceArea?.longitude !== null &&
-    vendor.serviceArea?.longitude !== undefined
-  ) {
-    distanceKm = this.calculateDistanceKm(
-      customerLocation.latitude,
-      customerLocation.longitude,
-      vendor.serviceArea.latitude,
-      vendor.serviceArea.longitude,
+  async getVendorMenu(
+    vendorId: string,
+    query: VendorMenuQueryDto,
+     userId?: string,
+    customerLocation?: { latitude: number; longitude: number },
+  ): Promise<VendorMenuDetailResponseDto> {
+    const vendor = await this.vendorRepository.findVendorMenuById(
+      vendorId,
+      query,
     );
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+//    await this.trackVendorProfileViewSafely(vendorId, userId);
+
+    let distanceKm: number | undefined;
+
+    if (
+      customerLocation &&
+      vendor.serviceArea?.latitude !== null &&
+      vendor.serviceArea?.latitude !== undefined &&
+      vendor.serviceArea?.longitude !== null &&
+      vendor.serviceArea?.longitude !== undefined
+    ) {
+      distanceKm = this.calculateDistanceKm(
+        customerLocation.latitude,
+        customerLocation.longitude,
+        vendor.serviceArea.latitude,
+        vendor.serviceArea.longitude,
+      );
+    }
+
+    const availability = this.resolveAvailability(
+      vendor.operationHours ?? [],
+    );
+
+    return this.vendorMapper.toMenuResponse(vendor, {
+      distanceKm,
+      isOpen: availability.isOpen,
+      statusLabel: availability.label,
+      cityLabel: this.extractCityLabel(vendor.serviceArea?.address),
+    });
   }
-
-  const availability = this.resolveAvailability(
-    vendor.operationHours ?? [],
-  );
-
-  return this.vendorMapper.toMenuResponse(vendor, {
-    distanceKm,
-    isOpen: availability.isOpen,
-    statusLabel: availability.label,
-    cityLabel: this.extractCityLabel(vendor.serviceArea?.address),
-  });
-}
 
   private calculateDistanceKm(
     lat1: number,
@@ -791,4 +796,29 @@ export class VendorService {
       followers: result.followers,
     });
   }
+
+  // private async trackVendorProfileViewSafely(
+  //   vendorId: string,
+  //   userId?: string,
+  // ): Promise<void> {
+  //   if (!userId) {
+  //     return;
+  //   }
+
+  //   try {
+  //     const customerId =
+  //       await this.customerService.findActiveByUserId(userId);
+
+  //     if (!customerId) {
+  //       return;
+  //     }
+
+  //     await this.vendorRepository.createVendorProfileViewOncePerDay({
+  //       vendorId,
+  //       customerId: customerId.id,
+  //     });
+  //   } catch (error) {
+  //     console.error('Failed to track vendor profile view', error);
+  //   }
+  // }
 }
