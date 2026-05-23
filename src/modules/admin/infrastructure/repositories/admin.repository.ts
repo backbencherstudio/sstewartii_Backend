@@ -21,6 +21,9 @@ import type {
   FindAdminVendorAccountsInput,
   AdminVendorAccountListResult,
   AdminVendorAccountStatsResult,
+  AdminVendorOverviewOrderRow,
+  AdminVendorOverviewProfileViewRow,
+  AdminVendorOverviewFavoriteRow,
 } from '../../domain/interface/admin.repository.interface';
 
 import { 
@@ -725,5 +728,244 @@ export class AdminVendorVerificationRepository
           },
         ];
     }
+  }
+
+
+   async findVendorOverviewById(vendorId: string): Promise<any | null> {
+    return this.prisma.vendor.findUnique({
+      where: {
+        id: vendorId,
+      },
+      select: {
+        id: true,
+        vendorCode: true,
+        businessName: true,
+        publicEmail: true,
+        contactNumber: true,
+        bio: true,
+        coverImage: true,
+        status: true,
+        kycStatus: true,
+        subscriptionStatus: true,
+        subscriptionExpiry: true,
+        truckReviewAverage: true,
+        truckReviewCount: true,
+        createdAt: true,
+
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+
+        subscriptionPlan: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            price: true,
+            currency: true,
+            maxProducts: true,
+          },
+        },
+
+        subscription: {
+          select: {
+            id: true,
+            provider: true,
+            store: true,
+            productId: true,
+            currentPeriodEnd: true,
+          },
+        },
+
+        cuisines: {
+          include: {
+            cuisine: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+
+        socialLinks: {
+          select: {
+            id: true,
+            url: true,
+          },
+        },
+
+        serviceArea: {
+          select: {
+            address: true,
+            latitude: true,
+            longitude: true,
+            radius: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findVendorOrdersForOverview(data: {
+    vendorId: string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<AdminVendorOverviewOrderRow[]> {
+    return this.prisma.order.findMany({
+      where: {
+        vendorId: data.vendorId,
+        createdAt: {
+          gte: data.startDate,
+          lte: data.endDate,
+        },
+      },
+      select: {
+        id: true,
+        customerId: true,
+        status: true,
+        totalAmount: true,
+        createdAt: true,
+        orderItems: {
+          select: {
+            quantity: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
+
+  async findVendorAllCompletedOrders(
+    vendorId: string,
+  ): Promise<{ totalAmount: number }[]> {
+    return this.prisma.order.findMany({
+      where: {
+        vendorId,
+        status: OrderStatus.COMPLETED,
+      },
+      select: {
+        totalAmount: true,
+      },
+    });
+  }
+
+  async findVendorProfileViewsForOverview(data: {
+    vendorId: string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<AdminVendorOverviewProfileViewRow[]> {
+    return this.prisma.vendorProfileView.findMany({
+      where: {
+        vendorId: data.vendorId,
+        viewedAt: {
+          gte: data.startDate,
+          lte: data.endDate,
+        },
+      },
+      select: {
+        viewedAt: true,
+      },
+      orderBy: {
+        viewedAt: 'asc',
+      },
+    });
+  }
+
+  async countVendorProfileViewsInRange(data: {
+    vendorId: string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<number> {
+    return this.prisma.vendorProfileView.count({
+      where: {
+        vendorId: data.vendorId,
+        viewedAt: {
+          gte: data.startDate,
+          lte: data.endDate,
+        },
+      },
+    });
+  }
+
+  async countVendorFavorites(vendorId: string): Promise<number> {
+    return this.prisma.favoriteVendor.count({
+      where: {
+        vendorId,
+      },
+    });
+  }
+
+  async findRecentVendorFavorites(data: {
+    vendorId: string;
+    limit: number;
+  }): Promise<AdminVendorOverviewFavoriteRow[]> {
+    return this.prisma.favoriteVendor.findMany({
+      where: {
+        vendorId: data.vendorId,
+      },
+      take: data.limit,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        createdAt: true,
+        customer: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async findFavoriteCustomerOrderSummaries(data: {
+    vendorId: string;
+    customerIds: string[];
+  }): Promise<
+    {
+      customerId: string;
+      orderCount: number;
+      totalSpent: number;
+    }[]
+  > {
+    if (!data.customerIds.length) {
+      return [];
+    }
+
+    const grouped = await this.prisma.order.groupBy({
+      by: ['customerId'],
+      where: {
+        vendorId: data.vendorId,
+        customerId: {
+          in: data.customerIds,
+        },
+        status: OrderStatus.COMPLETED,
+      },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    return grouped.map((item) => ({
+      customerId: item.customerId,
+      orderCount: item._count.id,
+      totalSpent: item._sum.totalAmount ?? 0,
+    }));
   }
 }

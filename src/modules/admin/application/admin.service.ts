@@ -6,12 +6,17 @@ import {
   BadRequestException,
  } from '@nestjs/common';
 
-import { VerificationStatus } from '@prisma/client';
+import { 
+  VerificationStatus,
+  OrderStatus,
+} from '@prisma/client';
 
 import type { 
   IAdminVendorVerificationRepository,
   RevenueSubscriptionRow,
   SalesOrderRow,
+  AdminVendorOverviewOrderRow,
+  AdminVendorOverviewProfileViewRow,
  } from '../domain/interface/admin.repository.interface';
 
 import { 
@@ -24,6 +29,8 @@ import {
   DashboardRevenueMetric,
   AdminVendorAccountListQueryDto,
   AdminVendorAccountSort,
+  AdminVendorAccountOverviewQueryDto,
+  AdminVendorOverviewRange,
  } from '../presentation/dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
@@ -33,6 +40,7 @@ import {
   AdminDashboardRevenueResponseDto,
   AdminVendorVerificationActionResponseDto,
   AdminVendorAccountListResponseDto,
+  AdminVendorAccountOverviewResponseDto,
  } from '../presentation/dto/admin.response.dto';
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 
@@ -449,5 +457,509 @@ export class AdminVendorVerificationService {
       page,
       limit,
     });
+  }
+
+  async getVendorOverview(
+    vendorId: string,
+    query: AdminVendorAccountOverviewQueryDto,
+  ): Promise<AdminVendorAccountOverviewResponseDto> {
+    const range = query.range ?? AdminVendorOverviewRange.MONTH;
+
+    const { startDate, endDate, buckets } =
+      this.buildDateBuckets1(range);
+
+    const previousRange = this.buildPreviousDateRange(
+      startDate,
+      endDate,
+    );
+
+    const vendor = await this.repository.findVendorOverviewById(
+      vendorId,
+    );
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const [
+      orders,
+      allCompletedOrders,
+      profileViewRows,
+      currentProfileViewCount,
+      previousProfileViewCount,
+      favoriteCount,
+      recentFavorites,
+    ] = await Promise.all([
+      this.repository.findVendorOrdersForOverview({
+        vendorId,
+        startDate,
+        endDate,
+      }),
+
+      this.repository.findVendorAllCompletedOrders(vendorId),
+
+      this.repository.findVendorProfileViewsForOverview({
+        vendorId,
+        startDate,
+        endDate,
+      }),
+
+      this.repository.countVendorProfileViewsInRange({
+        vendorId,
+        startDate,
+        endDate,
+      }),
+
+      this.repository.countVendorProfileViewsInRange({
+        vendorId,
+        startDate: previousRange.startDate,
+        endDate: previousRange.endDate,
+      }),
+
+      this.repository.countVendorFavorites(vendorId),
+
+      this.repository.findRecentVendorFavorites({
+        vendorId,
+        limit: 5,
+      }),
+    ]);
+
+    const favoriteCustomerIds = recentFavorites.map(
+      (item) => item.customer.id,
+    );
+
+    const favoriteCustomerOrderSummaries =
+      await this.repository.findFavoriteCustomerOrderSummaries({
+        vendorId,
+        customerIds: favoriteCustomerIds,
+      });
+
+    const favoriteOrderSummaryMap = new Map(
+      favoriteCustomerOrderSummaries.map((item) => [
+        item.customerId,
+        item,
+      ]),
+    );
+
+    const favorites = {
+      count: favoriteCount,
+      recent: recentFavorites.map((item) => {
+        const orderSummary = favoriteOrderSummaryMap.get(
+          item.customer.id,
+        );
+
+        return {
+          customerId: item.customer.id,
+          customerName:
+            item.customer.user.name ??
+            item.customer.user.email ??
+            'Customer',
+          email: item.customer.user.email,
+          favoritedAt: item.createdAt,
+
+          orderCount: orderSummary?.orderCount ?? 0,
+          totalSpent: Number(
+            (orderSummary?.totalSpent ?? 0).toFixed(2),
+          ),
+        };
+      }),
+    };
+
+    const totalRevenue = allCompletedOrders.reduce(
+      (sum, order) => sum + order.totalAmount,
+      0,
+    );
+
+    const orderDistribution =
+      this.calculateOrderDistribution(orders);
+
+    const revenueChart = this.calculateRevenueChart({
+      orders,
+      buckets,
+      currency: vendor.subscriptionPlan?.currency ?? 'USD',
+    });
+
+    const customerEngagement =
+      this.calculateCustomerEngagement({
+        orders,
+        buckets,
+      });
+
+    const profileViews = this.calculateProfileViews({
+      rows: profileViewRows,
+      buckets,
+      currentTotal: currentProfileViewCount,
+      previousTotal: previousProfileViewCount,
+    });
+
+    return this.adminMapper.toOverviewResponse1({
+      vendor,
+      range,
+      totalRevenue,
+      orderDistribution,
+      revenueChart,
+      customerEngagement,
+      profileViews,
+      favorites,
+    });
+  }
+
+  private calculateOrderDistribution(
+    orders: AdminVendorOverviewOrderRow[],
+  ) {
+    const totalOrders = orders.length;
+
+    const completed = orders.filter(
+      (order) => order.status === OrderStatus.COMPLETED,
+    ).length;
+
+    const cancelled = orders.filter(
+      (order) => order.status === OrderStatus.CANCELLED,
+    ).length;
+
+    const incomplete = orders.filter(
+      (order) =>
+        order.status !== OrderStatus.COMPLETED &&
+        order.status !== OrderStatus.CANCELLED,
+    ).length;
+
+    const itemsSold = orders.reduce((sum, order) => {
+      return (
+        sum +
+        order.orderItems.reduce(
+          (itemSum, item) => itemSum + item.quantity,
+          0,
+        )
+      );
+    }, 0);
+
+    return {
+      totalOrders,
+      itemsSold,
+      completed,
+      cancelled,
+      incomplete,
+      completedPercent: this.percent(completed, totalOrders),
+      cancelledPercent: this.percent(cancelled, totalOrders),
+      incompletePercent: this.percent(incomplete, totalOrders),
+    };
+  }
+
+  private calculateRevenueChart(data: {
+    orders: AdminVendorOverviewOrderRow[];
+    buckets: DateBucket[];
+    currency: string;
+  }) {
+    const bucketMap = this.createEmptyBucketMap(data.buckets);
+
+    for (const order of data.orders) {
+      if (order.status !== OrderStatus.COMPLETED) {
+        continue;
+      }
+
+      const bucket = this.findBucketForDate(
+        order.createdAt,
+        data.buckets,
+      );
+
+      if (!bucket) {
+        continue;
+      }
+
+      bucketMap.set(
+        bucket.key,
+        (bucketMap.get(bucket.key) ?? 0) + order.totalAmount,
+      );
+    }
+
+    const items = this.mapBucketToChartItems(data.buckets, bucketMap);
+
+    return {
+      total: items.reduce((sum, item) => sum + item.value, 0),
+      currency: data.currency,
+      items,
+    };
+  }
+
+  private calculateCustomerEngagement(data: {
+    orders: AdminVendorOverviewOrderRow[];
+    buckets: DateBucket[];
+  }) {
+    const completedOrders = data.orders.filter(
+      (order) => order.status === OrderStatus.COMPLETED,
+    );
+
+    const customerOrderCount = new Map<string, number>();
+
+    for (const order of completedOrders) {
+      customerOrderCount.set(
+        order.customerId,
+        (customerOrderCount.get(order.customerId) ?? 0) + 1,
+      );
+    }
+
+    const repeatedCustomerIds = new Set(
+      Array.from(customerOrderCount.entries())
+        .filter(([, count]) => count > 1)
+        .map(([customerId]) => customerId),
+    );
+
+    const totalCustomers = customerOrderCount.size;
+    const repeatedCustomers = repeatedCustomerIds.size;
+    const newCustomers = Math.max(totalCustomers - repeatedCustomers, 0);
+
+    const bucketMap = new Map<
+      string,
+      {
+        newCustomers: Set<string>;
+        repeatedCustomers: Set<string>;
+      }
+    >();
+
+    for (const bucket of data.buckets) {
+      bucketMap.set(bucket.key, {
+        newCustomers: new Set<string>(),
+        repeatedCustomers: new Set<string>(),
+      });
+    }
+
+    for (const order of completedOrders) {
+      const bucket = this.findBucketForDate(order.createdAt, data.buckets);
+
+      if (!bucket) {
+        continue;
+      }
+
+      const bucketData = bucketMap.get(bucket.key);
+
+      if (!bucketData) {
+        continue;
+      }
+
+      if (repeatedCustomerIds.has(order.customerId)) {
+        bucketData.repeatedCustomers.add(order.customerId);
+      } else {
+        bucketData.newCustomers.add(order.customerId);
+      }
+    }
+
+    return {
+      totalCustomers,
+      newCustomers,
+      repeatedCustomers,
+      repeatRate: this.percent(repeatedCustomers, totalCustomers),
+      items: data.buckets.map((bucket) => {
+        const item = bucketMap.get(bucket.key);
+
+        return {
+          label: bucket.label,
+          newCustomers: item?.newCustomers.size ?? 0,
+          repeatedCustomers: item?.repeatedCustomers.size ?? 0,
+        };
+      }),
+    };
+  }
+
+  private calculateProfileViews(data: {
+    rows: AdminVendorOverviewProfileViewRow[];
+    buckets: DateBucket[];
+    currentTotal: number;
+    previousTotal: number;
+  }) {
+    const bucketMap = this.createEmptyBucketMap(data.buckets);
+
+    for (const row of data.rows) {
+      const bucket = this.findBucketForDate(row.viewedAt, data.buckets);
+
+      if (!bucket) {
+        continue;
+      }
+
+      bucketMap.set(bucket.key, (bucketMap.get(bucket.key) ?? 0) + 1);
+    }
+
+    return {
+      total: data.currentTotal,
+      growthPercent: this.calculateGrowthPercent(
+        data.currentTotal,
+        data.previousTotal,
+      ),
+      items: this.mapBucketToChartItems(data.buckets, bucketMap),
+    };
+  }
+
+  private percent(value: number, total: number): number {
+    if (total === 0) {
+      return 0;
+    }
+
+    return Number(((value / total) * 100).toFixed(1));
+  }
+
+  private calculateGrowthPercent(
+    current: number,
+    previous: number,
+  ): number {
+    if (previous === 0) {
+      return current > 0 ? 100 : 0;
+    }
+
+    return Number((((current - previous) / previous) * 100).toFixed(1));
+  }
+
+  private mapBucketToChartItems(
+    buckets: DateBucket[],
+    bucketMap: Map<string, number>,
+  ) {
+    return buckets.map((bucket) => ({
+      label: bucket.label,
+      value: Number((bucketMap.get(bucket.key) ?? 0).toFixed(2)),
+    }));
+  }
+
+  private buildDateBuckets1(range: AdminVendorOverviewRange): {
+    startDate: Date;
+    endDate: Date;
+    buckets: DateBucket[];
+  } {
+    const now = new Date();
+
+    if (range === AdminVendorOverviewRange.WEEK) {
+      return this.buildWeeklyBuckets1(now);
+    }
+
+    if (range === AdminVendorOverviewRange.YEAR) {
+      return this.buildYearlyBuckets(now);
+    }
+
+    return this.buildMonthlyBuckets(now);
+  }
+
+  private buildWeeklyBuckets1(now: Date) {
+    const buckets: DateBucket[] = [];
+
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - 6);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+
+    for (let i = 0; i < 7; i++) {
+      const start = new Date(startDate);
+      start.setDate(startDate.getDate() + i);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+
+      buckets.push({
+        key: start.toISOString().slice(0, 10),
+        label: new Intl.DateTimeFormat('en-US', {
+          weekday: 'short',
+        }).format(start),
+        start,
+        end,
+      });
+    }
+
+    return {
+      startDate,
+      endDate,
+      buckets,
+    };
+  }
+
+  private buildMonthlyBuckets(now: Date) {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    const startDate = new Date(year, month, 1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(year, month + 1, 0);
+    endDate.setHours(23, 59, 59, 999);
+
+    const lastDay = endDate.getDate();
+
+    const buckets: DateBucket[] = [];
+
+    for (let day = 1; day <= lastDay; day++) {
+      const start = new Date(year, month, day);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+
+      buckets.push({
+        key: start.toISOString().slice(0, 10),
+        label: String(day),
+        start,
+        end,
+      });
+    }
+
+    return {
+      startDate,
+      endDate,
+      buckets,
+    };
+  }
+
+  private buildYearlyBuckets(now: Date) {
+    const year = now.getFullYear();
+
+    const startDate = new Date(year, 0, 1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(year, 11, 31);
+    endDate.setHours(23, 59, 59, 999);
+
+    const buckets: DateBucket[] = [];
+
+    for (let month = 0; month < 12; month++) {
+      const start = new Date(year, month, 1);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(year, month + 1, 0);
+      end.setHours(23, 59, 59, 999);
+
+      buckets.push({
+        key: `${year}-${String(month + 1).padStart(2, '0')}`,
+        label: new Intl.DateTimeFormat('en-US', {
+          month: 'short',
+        }).format(start),
+        start,
+        end,
+      });
+    }
+
+    return {
+      startDate,
+      endDate,
+      buckets,
+    };
+  }
+
+  private buildPreviousDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): {
+    startDate: Date;
+    endDate: Date;
+  } {
+    const durationMs = endDate.getTime() - startDate.getTime();
+
+    const previousEnd = new Date(startDate);
+    previousEnd.setMilliseconds(previousEnd.getMilliseconds() - 1);
+
+    const previousStart = new Date(
+      previousEnd.getTime() - durationMs,
+    );
+
+    return {
+      startDate: previousStart,
+      endDate: previousEnd,
+    };
   }
 }

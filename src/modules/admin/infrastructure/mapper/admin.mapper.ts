@@ -2,6 +2,7 @@ import {
   VerificationStatus,
   KycStatus,
   SubscriptionStatus,
+  VendorLiveStatus,
 } from '@prisma/client';
 
 import { 
@@ -13,6 +14,7 @@ import {
   AdminVendorVerificationDocumentType,
   DashboardRevenueRange,
   DashboardRevenueMetric,
+  AdminVendorOverviewRange,
 } from '../../presentation/dto/admin.dto';
 import {
   VendorVerificationManagementResponseDto,
@@ -24,6 +26,9 @@ import {
   AdminVendorVerificationActionResponseDto,
   AdminVendorAccountListResponseDto,
   AdminVendorAccountListItemDto,
+  AdminVendorOverviewChartItemDto,
+  AdminVendorOverviewCustomerEngagementItemDto,
+  AdminVendorAccountOverviewResponseDto
 } from '../../presentation/dto/admin.response.dto';
 
 import type {
@@ -496,5 +501,147 @@ export class AdminMapper {
       day: '2-digit',
       year: 'numeric',
     }).format(date);
+  }
+
+  toOverviewResponse1(data: {
+    vendor: any;
+    range: AdminVendorOverviewRange;
+    totalRevenue: number;
+    orderDistribution: {
+      totalOrders: number;
+      itemsSold: number;
+      completed: number;
+      cancelled: number;
+      incomplete: number;
+      completedPercent: number;
+      cancelledPercent: number;
+      incompletePercent: number;
+    };
+    revenueChart: {
+      total: number;
+      currency: string;
+      items: AdminVendorOverviewChartItemDto[];
+    };
+    customerEngagement: {
+      totalCustomers: number;
+      newCustomers: number;
+      repeatedCustomers: number;
+      repeatRate: number;
+      items: AdminVendorOverviewCustomerEngagementItemDto[];
+    };
+    profileViews: {
+      total: number;
+      growthPercent: number;
+      items: AdminVendorOverviewChartItemDto[];
+    };
+    favorites: {
+      count: number;
+      recent: {
+        customerId: string;
+        customerName: string;
+        email?: string;
+        favoritedAt: Date;
+        orderCount: number;
+        totalSpent: number;
+      }[];
+    };
+  }): AdminVendorAccountOverviewResponseDto {
+    const vendor = data.vendor;
+
+    return {
+      vendor: {
+        id: vendor.id,
+        vendorCode: vendor.vendorCode,
+        businessName:
+          vendor.businessName ??
+          vendor.owner?.name ??
+          'Unnamed Vendor',
+        coverImage: vendor.coverImage
+          ? this.mediaService.getUrl(vendor.coverImage)
+          : undefined,
+        status: vendor.status,
+        statusLabel: this.toVendorLiveStatusLabel(vendor.status),
+        kycStatus: vendor.kycStatus,
+        kycStatusLabel: this.toKycStatusLabel(vendor.kycStatus),
+        joinedAt: vendor.createdAt,
+        joinedAtLabel: `Joined on ${this.formatDate1(vendor.createdAt)}`,
+        currentPlan: vendor.subscriptionPlan?.name,
+        subscriptionStatus: vendor.subscriptionStatus,
+        rating: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
+        reviewCount: vendor.truckReviewCount ?? 0,
+        totalRevenue: Number(data.totalRevenue.toFixed(2)),
+      },
+
+      contactInfo: {
+        ownerName:
+          vendor.owner?.name ??
+          vendor.businessName ??
+          'Unnamed Vendor',
+        registeredEmail: vendor.owner?.email ?? 'No email found',
+        publicEmail: vendor.publicEmail ?? undefined,
+        contactNumber: vendor.contactNumber ?? undefined,
+      },
+
+      businessProfile: {
+        bio: vendor.bio ?? undefined,
+        cuisines:
+          vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+        socialLinks:
+          vendor.socialLinks?.map((item: any) => ({
+            id: item.id,
+            url: item.url,
+          })) ?? [],
+      },
+
+      orderDistribution: data.orderDistribution,
+
+      revenueChart: {
+        range: data.range,
+        total: Number(data.revenueChart.total.toFixed(2)),
+        currency: data.revenueChart.currency,
+        items: data.revenueChart.items,
+      },
+
+      customerEngagement: {
+        range: data.range,
+        totalCustomers: data.customerEngagement.totalCustomers,
+        newCustomers: data.customerEngagement.newCustomers,
+        repeatedCustomers: data.customerEngagement.repeatedCustomers,
+        repeatRate: data.customerEngagement.repeatRate,
+        items: data.customerEngagement.items,
+      },
+
+      serviceArea: {
+        address: vendor.serviceArea?.address ?? undefined,
+        latitude: vendor.serviceArea?.latitude ?? undefined,
+        longitude: vendor.serviceArea?.longitude ?? undefined,
+        radius: vendor.serviceArea?.radius ?? undefined,
+      },
+
+      profileViews: {
+        range: data.range,
+        total: data.profileViews.total,
+        growthPercent: data.profileViews.growthPercent,
+        items: data.profileViews.items,
+      },
+
+      favorites: data.favorites,
+
+      lastUpdatedAt: new Date(),
+    };
+  }
+
+  private toVendorLiveStatusLabel(status: VendorLiveStatus): string {
+    switch (status) {
+      case VendorLiveStatus.ONLINE:
+        return 'Online';
+
+      case VendorLiveStatus.TEMPORARILY_CLOSED:
+        return 'Temporarily Closed';
+
+      case VendorLiveStatus.OFFLINE:
+      default:
+        return 'Offline';
+    }
   }
 }

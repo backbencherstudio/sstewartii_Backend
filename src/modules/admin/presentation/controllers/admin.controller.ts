@@ -105,7 +105,7 @@ export class AdminController {
     return this.service.getVendorAccounts(query);
   } 
 
-  @Get(':vendorId/overview')
+  @Get('vendors/:vendorId/overview')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   async getVendorOverview(

@@ -1,7 +1,8 @@
 import { 
   VerificationStatus,
   KycStatus,
-  SubscriptionStatus ,
+  SubscriptionStatus,
+  OrderStatus,
  } from '@prisma/client';
 
 import { 
@@ -105,6 +106,38 @@ export interface AdminVendorAccountStatsResult {
   suspendedVendors: number;
 }
 
+export interface AdminVendorOverviewOrderRow {
+  id: string;
+  customerId: string;
+  status: OrderStatus;
+  totalAmount: number;
+  createdAt: Date;
+  orderItems: {
+    quantity: number;
+  }[];
+}
+
+export interface AdminVendorOverviewProfileViewRow {
+  viewedAt: Date;
+}
+
+export interface AdminVendorOverviewFavoriteRow {
+  createdAt: Date;
+  customer: {
+    id: string;
+    user: {
+      name: string | null;
+      email: string;
+    };
+  };
+}
+
+export interface AdminVendorFavoriteCustomerOrderSummary {
+  customerId: string;
+  orderCount: number;
+  totalSpent: number;
+}
+
 export interface IAdminVendorVerificationRepository {
   findManagementList(
     input: FindVendorVerificationsInput,
@@ -137,4 +170,47 @@ export interface IAdminVendorVerificationRepository {
   ): Promise<AdminVendorAccountListResult>;
 
   getVendorAccountStats(): Promise<AdminVendorAccountStatsResult>;
+
+
+  findVendorOverviewById(vendorId: string): Promise<any | null>;
+
+  findVendorOrdersForOverview(data: {
+    vendorId: string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<AdminVendorOverviewOrderRow[]>;
+
+  findVendorAllCompletedOrders(vendorId: string): Promise<{
+    totalAmount: number;
+  }[]>;
+
+  findVendorProfileViewsForOverview(data: {
+    vendorId: string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<AdminVendorOverviewProfileViewRow[]>;
+
+  countVendorProfileViewsInRange(data: {
+    vendorId: string;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<number>;
+
+  countVendorFavorites(vendorId: string): Promise<number>;
+
+  findRecentVendorFavorites(data: {
+    vendorId: string;
+    limit: number;
+  }): Promise<AdminVendorOverviewFavoriteRow[]>;
+
+  findFavoriteCustomerOrderSummaries(data: {
+    vendorId: string;
+    customerIds: string[];
+  }): Promise<
+    {
+      customerId: string;
+      orderCount: number;
+      totalSpent: number;
+    }[]
+  >;
 }

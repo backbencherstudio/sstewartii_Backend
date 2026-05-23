@@ -286,6 +286,8 @@ export class AdminVendorOverviewFavoritesDto {
     customerName: string;
     email?: string;
     favoritedAt: Date;
+    orderCount: number;
+    totalSpent: number;
   }[];
 }
 
