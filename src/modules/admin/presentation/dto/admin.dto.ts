@@ -121,3 +121,15 @@ export class AdminVendorAccountListQueryDto {
   @Max(100)
   limit?: number = 10;
 }
+
+export enum AdminVendorOverviewRange {
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export class AdminVendorAccountOverviewQueryDto {
+  @IsOptional()
+  @IsEnum(AdminVendorOverviewRange)
+  range?: AdminVendorOverviewRange = AdminVendorOverviewRange.MONTH;
+}

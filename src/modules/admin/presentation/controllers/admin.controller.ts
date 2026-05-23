@@ -14,6 +14,7 @@ import {
   AdminDashboardOverviewQueryDto,
   AdminDashboardRevenueQueryDto,
   AdminVendorAccountListQueryDto,
+  AdminVendorAccountOverviewQueryDto,
  } from '../dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
@@ -22,6 +23,7 @@ import {
   AdminDashboardOverviewResponseDto,
   AdminDashboardRevenueResponseDto,
   AdminVendorAccountListResponseDto,
+  AdminVendorAccountOverviewResponseDto,
 } from '../dto/admin.response.dto';
 
 import { RoleGuard } from '@/common/guards/roles.guard';
@@ -102,4 +104,14 @@ export class AdminController {
   ): Promise<AdminVendorAccountListResponseDto> {
     return this.service.getVendorAccounts(query);
   } 
+
+  @Get(':vendorId/overview')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  async getVendorOverview(
+    @Param('vendorId') vendorId: string,
+    @Query() query: AdminVendorAccountOverviewQueryDto,
+  ): Promise<AdminVendorAccountOverviewResponseDto> {
+    return this.service.getVendorOverview(vendorId, query);
+  }
 }

@@ -1,12 +1,14 @@
 import { 
   VerificationStatus,
   KycStatus,
-  SubscriptionStatus
+  SubscriptionStatus,
+  VendorLiveStatus,
  } from '@prisma/client';
 
 import {
   DashboardRevenueMetric,
   DashboardRevenueRange,
+  AdminVendorOverviewRange,
 } from './admin.dto';
 
 export class VendorVerificationStatsDto {
@@ -189,4 +191,113 @@ export class AdminVendorAccountListResponseDto {
   stats!: AdminVendorAccountStatsDto;
   items!: AdminVendorAccountListItemDto[];
   pagination!: AdminVendorAccountPaginationDto;
+}
+
+export class AdminVendorOverviewProfileDto {
+  id!: string;
+  vendorCode!: string;
+  businessName!: string;
+  coverImage?: string;
+  status!: VendorLiveStatus;
+  statusLabel!: string;
+  kycStatus!: KycStatus;
+  kycStatusLabel!: string;
+  joinedAt!: Date;
+  joinedAtLabel!: string;
+  currentPlan?: string;
+  subscriptionStatus!: SubscriptionStatus;
+  rating!: number;
+  reviewCount!: number;
+  totalRevenue!: number;
+}
+
+export class AdminVendorOverviewContactInfoDto {
+  ownerName!: string;
+  registeredEmail!: string;
+  publicEmail?: string;
+  contactNumber?: string;
+}
+
+export class AdminVendorOverviewBusinessProfileDto {
+  bio?: string;
+  cuisines!: string[];
+  socialLinks!: {
+    id: string;
+    url: string;
+  }[];
+}
+
+export class AdminVendorOverviewOrderDistributionDto {
+  totalOrders!: number;
+  itemsSold!: number;
+  completed!: number;
+  cancelled!: number;
+  incomplete!: number;
+  completedPercent!: number;
+  cancelledPercent!: number;
+  incompletePercent!: number;
+}
+
+export class AdminVendorOverviewChartItemDto {
+  label!: string;
+  value!: number;
+}
+
+export class AdminVendorOverviewRevenueChartDto {
+  range!: AdminVendorOverviewRange;
+  total!: number;
+  currency!: string;
+  items!: AdminVendorOverviewChartItemDto[];
+}
+
+export class AdminVendorOverviewCustomerEngagementItemDto {
+  label!: string;
+  newCustomers!: number;
+  repeatedCustomers!: number;
+}
+
+export class AdminVendorOverviewCustomerEngagementDto {
+  range!: AdminVendorOverviewRange;
+  totalCustomers!: number;
+  newCustomers!: number;
+  repeatedCustomers!: number;
+  repeatRate!: number;
+  items!: AdminVendorOverviewCustomerEngagementItemDto[];
+}
+
+export class AdminVendorOverviewServiceAreaDto {
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+}
+
+export class AdminVendorOverviewProfileViewsDto {
+  range!: AdminVendorOverviewRange;
+  total!: number;
+  growthPercent!: number;
+  items!: AdminVendorOverviewChartItemDto[];
+}
+
+export class AdminVendorOverviewFavoritesDto {
+  count!: number;
+  recent!: {
+    customerId: string;
+    customerName: string;
+    email?: string;
+    favoritedAt: Date;
+  }[];
+}
+
+export class AdminVendorAccountOverviewResponseDto {
+  vendor!: AdminVendorOverviewProfileDto;
+  contactInfo!: AdminVendorOverviewContactInfoDto;
+  businessProfile!: AdminVendorOverviewBusinessProfileDto;
+  orderDistribution!: AdminVendorOverviewOrderDistributionDto;
+  revenueChart!: AdminVendorOverviewRevenueChartDto;
+  customerEngagement!: AdminVendorOverviewCustomerEngagementDto;
+  serviceArea!: AdminVendorOverviewServiceAreaDto;
+  profileViews!: AdminVendorOverviewProfileViewsDto;
+  favorites!: AdminVendorOverviewFavoritesDto;
+  lastUpdatedAt!: Date;
 }
