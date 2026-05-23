@@ -3,6 +3,7 @@ import {
   KycStatus,
   SubscriptionStatus,
   VendorLiveStatus,
+  OrderStatus,
 } from '@prisma/client';
 
 import { 
@@ -28,7 +29,8 @@ import {
   AdminVendorAccountListItemDto,
   AdminVendorOverviewChartItemDto,
   AdminVendorOverviewCustomerEngagementItemDto,
-  AdminVendorAccountOverviewResponseDto
+  AdminVendorAccountOverviewResponseDto,
+  AdminVendorAccountOrdersResponseDto
 } from '../../presentation/dto/admin.response.dto';
 
 import type {
@@ -645,135 +647,90 @@ export class AdminMapper {
     }
   }
 
-  async findVendorAccountOrders(
-    input: FindAdminVendorAccountOrdersInput,
-  ): Promise<AdminVendorAccountOrdersResult> {
-    const page = input.page;
-    const limit = input.limit;
-    const skip = (page - 1) * limit;
-
-    const search = input.search?.trim();
-
-    const where: Prisma.OrderWhereInput = {
-      vendorId: input.vendorId,
+  toVendorAccountOrdersResponse(data: {
+    result: {
+      total: number;
+      items: any[];
     };
-
-    if (
-      input.status &&
-      input.status !== AdminVendorOrderStatusFilter.ALL
-    ) {
-      where.status = input.status as OrderStatus;
-    }
-
-    if (search) {
-      where.OR = [
-        {
-          orderNumber: {
-            contains: search,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-        {
-          customer: {
-            user: {
-              name: {
-                contains: search,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          },
-        },
-        {
-          customer: {
-            user: {
-              email: {
-                contains: search,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          },
-        },
-      ];
-    }
-
-    const orderBy = this.resolveVendorAccountOrderSort(input.sort);
-
-    const [total, items] = await Promise.all([
-      this.prisma.order.count({
-        where,
-      }),
-
-      this.prisma.order.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        select: {
-          id: true,
-          orderNumber: true,
-          status: true,
-          totalAmount: true,
-          createdAt: true,
-
-          customer: {
-            select: {
-              id: true,
-              user: {
-                select: {
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
-      }),
-    ]);
-
+    page: number;
+    limit: number;
+  }): AdminVendorAccountOrdersResponseDto {
     return {
-      total,
-      items,
+      items: data.result.items.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        orderCode: this.buildOrderCode(order.orderNumber, order.id),
+
+        customer: {
+          id: order.customer.id,
+          name:
+            order.customer.user?.name ??
+            order.customer.user?.email ??
+            'Customer',
+          email: order.customer.user?.email ?? 'No email found',
+        },
+
+        date: order.createdAt,
+        dateLabel: this.formatDate(order.createdAt),
+        timeLabel: this.formatTime(order.createdAt),
+
+        totalAmount: Number((order.totalAmount ?? 0).toFixed(2)),
+
+        status: order.status,
+        statusLabel: this.toOrderStatusLabel(order.status),
+      })),
+
+      pagination: {
+        total: data.result.total,
+        page: data.page,
+        limit: data.limit,
+        totalPages:
+          data.result.total === 0
+            ? 0
+            : Math.ceil(data.result.total / data.limit),
+      },
     };
   }
 
-  private resolveVendorAccountOrderSort(
-    sort: AdminVendorOrderSort,
-  ): Prisma.OrderOrderByWithRelationInput[] {
-    switch (sort) {
-      case AdminVendorOrderSort.OLDEST:
-        return [
-          {
-            createdAt: 'asc',
-          },
-        ];
+  private buildOrderCode(
+    orderNumber: string | null | undefined,
+    orderId: string,
+  ): string {
+    if (orderNumber) {
+      const digits = orderNumber.replace(/\D/g, '');
 
-      case AdminVendorOrderSort.AMOUNT_HIGH:
-        return [
-          {
-            totalAmount: 'desc',
-          },
-          {
-            createdAt: 'desc',
-          },
-        ];
-
-      case AdminVendorOrderSort.AMOUNT_LOW:
-        return [
-          {
-            totalAmount: 'asc',
-          },
-          {
-            createdAt: 'desc',
-          },
-        ];
-
-      case AdminVendorOrderSort.NEWEST:
-      default:
-        return [
-          {
-            createdAt: 'desc',
-          },
-        ];
+      if (digits.length >= 6) {
+        return `#${digits.slice(-6)}`;
+      }
     }
+
+    return `#${orderId.slice(0, 6).toUpperCase()}`;
+  }
+
+  private toOrderStatusLabel(status: OrderStatus): string {
+    switch (status) {
+      case OrderStatus.COMPLETED:
+        return 'Completed';
+
+      case OrderStatus.CANCELLED:
+        return 'Cancelled';
+
+      case OrderStatus.PENDING:
+      case OrderStatus.CONFIRMED:
+      case OrderStatus.PREPARING:
+      case OrderStatus.READY_FOR_PICKUP:
+        return 'Incomplete';
+
+      default:
+        return 'Unknown';
+    }
+  }
+
+  private formatTime(date: Date): string {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
   }
 }
