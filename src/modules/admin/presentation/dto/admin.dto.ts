@@ -133,3 +133,47 @@ export class AdminVendorAccountOverviewQueryDto {
   @IsEnum(AdminVendorOverviewRange)
   range?: AdminVendorOverviewRange = AdminVendorOverviewRange.MONTH;
 }
+
+export enum AdminVendorOrderStatusFilter {
+  ALL = 'ALL',
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  PREPARING = 'PREPARING',
+  READY_FOR_PICKUP = 'READY_FOR_PICKUP',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum AdminVendorOrderSort {
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
+  AMOUNT_HIGH = 'amount_high',
+  AMOUNT_LOW = 'amount_low',
+}
+
+export class AdminVendorAccountOrdersQueryDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsEnum(AdminVendorOrderStatusFilter)
+  status?: AdminVendorOrderStatusFilter = AdminVendorOrderStatusFilter.ALL;
+
+  @IsOptional()
+  @IsEnum(AdminVendorOrderSort)
+  sort?: AdminVendorOrderSort = AdminVendorOrderSort.NEWEST;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+}

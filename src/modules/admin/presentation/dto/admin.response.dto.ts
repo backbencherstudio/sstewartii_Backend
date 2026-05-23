@@ -3,6 +3,7 @@ import {
   KycStatus,
   SubscriptionStatus,
   VendorLiveStatus,
+  OrderStatus,
  } from '@prisma/client';
 
 import {
@@ -302,4 +303,39 @@ export class AdminVendorAccountOverviewResponseDto {
   profileViews!: AdminVendorOverviewProfileViewsDto;
   favorites!: AdminVendorOverviewFavoritesDto;
   lastUpdatedAt!: Date;
+}
+
+export class AdminVendorAccountOrderCustomerDto {
+  id!: string;
+  name!: string;
+  email!: string;
+}
+
+export class AdminVendorAccountOrderListItemDto {
+  id!: string;
+  orderNumber!: string;
+  orderCode!: string;
+
+  customer!: AdminVendorAccountOrderCustomerDto;
+
+  date!: Date;
+  dateLabel!: string;
+  timeLabel!: string;
+
+  totalAmount!: number;
+
+  status!: OrderStatus;
+  statusLabel!: string;
+}
+
+export class AdminVendorAccountOrdersPaginationDto {
+  total!: number;
+  page!: number;
+  limit!: number;
+  totalPages!: number;
+}
+
+export class AdminVendorAccountOrdersResponseDto {
+  items!: AdminVendorAccountOrderListItemDto[];
+  pagination!: AdminVendorAccountOrdersPaginationDto;
 }
