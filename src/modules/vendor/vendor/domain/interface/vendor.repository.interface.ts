@@ -350,4 +350,6 @@ export interface IVendorRepository {
     vendorId: string;
     customerId?: string;
   }): Promise<void>;
+
+  findCustomerIdByUserId(userId: string): Promise<string | null>
 }

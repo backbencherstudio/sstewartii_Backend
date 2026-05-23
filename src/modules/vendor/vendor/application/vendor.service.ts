@@ -56,7 +56,6 @@ import {
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { VendorInsightAccessService } from './vendor-insight-access.service';
-import { CustomerService } from '@/modules/customer/customer/application/customer.service';
 
 
 @Injectable()
@@ -69,7 +68,6 @@ export class VendorService {
     private readonly vendorMapper: VendorMapper,
     private readonly vendorInsightsMapper: VendorInsightsMapper,
     private readonly vendorInsightAccessService: VendorInsightAccessService,
-   // private readonly customerService: CustomerService,
   ) {}
 
   async findByVendorId(vendorId: string) {
@@ -107,7 +105,7 @@ export class VendorService {
       throw new NotFoundException('Vendor not found');
     }
 
-//    await this.trackVendorProfileViewSafely(vendorId, userId);
+   await this.trackVendorProfileViewSafely(vendorId, userId);
 
     let distanceKm: number | undefined;
 
@@ -797,28 +795,28 @@ export class VendorService {
     });
   }
 
-  // private async trackVendorProfileViewSafely(
-  //   vendorId: string,
-  //   userId?: string,
-  // ): Promise<void> {
-  //   if (!userId) {
-  //     return;
-  //   }
+  private async trackVendorProfileViewSafely(
+    vendorId: string,
+    userId?: string,
+  ): Promise<void> {
+    if (!userId) {
+      return;
+    }
 
-  //   try {
-  //     const customerId =
-  //       await this.customerService.findActiveByUserId(userId);
+    try {
+      const customerId =
+        await this.vendorRepository.findCustomerIdByUserId(userId);
 
-  //     if (!customerId) {
-  //       return;
-  //     }
+      if (!customerId) {
+        return;
+      }
 
-  //     await this.vendorRepository.createVendorProfileViewOncePerDay({
-  //       vendorId,
-  //       customerId: customerId.id,
-  //     });
-  //   } catch (error) {
-  //     console.error('Failed to track vendor profile view', error);
-  //   }
-  // }
+      await this.vendorRepository.createVendorProfileViewOncePerDay({
+        vendorId,
+        customerId,  
+      });
+    } catch (error) {
+      console.error('Failed to track vendor profile view', error);
+    }
+  }
 }

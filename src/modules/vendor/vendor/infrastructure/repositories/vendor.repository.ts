@@ -1086,4 +1086,23 @@ export class VendorRepository implements IVendorRepository {
     });
   }
 
+  async findCustomerIdByUserId(
+    userId: string,
+  ): Promise<string | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        isActive: true,
+      },
+    });
+
+    if (!customer || !customer.isActive) {
+      return null;
+    }
+
+    return customer.id;
+  }
 }
