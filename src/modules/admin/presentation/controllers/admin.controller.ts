@@ -44,7 +44,7 @@ export class AdminController {
   @Roles(Role.ADMIN)
   async getVendorVerificationManagement(
     @Query() query: VendorVerificationListQueryDto,
-  ): Promise<VendorVerificationManagementResponseDto>   {
+  ): Promise<VendorVerificationManagementResponseDto> {
     return this.service.getManagementList(query);
   }
 
