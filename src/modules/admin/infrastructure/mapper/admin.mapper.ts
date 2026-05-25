@@ -743,21 +743,21 @@ toVendorDocumentsResponseFromVerification(
 ): AdminVendorDocumentsResponseDto {
   const docs: AdminVendorDocumentRow[] = [
     {
-      id: data.id + '_BL',
+      id: data.id,
       type: 'BUSINESS_LICENSE',
       fileName: 'Business License.pdf',
       fileKey: data.businessLicense,
       createdAt: data.createdAt,
     },
     {
-      id: data.id + '_HP',
+      id: data.id,
       type: 'HEALTH_PERMIT',
       fileName: 'Health Permit.pdf',
       fileKey: data.healthPermit,
       createdAt: data.createdAt,
     },
     {
-      id: data.id + '_IP',
+      id: data.id,
       type: 'INSURANCE_PROOF',
       fileName: 'Proof of Insurance.pdf',
       fileKey: data.insuranceProof,
