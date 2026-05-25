@@ -339,3 +339,20 @@ export class AdminVendorAccountOrdersResponseDto {
   items!: AdminVendorAccountOrderListItemDto[];
   pagination!: AdminVendorAccountOrdersPaginationDto;
 }
+
+export class AdminVendorDocumentItemDto {
+  id!: string;
+  documentType!: string; 
+  documentName!: string;
+  status!: 'ACTIVE' | 'EXPIRED';
+  statusLabel!: string;
+  uploadedAt!: Date;
+  uploadedAtLabel!: string;
+  expiresAt?: Date;
+  expiresAtLabel?: string;
+  fileUrl!: string;
+}
+
+export class AdminVendorDocumentsResponseDto {
+  items!: AdminVendorDocumentItemDto[];
+}

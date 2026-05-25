@@ -3,6 +3,7 @@ import {
   KycStatus,
   SubscriptionStatus,
   OrderStatus,
+  VendorVerification,
  } from '@prisma/client';
 
 import { 
@@ -154,6 +155,15 @@ export interface AdminVendorAccountOrdersResult {
   items: any[];
 }
 
+export interface AdminVendorDocumentRow {
+  id: string;
+  type: string;
+  fileName: string;
+  fileKey: string;
+  createdAt: Date;
+  expiresAt?: Date | null;
+}
+
 //Main Interface
 export interface IAdminVendorVerificationRepository {
   findManagementList(
@@ -234,4 +244,8 @@ export interface IAdminVendorVerificationRepository {
   findVendorAccountOrders(
     input: FindAdminVendorAccountOrdersInput,
   ): Promise<AdminVendorAccountOrdersResult>;
+
+ findVendorDocuments(
+    vendorId: string,
+  ): Promise<VendorVerification | null>;
 }

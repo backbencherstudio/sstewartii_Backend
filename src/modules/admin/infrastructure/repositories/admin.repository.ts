@@ -8,6 +8,7 @@ import {
   SubscriptionStatus,
   VendorLiveStatus,
   OrderStatus,
+  VendorVerification,
  } from '@prisma/client';
 
 import type {
@@ -26,6 +27,7 @@ import type {
   AdminVendorOverviewFavoriteRow,
   FindAdminVendorAccountOrdersInput,
   AdminVendorAccountOrdersResult,
+  AdminVendorDocumentRow,
 } from '../../domain/interface/admin.repository.interface';
 
 import { 
@@ -1103,5 +1105,13 @@ export class AdminVendorVerificationRepository
           },
         ];
     }
+  }
+
+  async findVendorDocuments(
+    vendorId: string,
+  ): Promise<VendorVerification | null> {
+    return this.prisma.vendorVerification.findUnique({
+      where: { vendorId },
+    });
   }
 }

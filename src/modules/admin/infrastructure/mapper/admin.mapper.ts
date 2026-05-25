@@ -4,6 +4,7 @@ import {
   SubscriptionStatus,
   VendorLiveStatus,
   OrderStatus,
+  VendorVerification,
 } from '@prisma/client';
 
 import { 
@@ -30,7 +31,9 @@ import {
   AdminVendorOverviewChartItemDto,
   AdminVendorOverviewCustomerEngagementItemDto,
   AdminVendorAccountOverviewResponseDto,
-  AdminVendorAccountOrdersResponseDto
+  AdminVendorAccountOrdersResponseDto,
+  AdminVendorDocumentsResponseDto,
+  AdminVendorDocumentItemDto
 } from '../../presentation/dto/admin.response.dto';
 
 import type {
@@ -39,6 +42,7 @@ import type {
   AdminDashboardOverviewRaw,
   AdminVendorAccountStatsResult,
   AdminVendorAccountListResult,
+  AdminVendorDocumentRow,
 } from '../../domain/interface/admin.repository.interface';
 
 import { MediaService } from '@/common/media/media.service';
@@ -733,4 +737,49 @@ export class AdminMapper {
       hour12: true,
     }).format(date);
   }
+
+toVendorDocumentsResponseFromVerification(
+  data: VendorVerification,
+): AdminVendorDocumentsResponseDto {
+  const docs: AdminVendorDocumentRow[] = [
+    {
+      id: data.id + '_BL',
+      type: 'BUSINESS_LICENSE',
+      fileName: 'Business License.pdf',
+      fileKey: data.businessLicense,
+      createdAt: data.createdAt,
+    },
+    {
+      id: data.id + '_HP',
+      type: 'HEALTH_PERMIT',
+      fileName: 'Health Permit.pdf',
+      fileKey: data.healthPermit,
+      createdAt: data.createdAt,
+    },
+    {
+      id: data.id + '_IP',
+      type: 'INSURANCE_PROOF',
+      fileName: 'Proof of Insurance.pdf',
+      fileKey: data.insuranceProof,
+      createdAt: data.createdAt,
+    },
+  ];
+
+  return {
+    items: docs.map((doc): AdminVendorDocumentItemDto => ({
+      id: doc.id,
+      documentType: doc.type,
+      documentName: doc.fileName,
+      status: 'ACTIVE',
+      statusLabel: 'Active',
+      uploadedAt: doc.createdAt,
+      uploadedAtLabel: this.formatDate(doc.createdAt),
+      expiresAt: undefined,
+      expiresAtLabel: undefined,
+      fileUrl: doc.fileKey
+        ? this.mediaService.getUrl(doc.fileKey) ?? ''
+        : '',
+    })),
+  };
+}
 }

@@ -45,6 +45,7 @@ import {
   AdminVendorAccountListResponseDto,
   AdminVendorAccountOverviewResponseDto,
   AdminVendorAccountOrdersResponseDto,
+  AdminVendorDocumentsResponseDto,
  } from '../presentation/dto/admin.response.dto';
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 
@@ -999,6 +1000,21 @@ export class AdminVendorVerificationService {
       page,
       limit,
     });
+  }
+
+  async getVendorDocuments(
+    vendorId: string,
+  ): Promise<AdminVendorDocumentsResponseDto> {
+    const verification =
+      await this.repository.findVendorDocuments(vendorId);
+
+    if (!verification) {
+      throw new NotFoundException('Documents not found');
+    }
+
+    return this.adminMapper.toVendorDocumentsResponseFromVerification(
+      verification,
+    );
   }
 }
 
