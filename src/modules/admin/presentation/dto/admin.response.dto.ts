@@ -356,3 +356,19 @@ export class AdminVendorDocumentItemDto {
 export class AdminVendorDocumentsResponseDto {
   items!: AdminVendorDocumentItemDto[];
 }
+
+export class AdminVendorSubscriptionItemDto {
+  invoiceId!: string;
+  planName!: string;
+  provider!: string;
+  status!: string;
+  startDate!: Date;
+  startDateLabel!: string;
+  endDate?: Date;
+  endDateLabel?: string;
+  isCurrent!: boolean;
+}
+
+export class AdminVendorSubscriptionResponseDto {
+  items!: AdminVendorSubscriptionItemDto[];
+}

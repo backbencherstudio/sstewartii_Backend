@@ -27,6 +27,7 @@ import {
   AdminVendorAccountOverviewResponseDto,
   AdminVendorAccountOrdersResponseDto,
   AdminVendorDocumentsResponseDto,
+  AdminVendorSubscriptionResponseDto,
 } from '../dto/admin.response.dto';
 
 import { RoleGuard } from '@/common/guards/roles.guard';
@@ -136,4 +137,12 @@ export class AdminController {
       vendorId,
     );
   }
+
+  @Get('vendors/accounts/:vendorId/subscription')
+  async getVendorSubscription(
+    @Param('vendorId') vendorId: string,
+  ): Promise<AdminVendorSubscriptionResponseDto> {
+    return this.service.getVendorSubscription(vendorId);
+  }
+
 } 
