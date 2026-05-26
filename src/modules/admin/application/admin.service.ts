@@ -46,6 +46,7 @@ import {
   AdminVendorAccountOverviewResponseDto,
   AdminVendorAccountOrdersResponseDto,
   AdminVendorDocumentsResponseDto,
+  AdminVendorSubscriptionResponseDto,
  } from '../presentation/dto/admin.response.dto';
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 
@@ -1015,6 +1016,19 @@ export class AdminVendorVerificationService {
     return this.adminMapper.toVendorDocumentsResponseFromVerification(
       verification,
     );
+  }
+
+  async getVendorSubscription(
+    vendorId: string,
+  ): Promise<AdminVendorSubscriptionResponseDto> {
+    const subscription =
+      await this.repository.findSubscriptionByVendorId(vendorId);
+
+    if (!subscription) {
+      return { items: [] };
+    }
+
+    return this.adminMapper.toVendorSubscriptionResponse(subscription);
   }
 }
 

@@ -4,6 +4,7 @@ import {
   SubscriptionStatus,
   OrderStatus,
   VendorVerification,
+  VendorSubscription,
  } from '@prisma/client';
 
 import { 
@@ -248,4 +249,8 @@ export interface IAdminVendorVerificationRepository {
  findVendorDocuments(
     vendorId: string,
   ): Promise<VendorVerification | null>;
+
+  findSubscriptionByVendorId(
+    vendorId: string,
+  ): Promise<VendorSubscription | null>;
 }

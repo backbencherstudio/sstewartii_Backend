@@ -9,6 +9,7 @@ import {
   VendorLiveStatus,
   OrderStatus,
   VendorVerification,
+  VendorSubscription,
  } from '@prisma/client';
 
 import type {
@@ -1112,6 +1113,17 @@ export class AdminVendorVerificationRepository
   ): Promise<VendorVerification | null> {
     return this.prisma.vendorVerification.findUnique({
       where: { vendorId },
+    });
+  }
+
+  async findSubscriptionByVendorId(
+    vendorId: string,
+  ): Promise<VendorSubscription | null> {
+    return this.prisma.vendorSubscription.findUnique({
+      where: { vendorId },
+      include: {
+        subscriptionPlan: true,
+      },
     });
   }
 }
