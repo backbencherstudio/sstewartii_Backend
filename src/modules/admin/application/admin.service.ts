@@ -9,6 +9,7 @@ import {
 import { 
   VerificationStatus,
   OrderStatus,
+  VendorAdminStatus,
 } from '@prisma/client';
 
 import type { 
@@ -1030,6 +1031,55 @@ export class AdminVendorVerificationService {
 
     return this.adminMapper.toVendorSubscriptionResponse(subscription);
   }
+
+  async updateVendorStatus(
+    vendorId: string,
+    status: VendorAdminStatus,
+    reason?: string,
+  ) {
+    const vendor = await this.vendorService.findByVendorId(vendorId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    if (
+      (status === 'SUSPENDED' || status === 'DISABLED') &&
+      !reason
+    ) {
+      throw new BadRequestException(
+        'Reason is required for this action',
+      );
+    }
+
+    const data: any = {
+      adminStatus: status,
+      statusReason: reason ?? null,
+    };
+
+    if (status === 'SUSPENDED') {
+      data.suspendedAt = new Date();
+      data.disabledAt = null;
+    }
+
+    if (status === 'DISABLED') {
+      data.disabledAt = new Date();
+      data.suspendedAt = null;
+    }
+
+    if (status === 'ACTIVE') {
+      data.suspendedAt = null;
+      data.disabledAt = null;
+    }
+
+    const updated = await this.repository.updateStatus(
+      vendorId,
+      data,
+    );
+
+    return this.adminMapper.toVendorStatusResponse(updated);
+  }
+
 }
 
 

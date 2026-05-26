@@ -5,6 +5,7 @@ import {
   UseGuards,
   Param,
   Patch,
+  Body,
 } from '@nestjs/common';
 
 import { AdminVendorVerificationService } from '../../application/admin.service';
@@ -16,6 +17,7 @@ import {
   AdminVendorAccountListQueryDto,
   AdminVendorAccountOverviewQueryDto,
   AdminVendorAccountOrdersQueryDto,
+  UpdateVendorStatusDto,
  } from '../dto/admin.dto';
 import { 
   VendorVerificationManagementResponseDto,
@@ -119,6 +121,7 @@ export class AdminController {
     return this.service.getVendorOverview(vendorId, query);
   }
 
+
   @Get('vendors/accounts/:vendorId/orders')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
@@ -130,6 +133,8 @@ export class AdminController {
   }
 
   @Get('vendors/accounts/:vendorId/documents')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
   async getVendorDocuments(
     @Param('vendorId') vendorId: string,
   ): Promise<AdminVendorDocumentsResponseDto> {
@@ -139,10 +144,36 @@ export class AdminController {
   }
 
   @Get('vendors/accounts/:vendorId/subscription')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
   async getVendorSubscription(
     @Param('vendorId') vendorId: string,
   ): Promise<AdminVendorSubscriptionResponseDto> {
     return this.service.getVendorSubscription(vendorId);
   }
+
+  
+  @Patch('vendors/:id/status')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  @ResponseMessage('Vendor status updated successfully.')
+  updateVendorStatus(
+    @Param('id') vendorId: string,
+    @Body() dto: UpdateVendorStatusDto,
+  ) {
+    return this.service.updateVendorStatus(
+      vendorId,
+      dto.status,
+      dto.reason,
+    );
+  }
+  
+  // @Patch('vendors/:id/activate')
+  // @UseGuards(RoleGuard)
+  // @Roles(Role.ADMIN)
+  // @ResponseMessage('Vendor activate successfully.')
+  // activateVendor(@Param('id') vendorId: string) {
+  //   return this.service.activateVendor(vendorId);
+  // }
 
 } 

@@ -7,7 +7,10 @@ import {
   Min,
   IsString,
 } from 'class-validator';
-import { VerificationStatus } from '@prisma/client';
+import { 
+  VerificationStatus,
+  VendorAdminStatus,
+ } from '@prisma/client';
 
 import { KycStatus, SubscriptionStatus } from '@prisma/client';
 
@@ -176,4 +179,9 @@ export class AdminVendorAccountOrdersQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 10;
+}
+
+export class UpdateVendorStatusDto {
+  status!: VendorAdminStatus;
+  reason?: string;
 }
