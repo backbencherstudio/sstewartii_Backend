@@ -6,7 +6,7 @@ import {
   BadRequestException,
  } from '@nestjs/common';
 
-import { 
+import {
   VerificationStatus,
   OrderStatus,
   VendorAdminStatus,
