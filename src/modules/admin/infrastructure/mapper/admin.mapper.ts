@@ -822,7 +822,7 @@ export class AdminMapper {
     };
   }
 
-  toVendorStatusResponse(vendor: Vendor): AdminVendorStatusResponseDto {
+  toResponse(vendor: Vendor): AdminVendorStatusResponseDto {
     return {
       id: vendor.id,
       status: vendor.adminStatus,
@@ -833,11 +833,11 @@ export class AdminMapper {
   }
 
   private formatStatus(status: VendorAdminStatus): string {
-    const statusMap: Record<VendorAdminStatus, string> = {
-      ACTIVE: 'Active',
-      SUSPENDED: 'Suspended',
-      DISABLED: 'Disabled',
-    };
-  return statusMap[status];
-}
+      const statusMap: Record<VendorAdminStatus, string> = {
+        ACTIVE: 'Active',
+        SUSPENDED: 'Suspended',
+        DISABLED: 'Disabled',
+      };
+    return statusMap[status];
+  }
 }

@@ -383,3 +383,4 @@ export class AdminVendorStatusResponseDto {
   disabledAt?: Date;
   updatedAt!: Date;
 }
+

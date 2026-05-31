@@ -1144,22 +1144,9 @@ export class AdminVendorVerificationRepository
     vendorId: string,
     data: UpdateVendorStatusData,
   ): Promise<Vendor> {
-    const prismaData = this.toPrismaUpdate(data);
-
     return this.prisma.vendor.update({
       where: { id: vendorId },
-      data: prismaData,
+      data,
     });
-  }
-
-  private toPrismaUpdate(
-    data: UpdateVendorStatusData,
-  ): Prisma.VendorUpdateInput {
-    return {
-      adminStatus: data.adminStatus,
-      statusReason: data.statusReason,
-      suspendedAt: data.suspendedAt,
-      disabledAt: data.disabledAt,
-    };
   }
 }

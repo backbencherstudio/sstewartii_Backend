@@ -49,6 +49,7 @@ import {
   AdminVendorAccountOrdersResponseDto,
   AdminVendorDocumentsResponseDto,
   AdminVendorSubscriptionResponseDto,
+  AdminVendorStatusResponseDto,
  } from '../presentation/dto/admin.response.dto';
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 
@@ -1037,7 +1038,14 @@ export class AdminVendorVerificationService {
     vendorId: string,
     status: VendorAdminStatus,
     reason?: string,
-  ) {
+  ): Promise<AdminVendorStatusResponseDto> {
+
+    const vendor = await this.vendorService.findByVendorId(vendorId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
     let data: UpdateVendorStatusData = {
       adminStatus: status,
       statusReason: reason || null,
@@ -1058,7 +1066,13 @@ export class AdminVendorVerificationService {
       data.disabledAt = null;
       data.statusReason = null;
     }
-    return this.repository.updateStatus(vendorId, data);
+
+    const updatedVendor = await this.repository.updateStatus(
+      vendorId,
+      data,
+    );
+    
+    return this.adminMapper.toResponse(updatedVendor);
   }
 }
 
