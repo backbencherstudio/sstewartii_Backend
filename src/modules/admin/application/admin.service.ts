@@ -444,6 +444,55 @@ export class AdminVendorVerificationService {
     });
   }
 
+  async rejectVendorVerification(
+    verificationId: string,
+  ): Promise<AdminVendorVerificationActionResponseDto> {
+    const verification =
+      await this.repository.findVerificationForDecision(verificationId);
+
+    if (!verification) {
+      throw new NotFoundException('Vendor verification not found');
+    }
+
+    if (verification.status === VerificationStatus.APPROVED) {
+      throw new ConflictException(
+        'Vendor verification is already approved',
+      );
+    }
+
+    if (verification.status === VerificationStatus.REJECTED) {
+      throw new BadRequestException(
+        'Rejected verification cannot be approved. Vendor must resubmit documents.',
+      );
+    }
+
+    if (
+      verification.status !== VerificationStatus.PENDING &&
+      verification.status !== VerificationStatus.IN_REVIEW
+    ) {
+      throw new BadRequestException(  
+        'Vendor verification cannot be approved from current status',
+      );
+    }
+
+    if (
+      !verification.businessLicense ||
+      !verification.healthPermit ||
+      !verification.insuranceProof
+    ) {
+      throw new BadRequestException(
+        'All required verification documents must be uploaded before approval',
+      );
+    }
+
+    const rejected = await this.repository.rejectVerification(verificationId);
+
+    return this.adminMapper.toActionResponse({
+      verification: rejected,
+      message: 'Vendor verification approved successfully.',
+    });
+  }
+
   async getVendorAccounts(
     query: AdminVendorAccountListQueryDto,
   ): Promise<AdminVendorAccountListResponseDto> {

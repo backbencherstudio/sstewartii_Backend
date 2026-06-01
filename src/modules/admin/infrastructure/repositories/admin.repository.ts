@@ -534,6 +534,40 @@ export class AdminVendorVerificationRepository
     });
   }
 
+  async rejectVerification(
+    verificationId: string,
+  ): Promise<any> {
+    return this.prisma.$transaction(async (tx) => {
+      const verification = await tx.vendorVerification.update({
+        where: {
+          id: verificationId,
+        },
+        data: {
+          status: VerificationStatus.REJECTED,
+          rejectionReason: null,
+          reviewedAt: new Date(),
+        },
+        select: {
+          id: true,
+          vendorId: true,
+          status: true,
+          reviewedAt: true,
+        },
+      });
+
+      await tx.vendor.update({
+        where: {
+          id: verification.vendorId,
+        },
+        data: {
+          kycStatus: KycStatus.REJECTED,
+        },
+      });
+
+      return verification;
+    });
+  }
+
   async findVendorAccounts(
     input: FindAdminVendorAccountsInput,
   ): Promise<AdminVendorAccountListResult> {

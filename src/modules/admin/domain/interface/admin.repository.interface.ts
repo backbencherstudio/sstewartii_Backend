@@ -213,6 +213,10 @@ export interface IAdminVendorVerificationRepository {
     verificationId: string,
   ): Promise<any>;
 
+  rejectVerification(
+    verificationId: string,
+  ): Promise<any>;
+
   findVendorAccounts(
     input: FindAdminVendorAccountsInput,
   ): Promise<AdminVendorAccountListResult>;

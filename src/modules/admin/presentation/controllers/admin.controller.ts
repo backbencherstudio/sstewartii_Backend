@@ -103,6 +103,16 @@ export class AdminController {
     return this.service.approveVendorVerification(verificationId);
   }
 
+  @Patch('vendor-verifications/:verificationId/reject')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  @ResponseMessage('Vendor verification rejected successfully.')
+  async rejectVendorVerification(
+    @Param('verificationId') verificationId: string,
+  ) {
+    return this.service.rejectVendorVerification(verificationId);
+  }
+
   @Get('vendors/accounts')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
