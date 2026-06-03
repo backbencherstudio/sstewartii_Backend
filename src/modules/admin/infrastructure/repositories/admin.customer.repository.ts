@@ -6,7 +6,8 @@ import {
  } from '@prisma/client';
 
 import type {
- IAdminCustomerRepository
+ IAdminCustomerRepository,
+ FindAllCustomersParams
 } from '../../domain/interface/admin.customer.repository.interface';
 
 import { 
@@ -19,13 +20,7 @@ export class AdminCustomerRepository
 {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(params: {
-    where: any;
-    page: number;
-    limit: number;
-    orderBy: any;
-  }): Promise<{ data: Customer[]; total: number }> {
-
+  async findAll(params: FindAllCustomersParams) {
     const { where, page, limit, orderBy } = params;
 
     const [data, total] = await Promise.all([
@@ -34,6 +29,19 @@ export class AdminCustomerRepository
         skip: (page - 1) * limit,
         take: limit,
         orderBy,
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          orders: {
+            select: {
+              totalAmount: true,
+            },
+          },
+        },
       }),
       this.prisma.customer.count({ where }),
     ]);

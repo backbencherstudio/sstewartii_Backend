@@ -205,3 +205,10 @@ export class GetCustomersQueryDto {
   sortBy?: 'newest' | 'oldest' = 'newest';
 }
 
+export class CustomerResponseDto {
+  id!: string;
+  name!: string;
+  email!: string;
+  createdAt!: Date;
+}
+

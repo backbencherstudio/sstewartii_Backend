@@ -1,6 +1,7 @@
 import { 
   VerificationStatus,
   Customer,
+  Prisma,
  } from '@prisma/client';
 
 import { 
@@ -13,15 +14,15 @@ export interface PaginatedResult<T> {
 }
 
 export interface FindAllCustomersParams {
-  where: any;      
+  where?: Prisma.CustomerWhereInput;
   page: number;
   limit: number;
-  orderBy: any; 
+  orderBy?: Prisma.CustomerOrderByWithRelationInput;
 }
 
 //Main Interface
 export interface IAdminCustomerRepository {
   findAll(
     params: FindAllCustomersParams
-  ): Promise<PaginatedResult<Customer>>;
+  ): Promise<PaginatedResult<any>>; 
 }

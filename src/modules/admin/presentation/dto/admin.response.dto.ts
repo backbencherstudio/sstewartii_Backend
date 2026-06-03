@@ -384,15 +384,6 @@ export class AdminVendorStatusResponseDto {
   updatedAt!: Date;
 }
 
-export class CustomerListItemDto {
-  id!: string;
-  name!: string;
-  email!: string;
-  status!: Boolean;
-  statusLabel!: string;
-  createdAt!: Date;
-}
-
 export class PaginatedCustomerResponseDto {
   data!: CustomerListItemDto[];
   meta!: {
@@ -403,3 +394,12 @@ export class PaginatedCustomerResponseDto {
   };
 }
 
+export class CustomerListItemDto {
+  id!: string;
+  name!: string;
+  email!: string;
+  status!: string;
+  dateJoined!: Date;
+  orders!: number;
+  totalSpent!: number;
+}
