@@ -32,3 +32,20 @@ export class CustomerDetailResponseDto {
   orderPage!: number;
   orderLimit!: number;
 }
+
+export class CustomerReportQueueItemDto {
+  customerId!:  string;
+  customerCode!: string;
+  fullName!:    string;
+  email!:       string;
+  avatar!:      string | null;
+  reportCount!: number;
+  vendorCount!: number;
+}
+
+export class CustomerReportQueueResponseDto {
+  data!:  CustomerReportQueueItemDto[];
+  total!: number;
+  page!:  number;
+  limit!: number;
+}
