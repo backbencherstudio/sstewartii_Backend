@@ -204,7 +204,7 @@ export class AdminController {
     });
   }
 
-  @Get(':customerId')
+  @Get('customer/:customerId')
   @ResponseMessage('Customer detail fetched successfully')
   @ApiOperation({ summary: 'Get customer detail with order history' })
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })

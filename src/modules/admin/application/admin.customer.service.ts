@@ -27,8 +27,8 @@ import {
   PaginatedCustomerResponseDto,
  } from '../presentation/dto/admin.response.dto';
 import { CustomerDetailResponseDto } from '../presentation/dto/customer-detail.response.dto';
-import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
 
+import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
 
 @Injectable()
 export class AdminCustomerService {
@@ -49,16 +49,18 @@ export class AdminCustomerService {
     customerId: string,
     query: CustomerOrderHistoryQueryDto,
   ): Promise<CustomerDetailResponseDto> {
-    const customer = await this.adminCustomerRepository.findCustomerDetailById(
-      customerId,
-      query,
-    );
 
-    if (!customer) {
+    const exists = await this.adminCustomerRepository.existsById(customerId);
+    if (!exists) {
       throw new NotFoundException('Customer not found');
     }
 
-    return customer;
+    const raw = await this.adminCustomerRepository.findRawCustomerData(customerId, query);
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+
+    return this.adminCustomerMapper.toDetailResponse(raw, page, limit);
   }
 }
 

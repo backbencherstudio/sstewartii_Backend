@@ -22,7 +22,7 @@ export class CustomerDetailResponseDto {
   joinedAt!: Date;
   totalOrders!: number;
   totalSpent!: number;
-  completedOrder!: number;
+  completedOrders!: number;
   cancelledOrders!: number;
   incompleteOrders!: number;
   reportsFiled!: number;
