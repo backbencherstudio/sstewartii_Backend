@@ -34,7 +34,6 @@ export class AdminCustomerService {
     @Inject('IAdminCustomerRepository')
     private readonly adminCustomerRepository: IAdminCustomerRepository,
     private readonly adminCustomerMapper: AdminCustomerMapper,
-    private readonly vendorService: VendorService,
   ) {}
 
   async getCustomers(params: FindAllCustomersParams) {
@@ -54,7 +53,6 @@ export class AdminCustomerService {
     }
 
     const raw = await this.adminCustomerRepository.findRawCustomerData(customerId, query);
-
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
 
@@ -66,9 +64,9 @@ export class AdminCustomerService {
   ): Promise<CustomerReportQueueResponseDto> {
 
     const raw = await this.adminCustomerRepository.findReportQueue(query);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
 
-    return this.adminCustomerMapper.toReportQueueResponse(raw, query.page, query.limit);
+    return this.adminCustomerMapper.toReportQueueResponse(raw, page, limit);
   }
 }
-
-

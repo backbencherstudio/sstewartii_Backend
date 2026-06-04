@@ -221,7 +221,7 @@ export class AdminController {
     return this.adminCustomerService.getCustomerDetail(customerId, query);
   }
 
-@Get()
+@Get('customer/report')
 @ResponseMessage('Customer report queue fetched successfully')
 @ApiOperation({ summary: 'Get reported customer queue with search, sort, pagination' })
 async getReportQueue(

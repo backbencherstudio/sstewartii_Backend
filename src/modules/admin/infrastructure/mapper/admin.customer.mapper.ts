@@ -21,8 +21,14 @@ import {
 import {
   CustomerListItemDto,
 } from '../../presentation/dto/admin.response.dto';
-import { CustomerOrderHistoryDto } from '../../presentation/dto/customer-detail.response.dto';
-import { CustomerDetailResponseDto } from '../../presentation/dto/customer-detail.response.dto';
+import { 
+  CustomerOrderHistoryDto,
+  CustomerReportQueueItemDto,
+} from '../../presentation/dto/customer-detail.response.dto';
+import { 
+  CustomerDetailResponseDto,
+  CustomerReportQueueResponseDto,
+ } from '../../presentation/dto/customer-detail.response.dto';
 
 import { MediaService } from '@/common/media/media.service';
 
@@ -135,7 +141,6 @@ export class AdminCustomerMapper {
   static toOrderHistory(order: OrderWithVendor): CustomerOrderHistoryDto {
     const createdAt = new Date(order.createdAt);
     const dto       = new CustomerOrderHistoryDto();
-
     dto.orderId     = order.id;
     dto.orderNumber = order.orderNumber;
     dto.vendorName  = order.vendor.businessName ?? 'Unknown';
@@ -200,6 +205,31 @@ export class AdminCustomerMapper {
     dto.orderPage            = page;
     dto.orderLimit           = limit;
 
+    return dto;
+  }
+
+  static toReportQueueItem(raw: ReportQueueRaw): CustomerReportQueueItemDto {
+    const dto         = new CustomerReportQueueItemDto();
+    dto.customerId    = raw.customer.id;
+    dto.customerCode  = `#${raw.customerId.slice(0, 6).toUpperCase()}`;
+    dto.fullName      = raw.customer.user.name  ?? 'Unknown';
+    dto.email         = raw.customer.user.email;
+    dto.avatar        = raw.customer.avatar;
+    dto.reportCount   = raw.reportCount;
+    dto.vendorCount   = raw.vendorCount;
+    return dto;
+  }
+
+  toReportQueueResponse(
+    raw:   ReportQueueRawData,
+    page:  number,
+    limit: number,
+  ): CustomerReportQueueResponseDto {
+    const dto   = new CustomerReportQueueResponseDto();
+    dto.data    = raw.items.map(AdminCustomerMapper.toReportQueueItem);
+    dto.total   = raw.total;
+    dto.page    = page;
+    dto.limit   = limit;
     return dto;
   }
 }

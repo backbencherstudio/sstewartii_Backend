@@ -17,7 +17,6 @@ import {
   CustomerOrderHistoryQueryDto,
   CustomerReportQueueQueryDto,
  } from '../../presentation/dto/customer-query.dto';
- import { CustomerDetailResponseDto } from '../../presentation/dto/customer-detail.response.dto';
  import { 
   CustomerRawData,
   ReportQueueRawData,
