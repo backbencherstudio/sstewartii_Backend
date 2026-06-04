@@ -3,7 +3,8 @@ import {
     IsEnum, 
     IsInt, 
     Min, 
-    Max 
+    Max,
+    IsString,
 } from 'class-validator';
 
 import { Type } from 'class-transformer';
@@ -19,6 +20,32 @@ export class CustomerOrderHistoryQueryDto {
   @ApiPropertyOptional({ example: 'newest' })
   @IsOptional()
   sortBy?: 'newest' | 'oldest' = 'newest';
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+}
+
+export class CustomerReportQueueQueryDto {
+  @ApiPropertyOptional({ example: 'David John' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ enum: ['newest', 'oldest', 'most_reports'] })
+  @IsOptional()
+  sortBy?: 'newest' | 'oldest' | 'most_reports' = 'newest';
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
