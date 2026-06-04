@@ -19,7 +19,10 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-import { CustomerOrderHistoryQueryDto } from '../dto/customer-query.dto';
+import { 
+  CustomerOrderHistoryQueryDto,
+  CustomerReportQueueQueryDto,
+ } from '../dto/customer-query.dto';
 import { 
   VendorVerificationListQueryDto,
   AdminVendorVerificationDocumentType,
@@ -43,7 +46,10 @@ import {
   AdminVendorSubscriptionResponseDto,
   AdminVendorStatusResponseDto,
 } from '../dto/admin.response.dto';
-import { CustomerDetailResponseDto } from '../dto/customer-detail.response.dto';
+import { 
+  CustomerDetailResponseDto,
+  CustomerReportQueueResponseDto,
+ } from '../dto/customer-detail.response.dto';
 
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -214,4 +220,13 @@ export class AdminController {
   ): Promise<CustomerDetailResponseDto> {
     return this.adminCustomerService.getCustomerDetail(customerId, query);
   }
+
+@Get()
+@ResponseMessage('Customer report queue fetched successfully')
+@ApiOperation({ summary: 'Get reported customer queue with search, sort, pagination' })
+async getReportQueue(
+  @Query() query: CustomerReportQueueQueryDto,
+): Promise<CustomerReportQueueResponseDto> {
+  return this.adminCustomerService.getReportQueue(query);
+}
 } 
