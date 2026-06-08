@@ -151,7 +151,6 @@ export class AdminController {
     return this.service.getVendorOverview(vendorId, query);
   }
 
-
   @Get('vendors/accounts/:vendorId/orders')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
@@ -229,4 +228,4 @@ export class AdminController {
   ): Promise<CustomerReportQueueResponseDto> {
     return this.adminCustomerService.getReportQueue(query);
   }
-} 
+}
