@@ -209,6 +209,15 @@ export class AdminController {
     });
   }
 
+  @Get('customer/report')
+  @ResponseMessage('Customer report queue fetched successfully')
+  @ApiOperation({ summary: 'Get reported customer queue with search, sort, pagination' })
+  async getReportQueue(
+    @Query() query: CustomerReportQueueQueryDto,
+  ): Promise<CustomerReportQueueResponseDto> {
+    return this.adminCustomerService.getReportQueue(query);
+  }
+
   @Get('customer/:customerId')
   @ResponseMessage('Customer detail fetched successfully')
   @ApiOperation({ summary: 'Get customer detail with order history' })
@@ -218,14 +227,5 @@ export class AdminController {
     @Query() query: CustomerOrderHistoryQueryDto,
   ): Promise<CustomerDetailResponseDto> {
     return this.adminCustomerService.getCustomerDetail(customerId, query);
-  }
-
-  @Get('customer/report')
-  @ResponseMessage('Customer report queue fetched successfully')
-  @ApiOperation({ summary: 'Get reported customer queue with search, sort, pagination' })
-  async getReportQueue(
-    @Query() query: CustomerReportQueueQueryDto,
-  ): Promise<CustomerReportQueueResponseDto> {
-    return this.adminCustomerService.getReportQueue(query);
   }
 }
