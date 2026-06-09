@@ -24,6 +24,7 @@ import {
 import { 
   CustomerDetailResponseDto,
   CustomerReportQueueResponseDto,
+  CustomerReportDetailResponseDto,
  } from '../presentation/dto/customer-detail.response.dto';
 
 import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
@@ -68,5 +69,22 @@ export class AdminCustomerService {
     const limit = query.limit ?? 10;
 
     return this.adminCustomerMapper.toReportQueueResponse(raw, page, limit);
+  }
+
+  async getCustomerReportDetail(
+    customerId: string,
+  ): Promise<CustomerReportDetailResponseDto> {
+
+    const raw = await this.adminCustomerRepository.findReportDetail(customerId);
+
+    if (!raw) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    if (raw.totalReportCount === 0) {
+      throw new NotFoundException('No reports found for this customer');
+    }
+    
+    return AdminCustomerMapper.toReportDetail(raw);
   }
 }
