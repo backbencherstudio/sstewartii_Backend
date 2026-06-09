@@ -70,4 +70,24 @@ export class CustomerReportDetailResponseDto {
   vendorCount!:      number;
   lastOrderedAt!:    Date | null;
   vendors!:          ReportingVendorDto[];
+} 
+
+export class ReportItemDto {
+  reportId!:    string;
+  reportNumber!: string;   
+  createdAt!:   Date;
+  displayDate!: string;     
+}
+
+export class VendorReportGroupDto {
+  vendorId!:     string;
+  vendorCode!:   string;     
+  businessName!: string;
+  coverImage!:   string | null;
+  reportCount!:  number;
+  reports!:      ReportItemDto[];
+}
+
+export class CustomerVendorReportsResponseDto {
+  vendors!: VendorReportGroupDto[];
 }
