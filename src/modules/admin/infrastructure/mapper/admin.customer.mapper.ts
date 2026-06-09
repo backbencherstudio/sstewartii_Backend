@@ -95,6 +95,41 @@ type ReportQueueRaw = {
   };
 }
 
+type ReportDetailRaw = {
+  customer: {
+    id:          string;
+    avatar:      string | null;
+    dateOfBirth: Date | null;
+    address:     string | null;
+    user: {
+      name:  string | null;
+      email: string;
+    };
+    orders: {
+      status: string;
+    }[];
+  };
+  vendorGroups: {
+    vendorId:    string;
+    reportCount: number;
+    vendor: {
+      id:           string;
+      vendorCode:   string;
+      businessName: string | null;
+      coverImage:   string | null;
+    };
+  }[];
+  totalReportCount: number;
+  lastOrderedAt:    Date | null;
+};
+
+export interface CustomerReportDetailRawData {
+  customer:         ReportDetailRaw['customer'];
+  vendorGroups:     ReportDetailRaw['vendorGroups'];
+  totalReportCount: number;
+  lastOrderedAt:    Date | null;
+}
+
 export interface ReportQueueRawData {
   items:  ReportQueueRaw[];
   total:  number;

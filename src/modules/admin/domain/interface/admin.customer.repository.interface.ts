@@ -14,6 +14,7 @@ import {
  import { 
   CustomerRawData,
   ReportQueueRawData,
+  CustomerReportDetailRawData,
  } from '../../infrastructure/mapper/admin.customer.mapper';
 
 export interface PaginatedResult<T> {
@@ -46,7 +47,11 @@ export interface IAdminCustomerRepository {
     query: CustomerOrderHistoryQueryDto,
   ): Promise<CustomerRawData>;
 
-  findReportQueue(                                    // ✅ add
+  findReportQueue(
     query: CustomerReportQueueQueryDto,
   ): Promise<ReportQueueRawData>;
+
+  findReportDetail(
+    customerId: string,
+  ): Promise<CustomerReportDetailRawData | null>;
 }
