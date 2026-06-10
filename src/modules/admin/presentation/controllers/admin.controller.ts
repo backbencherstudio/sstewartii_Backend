@@ -51,6 +51,7 @@ import {
   CustomerReportQueueResponseDto,
   CustomerReportDetailResponseDto,
   CustomerVendorReportsResponseDto,
+  CustomerVendorReportsResponseDto2,
  } from '../dto/customer-detail.response.dto';
 
 import { RoleGuard } from '@/common/guards/roles.guard';
@@ -257,5 +258,15 @@ export class AdminController {
     @Param('customerId', ParseUUIDPipe) customerId: string,
   ): Promise<CustomerVendorReportsResponseDto> {
     return this.adminCustomerService.getCustomerVendorReports(customerId);
+  }
+
+  @Get(':customerId/reports/vendors')
+  @ResponseMessage('Customer vendor reports fetched successfully')
+  @ApiOperation({ summary: 'Get vendor reports against customer with reason and details' })
+  @ApiParam({ name: 'customerId', description: 'Customer UUID' })
+  async getCustomerVendorReports2(
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+  ): Promise<CustomerVendorReportsResponseDto2> {
+    return this.adminCustomerService.getCustomerVendorReports2(customerId);
   }
 }
