@@ -53,6 +53,9 @@ import {
   CustomerVendorReportsResponseDto,
   CustomerVendorReportsResponseDto2,
  } from '../dto/customer-detail.response.dto';
+import { 
+  AnalyticsSummaryResponseDto 
+} from '../dto/analytics-summary.response.dto';
 
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -282,5 +285,14 @@ export class AdminController {
     @Param('customerId', ParseUUIDPipe) customerId: string,
   ): Promise<void> {
     return this.adminCustomerService.deactivateCustomer(customerId);
+  }
+
+  @Get('analytical-summary')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  @ResponseMessage('Analytics summary fetched successfully')
+  @ApiOperation({ summary: 'Get platform analytics summary stats' })
+  async getAnalyticalSummary(): Promise<AnalyticsSummaryResponseDto> {
+    return this.service.getAnalyticalSummary();
   }
 }
