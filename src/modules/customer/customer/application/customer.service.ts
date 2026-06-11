@@ -52,6 +52,10 @@ export class CustomerService {
     return this.repo.findByUserId(userId);
   }
 
+  async findActiveByCustomerId(customerId: string): Promise<CustomerEntity | null> {
+    return this.repo.findByCustomerId(customerId);
+  }
+
   async setLocation(
     userId: string,
     dto: SetCustomerLocationDto,
@@ -74,7 +78,7 @@ export class CustomerService {
     return CustomerMapper.toResponse(finalCustomer);
   }
 
- async getNearbyVendors(
+  async getNearbyVendors(
     userId: string,
     query: NearbyVendorsQueryDto,
   ): Promise<NearbyVendorsResponseDto> {

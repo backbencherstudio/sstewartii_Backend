@@ -481,4 +481,20 @@ export class AdminCustomerRepository
 
     return { vendorGroups };
   }
+
+  async findActiveStatus(
+    customerId: string,
+  ): Promise<{ isActive: boolean }> {
+    return this.prisma.customer.findUniqueOrThrow({
+      where:  { id: customerId },
+      select: { isActive: true },
+    });
+  }
+
+  async deactivateCustomer(customerId: string): Promise<void> {
+    await this.prisma.customer.update({
+      where: { id: customerId },
+      data:  { isActive: false },
+    });
+  }
 }

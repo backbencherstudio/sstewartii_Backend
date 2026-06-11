@@ -29,7 +29,7 @@ import {
   CustomerVendorReportsResponseDto2,
  } from '../presentation/dto/customer-detail.response.dto';
 
-import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
+ import { CustomerService } from '@/modules/customer/customer/application/customer.service';
 
 @Injectable()
 export class AdminCustomerService {
@@ -37,6 +37,7 @@ export class AdminCustomerService {
     @Inject('IAdminCustomerRepository')
     private readonly adminCustomerRepository: IAdminCustomerRepository,
     private readonly adminCustomerMapper: AdminCustomerMapper,
+    private readonly customerService: CustomerService,
   ) {}
 
   async getCustomers(params: FindAllCustomersParams) {
@@ -121,5 +122,20 @@ export class AdminCustomerService {
     }
 
     return this.adminCustomerMapper.toCustomerVendorReports1(raw);
+  }
+
+  async deactivateCustomer(customerId: string): Promise<void> {
+    const exists = await this.customerService.findActiveByCustomerId(customerId);
+    if (!exists) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const customer = await this.adminCustomerRepository.findActiveStatus(customerId);
+
+    if (!customer.isActive) {
+      throw new BadRequestException('Customer is already deactivated');
+    }
+
+    await this.adminCustomerRepository.deactivateCustomer(customerId);
   }
 }

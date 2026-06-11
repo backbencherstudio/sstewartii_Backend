@@ -27,7 +27,7 @@ export interface FindAllCustomersParams {
   orderBy?: Prisma.CustomerOrderByWithRelationInput;
 }
 
-//Main Interface
+// Main Interface
 export interface IAdminCustomerRepository {
   findAll(
     params: FindAllCustomersParams
@@ -60,4 +60,8 @@ export interface IAdminCustomerRepository {
   findCustomerVendorReports2(
     customerId: string,
   ): Promise<CustomerVendorReportsRawData1 | null>;
+
+  findActiveStatus(customerId: string): Promise<{ isActive: boolean }>;
+
+  deactivateCustomer(customerId: string): Promise<void>;
 }

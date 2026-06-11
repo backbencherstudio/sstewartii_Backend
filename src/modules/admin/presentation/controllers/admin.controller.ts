@@ -261,6 +261,8 @@ export class AdminController {
   }
 
   @Get('customers/:customerId/reports/vendors')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
   @ResponseMessage('Customer vendor reports fetched successfully')
   @ApiOperation({ summary: 'Get vendor reports against customer with reason and details' })
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
@@ -271,6 +273,8 @@ export class AdminController {
   }
 
   @Patch('customer/:customerId/deactivate')
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
   @ResponseMessage('Customer deactivated successfully')
   @ApiOperation({ summary: 'Deactivate a customer account' })
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
@@ -280,4 +284,3 @@ export class AdminController {
     return this.adminCustomerService.deactivateCustomer(customerId);
   }
 }
-

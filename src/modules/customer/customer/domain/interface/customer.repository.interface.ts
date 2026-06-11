@@ -12,6 +12,7 @@ import {
 export interface ICustomerRepository {
   
   findByUserId(userId: string): Promise<CustomerEntity | null>;
+  findByCustomerId(userId: string): Promise<CustomerEntity | null>;
 
   create(data: {
     userId: string;

@@ -40,6 +40,27 @@ export class CustomerRepository implements ICustomerRepository {
     };
   }
 
+  async findByCustomerId(customerId: string): Promise<CustomerEntity | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) return null;
+
+    return {
+      id: customer.id,
+      userId: customer.userId,
+      phoneNumber: customer.phoneNumber ?? undefined,
+      dateOfBirth: customer.dateOfBirth ?? undefined,
+      address: customer.address ?? undefined,
+      latitude: customer.latitude ?? undefined,
+      longitude: customer.longitude ?? undefined,
+      avatar: customer.avatar ?? undefined,
+      isActive: customer.isActive,
+      preferredRadius: customer.preferredRadius ?? undefined,
+    };
+  }
+
   async create(data: {
     userId: string;
     latitude: number;
