@@ -269,5 +269,15 @@ export class AdminController {
   ): Promise<CustomerVendorReportsResponseDto2> {
     return this.adminCustomerService.getCustomerVendorReports2(customerId);
   }
+
+  @Patch('customer/:customerId/deactivate')
+  @ResponseMessage('Customer deactivated successfully')
+  @ApiOperation({ summary: 'Deactivate a customer account' })
+  @ApiParam({ name: 'customerId', description: 'Customer UUID' })
+  async deactivateCustomer(
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+  ): Promise<void> {
+    return this.adminCustomerService.deactivateCustomer(customerId);
+  }
 }
 
