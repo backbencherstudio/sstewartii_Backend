@@ -19,6 +19,8 @@ import type {
   AdminVendorOverviewOrderRow,
   AdminVendorOverviewProfileViewRow,
  } from '../domain/interface/admin.repository.interface';
+ 
+import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 
 import { 
   VendorVerificationListQueryDto,
@@ -51,7 +53,9 @@ import {
   AdminVendorSubscriptionResponseDto,
   AdminVendorStatusResponseDto,
  } from '../presentation/dto/admin.response.dto';
-import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
+ import { 
+  AnalyticsSummaryResponseDto,
+ } from '../presentation/dto/analytics-summary.response.dto';
 
 import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
 
@@ -1122,6 +1126,13 @@ export class AdminVendorVerificationService {
     );
     
     return this.adminMapper.toResponse(updatedVendor);
+  }
+
+  async getAnalyticalSummary(): Promise<AnalyticsSummaryResponseDto> {
+
+    const raw = await this.repository.getAnalyticalSummary();
+    
+    return AdminAnalyticsMapper.toSummaryResponse(raw);
   }
 }
 
