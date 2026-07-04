@@ -1,34 +1,35 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma,
+import {
+  Prisma,
   OrderStatus,
   VendorLiveStatus,
   VerificationStatus,
   KycStatus,
-  SubscriptionStatus, 
+  SubscriptionStatus,
 } from '@prisma/client';
 
-import { 
-   IVendorRepository,
-   VendorInsightsDateRange, 
-   VendorInsightsDateRangeInput,
-   VendorInsightProfileView,
-   VendorFavoriteCountView,
-   VendorInsightOrderView,
-   VendorAiProfileView,
-   VendorAiDateRangeInput,
-   VendorAiOrderView,
-   VendorReviewSummaryResult,
-   VendorReviewResult,
-   VendorFollowersResult,
-   VendorFollowersProfileView,
-  } from '../../domain/interface/vendor.repository.interface';
+import {
+  IVendorRepository,
+  VendorInsightsDateRange,
+  VendorInsightsDateRangeInput,
+  VendorInsightProfileView,
+  VendorFavoriteCountView,
+  VendorInsightOrderView,
+  VendorAiProfileView,
+  VendorAiDateRangeInput,
+  VendorAiOrderView,
+  VendorReviewSummaryResult,
+  VendorReviewResult,
+  VendorFollowersResult,
+  VendorFollowersProfileView,
+} from '../../domain/interface/vendor.repository.interface';
 import { Vendor } from '../../domain/entities/vendor.entity';
 
 import { VendorMapper } from '../mapper/vendor.mapper';
 
-import { 
+import {
   VendorMenuQueryDto,
   VendorMenuItemsQueryDto,
   VendorReviewsQueryDtoMe,
@@ -65,7 +66,7 @@ export class VendorRepository implements IVendorRepository {
   private mapToDomain(vendorRecord: any): Vendor {
     return VendorMapper.toDomain(vendorRecord);
   }
-  
+
   async findVendorMenuById(
     vendorId: string,
     query: VendorMenuQueryDto,
@@ -151,7 +152,6 @@ export class VendorRepository implements IVendorRepository {
         },
       },
     });
-    
 
     return vendor;
   }
@@ -189,7 +189,7 @@ export class VendorRepository implements IVendorRepository {
       position?: number;
     }[];
   }): Promise<void> {
-    await this.prisma.truckGalleryImage .createMany({
+    await this.prisma.truckGalleryImage.createMany({
       data: data.images.map((image, index) => ({
         vendorId: data.vendorId,
         url: image.url,
@@ -235,25 +235,25 @@ export class VendorRepository implements IVendorRepository {
       },
     });
   }
-  
+
   async findVendorHomeByOwnerId(ownerId: string): Promise<any | null> {
-  return this.prisma.vendor.findUnique({
-    where: {
-      ownerId,
-    },
-    include: {
-      serviceArea: true,
-      vendorVerification: true,
-      owner: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
+    return this.prisma.vendor.findUnique({
+      where: {
+        ownerId,
+      },
+      include: {
+        serviceArea: true,
+        vendorVerification: true,
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
         },
       },
-    },
-  });
-}
+    });
+  }
 
   async getVendorTodayStats(data: {
     vendorId: string;
@@ -265,58 +265,62 @@ export class VendorRepository implements IVendorRepository {
     pendingOrders: number;
     cancelledOrders: number;
   }> {
-    const [completedAggregate, ordersCompleted, pendingOrders, cancelledOrders] =
-      await Promise.all([
-        this.prisma.order.aggregate({
-          where: {
-            vendorId: data.vendorId,
-            status: OrderStatus.COMPLETED,
-            completedAt: {
-              gte: data.startOfDay,
-              lte: data.endOfDay,
-            },
+    const [
+      completedAggregate,
+      ordersCompleted,
+      pendingOrders,
+      cancelledOrders,
+    ] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: {
+          vendorId: data.vendorId,
+          status: OrderStatus.COMPLETED,
+          completedAt: {
+            gte: data.startOfDay,
+            lte: data.endOfDay,
           },
-          _sum: {
-            totalAmount: true,
-          },
-        }),
+        },
+        _sum: {
+          totalAmount: true,
+        },
+      }),
 
-        this.prisma.order.count({
-          where: {
-            vendorId: data.vendorId,
-            status: OrderStatus.COMPLETED,
-            completedAt: {
-              gte: data.startOfDay,
-              lte: data.endOfDay,
-            },
+      this.prisma.order.count({
+        where: {
+          vendorId: data.vendorId,
+          status: OrderStatus.COMPLETED,
+          completedAt: {
+            gte: data.startOfDay,
+            lte: data.endOfDay,
           },
-        }),
+        },
+      }),
 
-        this.prisma.order.count({
-          where: {
-            vendorId: data.vendorId,
-            status: {
-              in: [
-                OrderStatus.PENDING,
-                OrderStatus.CONFIRMED,
-                OrderStatus.PREPARING,
-                OrderStatus.READY_FOR_PICKUP,
-              ],
-            },
+      this.prisma.order.count({
+        where: {
+          vendorId: data.vendorId,
+          status: {
+            in: [
+              OrderStatus.PENDING,
+              OrderStatus.CONFIRMED,
+              OrderStatus.PREPARING,
+              OrderStatus.READY_FOR_PICKUP,
+            ],
           },
-        }),
+        },
+      }),
 
-        this.prisma.order.count({
-          where: {
-            vendorId: data.vendorId,
-            status: OrderStatus.CANCELLED,
-            cancelledAt: {
-              gte: data.startOfDay,
-              lte: data.endOfDay,
-            },
+      this.prisma.order.count({
+        where: {
+          vendorId: data.vendorId,
+          status: OrderStatus.CANCELLED,
+          cancelledAt: {
+            gte: data.startOfDay,
+            lte: data.endOfDay,
           },
-        }),
-      ]);
+        },
+      }),
+    ]);
 
     return {
       todaySale: completedAggregate._sum.totalAmount ?? 0,
@@ -343,9 +347,7 @@ export class VendorRepository implements IVendorRepository {
     });
   }
 
-  async findGoLiveEligibilityByOwnerId(
-    ownerId: string,
-  ): Promise<{
+  async findGoLiveEligibilityByOwnerId(ownerId: string): Promise<{
     id: string;
     kycStatus: KycStatus;
     vendorVerification: {
@@ -762,7 +764,7 @@ export class VendorRepository implements IVendorRepository {
     return { total };
   }
 
-   async findAiProfileByOwnerId(
+  async findAiProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorAiProfileView | null> {
     return this.prisma.vendor.findUnique({
@@ -930,25 +932,17 @@ export class VendorRepository implements IVendorRepository {
     sort?: 'MOST_RECENT' | 'HIGHEST_RATED' | 'LOWEST_RATED',
   ): Prisma.VendorTruckReviewOrderByWithRelationInput[] {
     if (sort === 'HIGHEST_RATED') {
-      return [
-        { rating: 'desc' },
-        { createdAt: 'desc' },
-      ];
+      return [{ rating: 'desc' }, { createdAt: 'desc' }];
     }
 
     if (sort === 'LOWEST_RATED') {
-      return [
-        { rating: 'asc' },
-        { createdAt: 'desc' },
-      ];
+      return [{ rating: 'asc' }, { createdAt: 'desc' }];
     }
 
-    return [
-      { createdAt: 'desc' },
-    ];
+    return [{ createdAt: 'desc' }];
   }
 
-   async findFollowersProfileByOwnerId(
+  async findFollowersProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorFollowersProfileView | null> {
     return this.prisma.vendor.findUnique({
@@ -1086,9 +1080,7 @@ export class VendorRepository implements IVendorRepository {
     });
   }
 
-  async findCustomerIdByUserId(
-    userId: string,
-  ): Promise<string | null> {
+  async findCustomerIdByUserId(userId: string): Promise<string | null> {
     const customer = await this.prisma.customer.findUnique({
       where: {
         userId,

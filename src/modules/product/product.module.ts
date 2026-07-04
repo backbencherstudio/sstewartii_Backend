@@ -15,16 +15,8 @@ import { ProductMapper } from './infrastructure/mappers/product.mapper';
 import { CategoryMapper } from './infrastructure/mappers/category.mapper';
 
 @Module({
-  imports: [
-    PrismaModule,
-    VendorModule,
-    StorageModule,
-    MediaModule,
-  ],
-  controllers: [
-    CategoryController,
-    ProductController,
-  ],
+  imports: [PrismaModule, VendorModule, StorageModule, MediaModule],
+  controllers: [CategoryController, ProductController],
   providers: [
     CategoryService,
     ProductService,
@@ -45,7 +37,7 @@ import { CategoryMapper } from './infrastructure/mappers/category.mapper';
     {
       provide: 'IStorageService',
       useClass: LocalStorageService,
-    } 
+    },
   ],
   exports: ['IProductRepository', ProductService],
 })

@@ -17,17 +17,17 @@ import { BullModule } from '@nestjs/bullmq';
 import { AUTH_QUEUE } from '@/common/queues/queue.constants';
 
 @Module({
-  imports:[
+  imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
     JwtModule.registerAsync({
       global: true,
-      inject: [ConfigService], 
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-      secret: configService.get<string>('JWT_SECRET'),
-      signOptions: { 
-        expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1h') as any, 
-      },
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1h') as any,
+        },
       }),
     }),
 
@@ -35,8 +35,8 @@ import { AUTH_QUEUE } from '@/common/queues/queue.constants';
       name: AUTH_QUEUE,
     }),
   ],
-  controllers:[AuthController],
-  providers:[
+  controllers: [AuthController],
+  providers: [
     AuthService,
     PrismaService,
     MailService,
@@ -51,20 +51,15 @@ import { AUTH_QUEUE } from '@/common/queues/queue.constants';
       useClass: OtpRepository,
     },
     JwtStrategy,
-    GoogleStrategy
+    GoogleStrategy,
   ],
-  exports: [
-    JwtModule,
-    PassportModule,
-  ],
+  exports: [JwtModule, PassportModule],
 })
-
 export class AuthModule implements NestModule {
-
-   configure(consumer: MiddlewareConsumer) {
+  configure(consumer: MiddlewareConsumer) {
     consumer
-    .apply(LoggerMiddleware)
-  //.exclude('health')
-    .forRoutes(AuthController);
+      .apply(LoggerMiddleware)
+      //.exclude('health')
+      .forRoutes(AuthController);
   }
 }

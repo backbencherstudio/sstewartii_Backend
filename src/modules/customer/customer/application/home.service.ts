@@ -1,14 +1,10 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { IHomeRepository } from '../domain/interface/home.repository.interface';
-import { 
+import {
   HomeResponseDto,
   HomeVendorCardDto,
   HomeProductCardDto,
- } from '../presentation/dto/home.response.dto';
+} from '../presentation/dto/home.response.dto';
 import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
@@ -70,17 +66,13 @@ export class HomeService {
 
     const homepageVendorIds = homepageVendors.map((vendor) => vendor.id);
 
-    const [
-      categories,
-      cuisines,
-      favoriteVendorIds,
-      favoriteProductIds,
-    ] = await Promise.all([
-      this.homeRepository.findHomeCategories(8),
-      this.homeRepository.findPopularCuisines(8),
-      this.homeRepository.findFavoriteVendorIdsByCustomerId(customer.id),
-      this.homeRepository.findFavoriteProductIdsByCustomerId(customer.id),
-    ]);
+    const [categories, cuisines, favoriteVendorIds, favoriteProductIds] =
+      await Promise.all([
+        this.homeRepository.findHomeCategories(8),
+        this.homeRepository.findPopularCuisines(8),
+        this.homeRepository.findFavoriteVendorIdsByCustomerId(customer.id),
+        this.homeRepository.findFavoriteProductIdsByCustomerId(customer.id),
+      ]);
 
     const favoriteVendorIdSet = new Set(favoriteVendorIds);
     const favoriteProductIdSet = new Set(favoriteProductIds);
@@ -145,8 +137,7 @@ export class HomeService {
       );
 
       if (!trySomethingNew.length) {
-        trySomethingNew =
-          await this.homeRepository.findProductsFallback(10);
+        trySomethingNew = await this.homeRepository.findProductsFallback(10);
       }
     }
 
@@ -174,35 +165,39 @@ export class HomeService {
         imageUrl: this.resolveMediaUrl(item.imageUrl),
       })),
 
-      whatsNearMe: homepageVendors.slice(0, 6).map((vendor) =>
-        this.toHomeVendorCard(vendor, favoriteVendorIdSet),
-      ),
+      whatsNearMe: homepageVendors
+        .slice(0, 6)
+        .map((vendor) => this.toHomeVendorCard(vendor, favoriteVendorIdSet)),
 
-      recommendedForYou: homepageVendors.slice(0, 6).map((vendor) =>
-        this.toHomeVendorCard(vendor, favoriteVendorIdSet),
-      ),
+      recommendedForYou: homepageVendors
+        .slice(0, 6)
+        .map((vendor) => this.toHomeVendorCard(vendor, favoriteVendorIdSet)),
 
-      explorePopularTrucksNearby: popularTrucksNearby.slice(0, 6).map((vendor) =>
-        this.toHomeVendorCard(vendor, favoriteVendorIdSet),
-      ),
+      explorePopularTrucksNearby: popularTrucksNearby
+        .slice(0, 6)
+        .map((vendor) => this.toHomeVendorCard(vendor, favoriteVendorIdSet)),
 
-      topPicksForYou: topPicksSorted.slice(0, 6).map((product) =>
-        this.toHomeProductCard(
-          product,
-          customer.latitude!,
-          customer.longitude!,
-          favoriteProductIdSet,
+      topPicksForYou: topPicksSorted
+        .slice(0, 6)
+        .map((product) =>
+          this.toHomeProductCard(
+            product,
+            customer.latitude!,
+            customer.longitude!,
+            favoriteProductIdSet,
+          ),
         ),
-      ),
 
-      trySomethingNew: trySomethingNew.slice(0, 10).map((product) =>
-        this.toHomeProductCard(
-          product,
-          customer.latitude!,
-          customer.longitude!,
-          favoriteProductIdSet,
+      trySomethingNew: trySomethingNew
+        .slice(0, 10)
+        .map((product) =>
+          this.toHomeProductCard(
+            product,
+            customer.latitude!,
+            customer.longitude!,
+            favoriteProductIdSet,
+          ),
         ),
-      ),
     };
   }
 
@@ -343,9 +338,7 @@ export class HomeService {
 
     const nextSlot = todaysHours.find(
       (item) =>
-        !item.isClosed &&
-        item.openTime !== null &&
-        item.openTime > currentTime,
+        !item.isClosed && item.openTime !== null && item.openTime > currentTime,
     );
 
     if (nextSlot?.openTime) {

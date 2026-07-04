@@ -12,13 +12,13 @@ import type { IOrderRepository } from '../domain/interface/order.repository.inte
 
 import { OrderMapper } from '../infrastructure/mapper/order.mapper';
 
-import { 
+import {
   VendorOrderHistoryQueryDto,
   CreateOrderReportDto,
 } from '../presentation/dto/order.dto';
 import { CreateOrderDto } from '../presentation/dto/create-order.dto';
 
-import { 
+import {
   CreateOrderResponseDto,
   OrderSummaryResponseDto,
   OrderTrackResponseDto,
@@ -126,7 +126,7 @@ export class OrderService {
 
     return OrderMapper.toCreateResponse(order);
   }
-  
+
   private calculateEstimatedReadyAt(cart: any): Date {
     const now = new Date();
 
@@ -231,13 +231,10 @@ export class OrderService {
   }
 
   private canCustomerCancel(status: OrderStatus): boolean {
-    return (
-      status === OrderStatus.PENDING ||
-      status === OrderStatus.CONFIRMED
-    );
+    return status === OrderStatus.PENDING || status === OrderStatus.CONFIRMED;
   }
 
- async getVendorActiveOrders(
+  async getVendorActiveOrders(
     userId: string,
   ): Promise<VendorActiveOrdersResponseDto> {
     const vendor = await this.vendorService.execute(userId);
@@ -311,10 +308,7 @@ export class OrderService {
   }
 
   private canVendorCancelOrder(status: OrderStatus): boolean {
-    return (
-      status === OrderStatus.PENDING ||
-      status === OrderStatus.CONFIRMED
-    );
+    return status === OrderStatus.PENDING || status === OrderStatus.CONFIRMED;
   }
 
   async acceptVendorOrder(
@@ -369,11 +363,12 @@ export class OrderService {
       );
     }
 
-    const readyOrder =
-      await this.orderRepository.markVendorOrderReadyForPickup({
+    const readyOrder = await this.orderRepository.markVendorOrderReadyForPickup(
+      {
         orderId: order.id,
         readyAt: new Date(),
-      });
+      },
+    );
 
     return this.orderMapper.toVendorOrderActionResponse(
       readyOrder,

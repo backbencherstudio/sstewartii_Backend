@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, PaymentMethod, OrderStatus } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
-import type { 
+import type {
   CreateOrderFromCartInput,
-  IOrderRepository, 
+  IOrderRepository,
   CreateOrderReportInput,
 } from '../../domain/interface/order.repository.interface';
 
-  import { 
+import {
   VendorOrderHistoryQueryDto,
   VendorOrderHistoryStatusFilter,
 } from '../../presentation/dto/order.dto';
@@ -16,9 +16,7 @@ import type {
 export class OrderRepository implements IOrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createOrderFromCart(
-    data: CreateOrderFromCartInput,
-  ): Promise<any> {
+  async createOrderFromCart(data: CreateOrderFromCartInput): Promise<any> {
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const order = await tx.order.create({
         data: {
@@ -561,7 +559,7 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
-   async findVendorOrderForReport(orderId: string): Promise<any | null> {
+  async findVendorOrderForReport(orderId: string): Promise<any | null> {
     return this.prisma.order.findUnique({
       where: {
         id: orderId,

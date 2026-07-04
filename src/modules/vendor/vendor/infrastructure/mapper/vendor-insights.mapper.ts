@@ -1,12 +1,9 @@
 // src/modules/vendor/infrastructure/mapper/vendor-insights.mapper.ts
 
 import { Injectable } from '@nestjs/common';
-import { 
-  SubscriptionStatus, 
-  OrderStatus,
- } from '@prisma/client';
+import { SubscriptionStatus, OrderStatus } from '@prisma/client';
 
- import type {
+import type {
   VendorInsightsDateRange,
   VendorInsightProfileView,
   VendorInsightOrderView,
@@ -33,7 +30,7 @@ import {
 
 @Injectable()
 export class VendorInsightsMapper {
-toOverviewResponse(data: {
+  toOverviewResponse(data: {
     access: VendorInsightAccessDto;
     range: 'today' | 'week' | 'month' | 'year';
     startDate: Date;
@@ -179,17 +176,13 @@ toOverviewResponse(data: {
       }));
   }
 
-  private resolveTrafficLevel(
-    orderCount: number,
-  ): 'LOW' | 'MEDIUM' | 'HIGH' {
+  private resolveTrafficLevel(orderCount: number): 'LOW' | 'MEDIUM' | 'HIGH' {
     if (orderCount >= 10) return 'HIGH';
     if (orderCount >= 4) return 'MEDIUM';
     return 'LOW';
   }
 
-  private buildOrderDistribution(
-    orders: VendorInsightOrderView[],
-  ) {
+  private buildOrderDistribution(orders: VendorInsightOrderView[]) {
     const totalOrders = orders.length;
 
     const completedOrders = orders.filter(
@@ -207,10 +200,7 @@ toOverviewResponse(data: {
     const itemsSold = orders.reduce(
       (sum, order) =>
         sum +
-        order.orderItems.reduce(
-          (itemSum, item) => itemSum + item.quantity,
-          0,
-        ),
+        order.orderItems.reduce((itemSum, item) => itemSum + item.quantity, 0),
       0,
     );
 
@@ -229,9 +219,7 @@ toOverviewResponse(data: {
     };
   }
 
-  private buildCustomerEngagement(
-    orders: VendorInsightOrderView[],
-  ) {
+  private buildCustomerEngagement(orders: VendorInsightOrderView[]) {
     const customerOrderMap = new Map<string, number>();
 
     for (const order of orders) {
@@ -259,9 +247,7 @@ toOverviewResponse(data: {
     };
   }
 
-  private buildTopDishes(
-    orders: VendorInsightOrderView[],
-  ): VendorTopDishDto[] {
+  private buildTopDishes(orders: VendorInsightOrderView[]): VendorTopDishDto[] {
     const map = new Map<
       string,
       {
@@ -311,9 +297,7 @@ toOverviewResponse(data: {
 
     for (const order of orders) {
       const name =
-        order.customer.user.name ??
-        order.customer.user.email ??
-        'Customer';
+        order.customer.user.name ?? order.customer.user.email ?? 'Customer';
 
       const existing = map.get(order.customerId) ?? {
         customerId: order.customerId,
@@ -375,8 +359,7 @@ toOverviewResponse(data: {
         key: 'CUSTOMER_ENGAGEMENT',
         title: 'Customer Engagement',
         requiredPlan: 'PRO',
-        message:
-          'Upgrade to Pro to understand new and repeat customers.',
+        message: 'Upgrade to Pro to understand new and repeat customers.',
       });
     }
 
@@ -413,8 +396,7 @@ toOverviewResponse(data: {
         key: 'AI_GUIDANCE',
         title: 'AI Guidance',
         requiredPlan: 'ELITE',
-        message:
-          'Upgrade to Elite to unlock AI-powered recommendations.',
+        message: 'Upgrade to Elite to unlock AI-powered recommendations.',
       });
     }
 
@@ -423,8 +405,7 @@ toOverviewResponse(data: {
         key: 'EVENTS',
         title: 'Events and Opportunities',
         requiredPlan: 'ELITE',
-        message:
-          'Upgrade to Elite to unlock event intelligence and hot zones.',
+        message: 'Upgrade to Elite to unlock event intelligence and hot zones.',
       });
     }
 
@@ -665,8 +646,9 @@ toOverviewResponse(data: {
       hourMap.set(hour, (hourMap.get(hour) ?? 0) + 1);
     }
 
-    const [peakHour] =
-      Array.from(hourMap.entries()).sort((a, b) => b[1] - a[1])[0] ?? [12, 0];
+    const [peakHour] = Array.from(hourMap.entries()).sort(
+      (a, b) => b[1] - a[1],
+    )[0] ?? [12, 0];
 
     return `${String(peakHour).padStart(2, '0')}:00`;
   }

@@ -1,31 +1,22 @@
-import { 
+import {
   VerificationStatus,
   Prisma,
   Customer,
   OrderStatus,
-  OrderReportReason
+  OrderReportReason,
 } from '@prisma/client';
 
-import { 
-    Injectable,
-    NotFoundException,
- } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
-import type {
-  VendorVerificationListResult,
-} from '../../domain/interface/admin.repository.interface';
+import type { VendorVerificationListResult } from '../../domain/interface/admin.repository.interface';
 
+import { AdminVendorVerificationDocumentType } from '../../presentation/dto/admin.dto';
+import { CustomerListItemDto } from '../../presentation/dto/admin.response.dto';
 import {
-  AdminVendorVerificationDocumentType,
-} from '../../presentation/dto/admin.dto';
-import {
-  CustomerListItemDto,
-} from '../../presentation/dto/admin.response.dto';
-import { 
   CustomerOrderHistoryDto,
   CustomerReportQueueItemDto,
 } from '../../presentation/dto/customer-detail.response.dto';
-import { 
+import {
   CustomerDetailResponseDto,
   CustomerReportQueueResponseDto,
   CustomerReportDetailResponseDto,
@@ -36,7 +27,7 @@ import {
   CustomerVendorReportsResponseDto,
   ReportDetailItemDto,
   CustomerVendorReportsResponseDto2,
- } from '../../presentation/dto/customer-detail.response.dto';
+} from '../../presentation/dto/customer-detail.response.dto';
 
 import { MediaService } from '@/common/media/media.service';
 
@@ -45,18 +36,17 @@ export interface RevenueChartItem {
   value: number;
 }
 
-export type VendorSubscriptionWithPlan =
-  Prisma.VendorSubscriptionGetPayload<{
-    include: { subscriptionPlan: true };
+export type VendorSubscriptionWithPlan = Prisma.VendorSubscriptionGetPayload<{
+  include: { subscriptionPlan: true };
 }>;
 
 type CustomerWithUser = Prisma.CustomerGetPayload<{
   include: {
     user: {
       select: {
-        id:        true;
-        name:      true;
-        email:     true;
+        id: true;
+        name: true;
+        email: true;
         createdAt: true;
       };
     };
@@ -68,7 +58,7 @@ type OrderWithVendor = Prisma.OrderGetPayload<{
     vendor: {
       select: {
         businessName: true;
-        publicEmail:  true;
+        publicEmail: true;
       };
     };
   };
@@ -77,40 +67,40 @@ type OrderWithVendor = Prisma.OrderGetPayload<{
 type OrderStatGroup = {
   status: OrderStatus;
   _count: { status: number };
-  _sum:   { totalAmount: number | null };
+  _sum: { totalAmount: number | null };
 };
 
 export interface CustomerRawData {
-  customer:     CustomerWithUser;
-  orderStats:   OrderStatGroup[];
-  orders:       OrderWithVendor[];
-  orderCount:   number;
+  customer: CustomerWithUser;
+  orderStats: OrderStatGroup[];
+  orders: OrderWithVendor[];
+  orderCount: number;
   lastOrderedAt: Date | null;
   reportsFiled: number;
 }
 
 type ReportQueueRaw = {
-  customerId:  string;
+  customerId: string;
   reportCount: number;
   vendorCount: number;
   customer: {
-    id:     string;
+    id: string;
     avatar: string | null;
     user: {
-      name:  string | null;
+      name: string | null;
       email: string;
     };
   };
-}
+};
 
 type ReportDetailRaw = {
   customer: {
-    id:          string;
-    avatar:      string | null;
+    id: string;
+    avatar: string | null;
     dateOfBirth: Date | null;
-    address:     string | null;
+    address: string | null;
     user: {
-      name:  string | null;
+      name: string | null;
       email: string;
     };
     orders: {
@@ -118,40 +108,40 @@ type ReportDetailRaw = {
     }[];
   };
   vendorGroups: {
-    vendorId:    string;
+    vendorId: string;
     reportCount: number;
     vendor: {
-      id:           string;
-      vendorCode:   string;
+      id: string;
+      vendorCode: string;
       businessName: string | null;
-      coverImage:   string | null;
+      coverImage: string | null;
     };
   }[];
   totalReportCount: number;
-  lastOrderedAt:    Date | null;
+  lastOrderedAt: Date | null;
 };
 
 export interface CustomerReportDetailRawData {
-  customer:         ReportDetailRaw['customer'];
-  vendorGroups:     ReportDetailRaw['vendorGroups'];
+  customer: ReportDetailRaw['customer'];
+  vendorGroups: ReportDetailRaw['vendorGroups'];
   totalReportCount: number;
-  lastOrderedAt:    Date | null;
+  lastOrderedAt: Date | null;
 }
 
 export interface ReportQueueRawData {
-  items:  ReportQueueRaw[];
-  total:  number;
+  items: ReportQueueRaw[];
+  total: number;
 }
 
 type VendorReportsRaw = {
   vendor: {
-    id:           string;
-    vendorCode:   string;
+    id: string;
+    vendorCode: string;
     businessName: string | null;
-    coverImage:   string | null;
+    coverImage: string | null;
   };
   reports: {
-    id:        string;
+    id: string;
     createdAt: Date;
   }[];
 };
@@ -161,19 +151,19 @@ export interface CustomerVendorReportsRawData {
 }
 
 type OrderReportRaw = {
-  id:          string;
-  reason:      OrderReportReason;
+  id: string;
+  reason: OrderReportReason;
   description: string | null;
-  status:      string;
-  createdAt:   Date;
+  status: string;
+  createdAt: Date;
 };
 
 type VendorReportsRaw1 = {
   vendor: {
-    id:           string;
-    vendorCode:   string;
+    id: string;
+    vendorCode: string;
     businessName: string | null;
-    coverImage:   string | null;
+    coverImage: string | null;
   };
   reports: OrderReportRaw[];
 };
@@ -183,23 +173,23 @@ export interface CustomerVendorReportsRawData1 {
 }
 
 const REASON_LABEL: Record<OrderReportReason, string> = {
-  CUSTOMER_NO_SHOW:     'Customer did not arrive',
+  CUSTOMER_NO_SHOW: 'Customer did not arrive',
   CUSTOMER_UNREACHABLE: 'Unable to contact customer',
-  FAKE_ORDER:           'Fake order placed',
-  PAYMENT_ISSUE:        'Payment issue',
-  ABUSIVE_BEHAVIOR:     'Abusive behavior',
-  WRONG_ORDER_CLAIM:    'Wrong order claim',
-  OTHER:                'Other',
+  FAKE_ORDER: 'Fake order placed',
+  PAYMENT_ISSUE: 'Payment issue',
+  ABUSIVE_BEHAVIOR: 'Abusive behavior',
+  WRONG_ORDER_CLAIM: 'Wrong order claim',
+  OTHER: 'Other',
 };
 
 @Injectable()
 export class AdminCustomerMapper {
- constructor(private readonly mediaService: MediaService) {}
+  constructor(private readonly mediaService: MediaService) {}
 
   toListItem(entity: any): CustomerListItemDto {
     const totalSpent = entity.orders.reduce(
       (sum, order) => sum + (order.totalAmount || 0),
-      0
+      0,
     );
 
     return {
@@ -213,9 +203,7 @@ export class AdminCustomerMapper {
     };
   }
 
-  toPaginated(
-    result: { data: any[]; total: number }
-  ) {
+  toPaginated(result: { data: any[]; total: number }) {
     return {
       data: result.data.map((item) => this.toListItem(item)),
       total: result.total,
@@ -232,35 +220,42 @@ export class AdminCustomerMapper {
 
   static toOrderHistory(order: OrderWithVendor): CustomerOrderHistoryDto {
     const createdAt = new Date(order.createdAt);
-    const dto       = new CustomerOrderHistoryDto();
-    dto.orderId     = order.id;
+    const dto = new CustomerOrderHistoryDto();
+    dto.orderId = order.id;
     dto.orderNumber = order.orderNumber;
-    dto.vendorName  = order.vendor.businessName ?? 'Unknown';
-    dto.vendorEmail = order.vendor.publicEmail  ?? '';
+    dto.vendorName = order.vendor.businessName ?? 'Unknown';
+    dto.vendorEmail = order.vendor.publicEmail ?? '';
     dto.totalAmount = order.totalAmount;
-    dto.status      = order.status;
+    dto.status = order.status;
 
     dto.date = createdAt.toLocaleDateString('en-US', {
       month: 'long',
-      day:   'numeric',
-      year:  'numeric',
+      day: 'numeric',
+      year: 'numeric',
     });
 
     dto.time = createdAt.toLocaleTimeString('en-US', {
-      hour:    'numeric',
-      minute:  '2-digit',
-      hour12:  true,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
     });
 
     return dto;
   }
 
   toDetailResponse(
-    raw:   CustomerRawData,
-    page:  number,
+    raw: CustomerRawData,
+    page: number,
     limit: number,
   ): CustomerDetailResponseDto {
-    const { customer, orderStats, orders, orderCount, lastOrderedAt, reportsFiled } = raw;
+    const {
+      customer,
+      orderStats,
+      orders,
+      orderCount,
+      lastOrderedAt,
+      reportsFiled,
+    } = raw;
 
     const getCount = (s: OrderStatus): number =>
       orderStats.find((g) => g.status === s)?._count?.status ?? 0;
@@ -274,73 +269,73 @@ export class AdminCustomerMapper {
       0,
     );
 
-    const dto                = new CustomerDetailResponseDto();
+    const dto = new CustomerDetailResponseDto();
 
-    dto.id                   = customer.id;
-    dto.userId               = customer.userId;
-    dto.fullName             = customer.user.name  ?? '';
-    dto.email                = customer.user.email;
-    dto.avatar               = customer.avatar;
-    dto.dateOfBirth          = customer.dateOfBirth;
-    dto.cityOfResidence      = customer.address;
-    dto.phoneNumber          = customer.phoneNumber;
-    dto.joinedAt             = customer.user.createdAt;
-    dto.totalOrders          = totalOrders;
-    dto.totalSpent           = totalSpent;
-    dto.completedOrders      = getCount(OrderStatus.COMPLETED);
-    dto.cancelledOrders      = getCount(OrderStatus.CANCELLED);
-    dto.incompleteOrders     = getCount(OrderStatus.PENDING);
-    dto.reportsFiled         = reportsFiled;
-    dto.lastOrderedAt        = lastOrderedAt;
-    dto.orders               = orders.map(AdminCustomerMapper.toOrderHistory);
-    dto.orderTotal           = orderCount;
-    dto.orderPage            = page;
-    dto.orderLimit           = limit;
+    dto.id = customer.id;
+    dto.userId = customer.userId;
+    dto.fullName = customer.user.name ?? '';
+    dto.email = customer.user.email;
+    dto.avatar = customer.avatar;
+    dto.dateOfBirth = customer.dateOfBirth;
+    dto.cityOfResidence = customer.address;
+    dto.phoneNumber = customer.phoneNumber;
+    dto.joinedAt = customer.user.createdAt;
+    dto.totalOrders = totalOrders;
+    dto.totalSpent = totalSpent;
+    dto.completedOrders = getCount(OrderStatus.COMPLETED);
+    dto.cancelledOrders = getCount(OrderStatus.CANCELLED);
+    dto.incompleteOrders = getCount(OrderStatus.PENDING);
+    dto.reportsFiled = reportsFiled;
+    dto.lastOrderedAt = lastOrderedAt;
+    dto.orders = orders.map(AdminCustomerMapper.toOrderHistory);
+    dto.orderTotal = orderCount;
+    dto.orderPage = page;
+    dto.orderLimit = limit;
 
     return dto;
   }
 
   toReportQueueItem(raw: ReportQueueRaw): CustomerReportQueueItemDto {
-    const dto         = new CustomerReportQueueItemDto();
-    dto.customerId    = raw.customer.id;
-    dto.customerCode  = `#${raw.customerId.slice(0, 6).toUpperCase()}`;
-    dto.fullName      = raw.customer.user.name  ?? 'Unknown';
-    dto.email         = raw.customer.user.email;
-    dto.avatar        = raw.customer.avatar;
-    dto.reportCount   = raw.reportCount;
-    dto.vendorCount   = raw.vendorCount;
+    const dto = new CustomerReportQueueItemDto();
+    dto.customerId = raw.customer.id;
+    dto.customerCode = `#${raw.customerId.slice(0, 6).toUpperCase()}`;
+    dto.fullName = raw.customer.user.name ?? 'Unknown';
+    dto.email = raw.customer.user.email;
+    dto.avatar = raw.customer.avatar;
+    dto.reportCount = raw.reportCount;
+    dto.vendorCount = raw.vendorCount;
     return dto;
   }
 
   toReportQueueResponse(
-    raw:   ReportQueueRawData,
-    page:  number,
+    raw: ReportQueueRawData,
+    page: number,
     limit: number,
   ): CustomerReportQueueResponseDto {
-    const dto   = new CustomerReportQueueResponseDto();
-    dto.data    = raw.items.map(this.toReportQueueItem);
-    dto.total   = raw.total;
-    dto.page    = page;
-    dto.limit   = limit;
+    const dto = new CustomerReportQueueResponseDto();
+    dto.data = raw.items.map(this.toReportQueueItem);
+    dto.total = raw.total;
+    dto.page = page;
+    dto.limit = limit;
     return dto;
   }
 
   toReportingVendor(raw: {
-    vendorId:    string;
+    vendorId: string;
     reportCount: number;
     vendor: {
-      id:           string;
-      vendorCode:   string;
+      id: string;
+      vendorCode: string;
       businessName: string | null;
-      coverImage:   string | null;
+      coverImage: string | null;
     };
   }): ReportingVendorDto {
-    const dto         = new ReportingVendorDto();
-    dto.vendorId      = raw.vendor.id;
-    dto.vendorCode    = `${raw.vendor.vendorCode}`;
-    dto.businessName  = raw.vendor.businessName ?? 'Unknown';
-    dto.coverImage    = raw.vendor.coverImage;
-    dto.reportCount   = raw.reportCount;
+    const dto = new ReportingVendorDto();
+    dto.vendorId = raw.vendor.id;
+    dto.vendorCode = `${raw.vendor.vendorCode}`;
+    dto.businessName = raw.vendor.businessName ?? 'Unknown';
+    dto.coverImage = raw.vendor.coverImage;
+    dto.reportCount = raw.reportCount;
     return dto;
   }
 
@@ -352,18 +347,18 @@ export class AdminCustomerMapper {
     const getCount = (status: string): number =>
       customer.orders.filter((o) => o.status === status).length;
 
-    const dto                = new CustomerReportDetailResponseDto();
-    
-    dto.customerId           = customer.id;
-    dto.customerCode         = `#${customer.id.slice(0, 5).toUpperCase()}`;
-    dto.fullName             = customer.user.name ?? 'Unknown';
-    dto.avatar               = customer.avatar;
-    dto.completedOrders      = getCount('COMPLETED');
-    dto.cancelledOrders      = getCount('CANCELLED');
-    dto.incompleteOrders     = getCount('PENDING');
-    dto.reportCount          = totalReportCount;
-    dto.vendorCount          = vendorGroups.length;
-    dto.lastOrderedAt        = lastOrderedAt;
+    const dto = new CustomerReportDetailResponseDto();
+
+    dto.customerId = customer.id;
+    dto.customerCode = `#${customer.id.slice(0, 5).toUpperCase()}`;
+    dto.fullName = customer.user.name ?? 'Unknown';
+    dto.avatar = customer.avatar;
+    dto.completedOrders = getCount('COMPLETED');
+    dto.cancelledOrders = getCount('CANCELLED');
+    dto.incompleteOrders = getCount('PENDING');
+    dto.reportCount = totalReportCount;
+    dto.vendorCount = vendorGroups.length;
+    dto.lastOrderedAt = lastOrderedAt;
 
     dto.vendors = vendorGroups
       .map(this.toReportingVendor)
@@ -374,75 +369,76 @@ export class AdminCustomerMapper {
 
   toReportItem(
     report: { id: string; createdAt: Date },
-    index:  number,
+    index: number,
   ): ReportItemDto {
-    const dto         = new ReportItemDto();
-    dto.reportId      = report.id;
-    dto.reportNumber  = `#${report.id.slice(0, 5).toUpperCase()}`;
-    dto.createdAt     = report.createdAt;
-    dto.displayDate   = new Date(report.createdAt).toLocaleDateString('en-US', {
-      month: '2-digit',
-      day:   '2-digit',
-      year:  'numeric',
-    }).replace(/\//g, '-');    
+    const dto = new ReportItemDto();
+    dto.reportId = report.id;
+    dto.reportNumber = `#${report.id.slice(0, 5).toUpperCase()}`;
+    dto.createdAt = report.createdAt;
+    dto.displayDate = new Date(report.createdAt)
+      .toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+      })
+      .replace(/\//g, '-');
     return dto;
   }
 
   toVendorReportGroup(raw: VendorReportsRaw): VendorReportGroupDto {
-    const dto         = new VendorReportGroupDto();
+    const dto = new VendorReportGroupDto();
 
-    dto.vendorId      = raw.vendor.id;
-    dto.vendorCode    = `${raw.vendor.vendorCode}`;
-    dto.businessName  = raw.vendor.businessName ?? 'Unknown';
-    dto.coverImage    = raw.vendor.coverImage;
-    dto.reportCount   = raw.reports.length;
-    dto.reports       = raw.reports.map((r, i) =>
-      this.toReportItem(r, i),
-    );
+    dto.vendorId = raw.vendor.id;
+    dto.vendorCode = `${raw.vendor.vendorCode}`;
+    dto.businessName = raw.vendor.businessName ?? 'Unknown';
+    dto.coverImage = raw.vendor.coverImage;
+    dto.reportCount = raw.reports.length;
+    dto.reports = raw.reports.map((r, i) => this.toReportItem(r, i));
     return dto;
   }
 
   toCustomerVendorReports(
     raw: CustomerVendorReportsRawData,
   ): CustomerVendorReportsResponseDto {
-    const dto     = new CustomerVendorReportsResponseDto();
-    dto.vendors   = raw.vendorGroups
+    const dto = new CustomerVendorReportsResponseDto();
+    dto.vendors = raw.vendorGroups
       .map(this.toVendorReportGroup)
       .sort((a, b) => b.reportCount - a.reportCount);
     return dto;
   }
 
   toReportDetailItem(raw: OrderReportRaw): ReportDetailItemDto {
-    const dto          = new ReportDetailItemDto();
+    const dto = new ReportDetailItemDto();
 
-    dto.reportId       = raw.id;
-    dto.reportNumber   = `#${raw.id.slice(0, 5).toUpperCase()}`;
-    dto.reason         = REASON_LABEL[raw.reason] ?? raw.reason;
-    dto.description    = raw.description;
-    dto.status         = raw.status;
-    dto.createdAt      = raw.createdAt;
-    dto.displayDate    = new Date(raw.createdAt)
+    dto.reportId = raw.id;
+    dto.reportNumber = `#${raw.id.slice(0, 5).toUpperCase()}`;
+    dto.reason = REASON_LABEL[raw.reason] ?? raw.reason;
+    dto.description = raw.description;
+    dto.status = raw.status;
+    dto.createdAt = raw.createdAt;
+    dto.displayDate = new Date(raw.createdAt)
       .toLocaleDateString('en-US', {
         month: '2-digit',
-        day:   '2-digit',
-        year:  'numeric',
+        day: '2-digit',
+        year: 'numeric',
       })
       .replace(/\//g, '-');
     return dto;
   }
 
   toVendorReportGroup1(raw: VendorReportsRaw1): VendorReportGroupDto2 {
-    const dto        = new VendorReportGroupDto2();
+    const dto = new VendorReportGroupDto2();
 
-    dto.vendorId     = raw.vendor.id;
-    dto.vendorCode   = `#${raw.vendor.vendorCode}`;
+    dto.vendorId = raw.vendor.id;
+    dto.vendorCode = `#${raw.vendor.vendorCode}`;
     dto.businessName = raw.vendor.businessName ?? 'Unknown';
-    dto.coverImage   = raw.vendor.coverImage;
-    dto.reportCount  = raw.reports.length;
-    dto.reports      = raw.reports
+    dto.coverImage = raw.vendor.coverImage;
+    dto.reportCount = raw.reports.length;
+    dto.reports = raw.reports
       .map((r) => this.toReportDetailItem(r))
-      .sort((a, b) =>                 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
     return dto;
   }
@@ -450,11 +446,10 @@ export class AdminCustomerMapper {
   toCustomerVendorReports1(
     raw: CustomerVendorReportsRawData1,
   ): CustomerVendorReportsResponseDto2 {
-    const dto   = new CustomerVendorReportsResponseDto2();
+    const dto = new CustomerVendorReportsResponseDto2();
     dto.vendors = raw.vendorGroups
       .map((r) => this.toVendorReportGroup1(r))
-      .sort((a, b) => b.reportCount - a.reportCount); 
+      .sort((a, b) => b.reportCount - a.reportCount);
     return dto;
   }
 }
-

@@ -1,4 +1,4 @@
-import { VendorTruckReviewsQueryDto } from "../../presentation/dto/review.dto";
+import { VendorTruckReviewsQueryDto } from '../../presentation/dto/review.dto';
 
 export interface CreateVendorTruckReviewInput {
   vendorId: string;
@@ -20,7 +20,6 @@ export interface CreateFoodReviewInput {
 }
 
 export interface IVendorTruckReviewRepository {
-
   findExistingReview(data: {
     vendorId: string;
     customerId: string;
@@ -50,7 +49,7 @@ export interface IVendorTruckReviewRepository {
 
   countVendorTruckReviews(vendorId: string): Promise<number>;
 
-   findFoodAllTags(): Promise<
+  findFoodAllTags(): Promise<
     {
       id: string;
       name: string;
@@ -63,7 +62,9 @@ export interface IVendorTruckReviewRepository {
     orderItemId: string,
   ): Promise<{ id: string } | null>;
 
-  foodReviewValidateTags(tagIds: string[]): Promise<{ id: string; name: string }[]>;
+  foodReviewValidateTags(
+    tagIds: string[],
+  ): Promise<{ id: string; name: string }[]>;
 
   createFoodReview(data: CreateFoodReviewInput): Promise<any>;
 }

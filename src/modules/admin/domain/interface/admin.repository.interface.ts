@@ -1,4 +1,4 @@
-import { 
+import {
   VerificationStatus,
   KycStatus,
   SubscriptionStatus,
@@ -7,13 +7,11 @@ import {
   VendorSubscription,
   Prisma,
   Vendor,
- } from '@prisma/client';
+} from '@prisma/client';
 
-import { 
-  AnalyticsSummaryRawData,
- } from '../../infrastructure/mapper/admin-analytics.mapper';
+import { AnalyticsSummaryRawData } from '../../infrastructure/mapper/admin-analytics.mapper';
 
-import { 
+import {
   VendorVerificationSort,
   DashboardRevenueMetric,
   DashboardRevenueRange,
@@ -21,7 +19,7 @@ import {
   AdminVendorOrderStatusFilter,
   AdminVendorOrderSort,
   UpdateVendorStatusData,
- } from '../../presentation/dto/admin.dto';
+} from '../../presentation/dto/admin.dto';
 
 export interface FindVendorVerificationsInput {
   status?: VerificationStatus;
@@ -172,10 +170,9 @@ export interface AdminVendorDocumentRow {
   expiresAt?: Date | null;
 }
 
-export type VendorSubscriptionWithPlan =
-  Prisma.VendorSubscriptionGetPayload<{
-    include: { subscriptionPlan: true };
-  }>;
+export type VendorSubscriptionWithPlan = Prisma.VendorSubscriptionGetPayload<{
+  include: { subscriptionPlan: true };
+}>;
 
 export enum VendorVerificationStatus {
   PENDING = 'PENDING',
@@ -198,28 +195,22 @@ export interface IAdminVendorVerificationRepository {
   getManagementStats(): Promise<VendorVerificationStatsResult>;
 
   findDetailById(verificationId: string): Promise<any | null>;
-  
-  findDocumentFileByVerificationId(
-    verificationId: string,
-  ): Promise<any | null>;
+
+  findDocumentFileByVerificationId(verificationId: string): Promise<any | null>;
 
   getOverview(): Promise<AdminDashboardOverviewRaw>;
 
-  findSubscriptionRevenueRows(startDate: Date): Promise<RevenueSubscriptionRow[]>;
+  findSubscriptionRevenueRows(
+    startDate: Date,
+  ): Promise<RevenueSubscriptionRow[]>;
 
   findSalesRows(startDate: Date): Promise<SalesOrderRow[]>;
 
-  findVerificationForDecision(
-    verificationId: string,
-  ): Promise<any | null>;
+  findVerificationForDecision(verificationId: string): Promise<any | null>;
 
-  approveVerification(
-    verificationId: string,
-  ): Promise<any>;
+  approveVerification(verificationId: string): Promise<any>;
 
-  rejectVerification(
-    verificationId: string,
-  ): Promise<any>;
+  rejectVerification(verificationId: string): Promise<any>;
 
   findVendorAccounts(
     input: FindAdminVendorAccountsInput,
@@ -235,9 +226,11 @@ export interface IAdminVendorVerificationRepository {
     endDate: Date;
   }): Promise<AdminVendorOverviewOrderRow[]>;
 
-  findVendorAllCompletedOrders(vendorId: string): Promise<{
-    totalAmount: number;
-  }[]>;
+  findVendorAllCompletedOrders(vendorId: string): Promise<
+    {
+      totalAmount: number;
+    }[]
+  >;
 
   findVendorProfileViewsForOverview(data: {
     vendorId: string;
@@ -273,18 +266,13 @@ export interface IAdminVendorVerificationRepository {
     input: FindAdminVendorAccountOrdersInput,
   ): Promise<AdminVendorAccountOrdersResult>;
 
-  findVendorDocuments(
-    vendorId: string,
-  ): Promise<VendorVerification | null>;
+  findVendorDocuments(vendorId: string): Promise<VendorVerification | null>;
 
   findSubscriptionByVendorId(
     vendorId: string,
   ): Promise<VendorSubscriptionWithPlan | null>;
 
-  updateStatus(
-    vendorId: string,
-    data: UpdateVendorStatusData,
-  ): Promise<Vendor>;
+  updateStatus(vendorId: string, data: UpdateVendorStatusData): Promise<Vendor>;
 
   getAnalyticalSummary(): Promise<AnalyticsSummaryRawData>;
 }

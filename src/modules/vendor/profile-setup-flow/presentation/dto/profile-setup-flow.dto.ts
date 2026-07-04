@@ -1,25 +1,25 @@
 import {
-  IsString, 
+  IsString,
   IsNumber,
-  IsEmail, 
-  IsOptional, 
-  IsArray, 
-  IsUrl, 
+  IsEmail,
+  IsOptional,
+  IsArray,
+  IsUrl,
   ValidateNested,
-  IsInt, 
-  Min, 
-  Max, 
-  IsBoolean, 
-  IsDateString, 
+  IsInt,
+  Min,
+  Max,
+  IsBoolean,
+  IsDateString,
   ValidateIf,
   IsNotEmpty,
   MinLength,
   MaxLength,
   ArrayNotEmpty,
   IsUUID,
- } from 'class-validator';
+} from 'class-validator';
 
-import { Type, Transform, plainToInstance  } from 'class-transformer';
+import { Type, Transform, plainToInstance } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -40,7 +40,7 @@ export class SetupProfileDto {
 
   @IsString()
   bio!: string;
-  
+
   @IsArray()
   @ArrayNotEmpty()
   @IsUUID('4', { each: true })
@@ -62,9 +62,7 @@ export class SetupProfileDto {
 
     const arr = typeof value === 'string' ? JSON.parse(value) : value;
 
-    return arr.map((item: any) =>
-      plainToInstance(SocialLinkDto, item),
-    );
+    return arr.map((item: any) => plainToInstance(SocialLinkDto, item));
   })
   socialLinks?: SocialLinkDto[];
 }
@@ -139,8 +137,7 @@ export class ServiceAreaDto {
 }
 
 export class UpdateServiceAreaDto extends PartialType(ServiceAreaDto) {
-  
-  radius?: never; 
+  radius?: never;
 
   @IsOptional()
   @IsNumber()
@@ -157,10 +154,10 @@ export class UpdateServiceAreaDto extends PartialType(ServiceAreaDto) {
   @ApiProperty({ example: 'Angeles, California, 3525 Hillhaven Drive' })
   address?: string;
 
-  @ValidateIf(o => !o.latitude && !o.longitude && !o.address)
+  @ValidateIf((o) => !o.latitude && !o.longitude && !o.address)
   validateAtLeastOne() {
     throw new Error('At least one field must be provided');
-  } 
+  }
 }
 
 export class CreateCuisineDto {

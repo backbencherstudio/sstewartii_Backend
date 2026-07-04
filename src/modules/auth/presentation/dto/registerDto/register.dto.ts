@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  IsEnum,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum AccountType {
@@ -7,7 +13,6 @@ export enum AccountType {
 }
 
 export class RegisterDto {
-    
   @IsString()
   @ApiProperty({ example: 'sahadat' })
   name!: string;

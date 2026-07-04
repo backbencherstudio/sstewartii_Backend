@@ -9,21 +9,16 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 
-import { 
-  AdminVendorVerificationService,
- } from '../../application/admin.service';
- import { AdminCustomerService } from '../../application/admin.customer.service';
+import { AdminVendorVerificationService } from '../../application/admin.service';
+import { AdminCustomerService } from '../../application/admin.customer.service';
 
- import {
-  ApiOperation,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiParam } from '@nestjs/swagger';
 
-import { 
+import {
   CustomerOrderHistoryQueryDto,
   CustomerReportQueueQueryDto,
- } from '../dto/customer-query.dto';
-import { 
+} from '../dto/customer-query.dto';
+import {
   VendorVerificationListQueryDto,
   AdminVendorVerificationDocumentType,
   AdminDashboardOverviewQueryDto,
@@ -32,8 +27,8 @@ import {
   AdminVendorAccountOverviewQueryDto,
   AdminVendorAccountOrdersQueryDto,
   UpdateVendorStatusDto,
- } from '../dto/admin.dto';
-import { 
+} from '../dto/admin.dto';
+import {
   VendorVerificationManagementResponseDto,
   AdminVendorVerificationDetailResponseDto,
   AdminVendorVerificationFileResponseDto,
@@ -46,16 +41,14 @@ import {
   AdminVendorSubscriptionResponseDto,
   AdminVendorStatusResponseDto,
 } from '../dto/admin.response.dto';
-import { 
+import {
   CustomerDetailResponseDto,
   CustomerReportQueueResponseDto,
   CustomerReportDetailResponseDto,
   CustomerVendorReportsResponseDto,
   CustomerVendorReportsResponseDto2,
- } from '../dto/customer-detail.response.dto';
-import { 
-  AnalyticsSummaryResponseDto 
-} from '../dto/analytics-summary.response.dto';
+} from '../dto/customer-detail.response.dto';
+import { AnalyticsSummaryResponseDto } from '../dto/analytics-summary.response.dto';
 
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -145,7 +138,7 @@ export class AdminController {
     @Query() query: AdminVendorAccountListQueryDto,
   ): Promise<AdminVendorAccountListResponseDto> {
     return this.service.getVendorAccounts(query);
-  } 
+  }
 
   @Get('vendors/:vendorId/overview')
   @UseGuards(RoleGuard)
@@ -173,9 +166,7 @@ export class AdminController {
   async getVendorDocuments(
     @Param('vendorId') vendorId: string,
   ): Promise<AdminVendorDocumentsResponseDto> {
-    return this.service.getVendorDocuments(
-      vendorId,
-    );
+    return this.service.getVendorDocuments(vendorId);
   }
 
   @Get('vendors/accounts/:vendorId/subscription')
@@ -194,21 +185,14 @@ export class AdminController {
   updateVendorStatus(
     @Param('id') vendorId: string,
     @Body() dto: UpdateVendorStatusDto,
-  ) : Promise<AdminVendorStatusResponseDto>{
-    return this.service.updateVendorStatus(
-      vendorId,
-      dto.status,
-      dto.reason,
-    );
+  ): Promise<AdminVendorStatusResponseDto> {
+    return this.service.updateVendorStatus(vendorId, dto.status, dto.reason);
   }
-  
+
   @Get('customer-list')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
-  async getCustomers(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10
-  ) {
+  async getCustomers(@Query('page') page = 1, @Query('limit') limit = 10) {
     return this.adminCustomerService.getCustomers({
       page: Number(page),
       limit: Number(limit),
@@ -219,7 +203,9 @@ export class AdminController {
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   @ResponseMessage('Customer report queue fetched successfully')
-  @ApiOperation({ summary: 'Get reported customer queue with search, sort, pagination' })
+  @ApiOperation({
+    summary: 'Get reported customer queue with search, sort, pagination',
+  })
   async getReportQueue(
     @Query() query: CustomerReportQueueQueryDto,
   ): Promise<CustomerReportQueueResponseDto> {
@@ -243,11 +229,13 @@ export class AdminController {
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   @ResponseMessage('Customer report details fetched successfully')
-  @ApiOperation({ summary: 'Get customer report details with vendor breakdown' })
+  @ApiOperation({
+    summary: 'Get customer report details with vendor breakdown',
+  })
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
   async getCustomerReportDetail(
     @Param('customerId', ParseUUIDPipe) customerId: string,
-  ): Promise<CustomerReportDetailResponseDto> { 
+  ): Promise<CustomerReportDetailResponseDto> {
     return this.adminCustomerService.getCustomerReportDetail(customerId);
   }
 
@@ -255,7 +243,9 @@ export class AdminController {
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   @ResponseMessage('Customer vendor reports fetched successfully')
-  @ApiOperation({ summary: 'Get all vendor reports against a customer grouped by vendor' })
+  @ApiOperation({
+    summary: 'Get all vendor reports against a customer grouped by vendor',
+  })
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
   async getCustomerVendorReports(
     @Param('customerId', ParseUUIDPipe) customerId: string,
@@ -267,7 +257,9 @@ export class AdminController {
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   @ResponseMessage('Customer vendor reports fetched successfully')
-  @ApiOperation({ summary: 'Get vendor reports against customer with reason and details' })
+  @ApiOperation({
+    summary: 'Get vendor reports against customer with reason and details',
+  })
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
   async getCustomerVendorReports2(
     @Param('customerId', ParseUUIDPipe) customerId: string,

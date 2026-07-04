@@ -10,9 +10,7 @@ import type {
 export class HelpCenterRepository implements IHelpCenterRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createHelpTicket(
-    data: CreateHelpTicketInput,
-  ): Promise<HelpTicketView> {
+  async createHelpTicket(data: CreateHelpTicketInput): Promise<HelpTicketView> {
     return this.prisma.helpCenterTicket.create({
       data: {
         userId: data.userId,

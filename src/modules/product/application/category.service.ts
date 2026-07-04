@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 
 import { randomUUID } from 'crypto';
 import { Category } from '../domain/entities/category.entity';
@@ -19,12 +15,10 @@ export class CategoryService {
     private readonly categoryMapper: CategoryMapper,
   ) {}
 
- async searchCategories(
+  async searchCategories(
     query: CategorySearchQueryDto,
   ): Promise<CategoryResponseDto[]> {
-    const categories = await this.categoryRepo.searchCategories(
-      query.keyword,
-    );
+    const categories = await this.categoryRepo.searchCategories(query.keyword);
 
     return this.categoryMapper.toListResponse(categories);
   }

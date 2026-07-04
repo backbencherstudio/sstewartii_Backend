@@ -1,20 +1,20 @@
-import { 
-  Injectable, 
-  Inject, 
+import {
+  Injectable,
+  Inject,
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
 import type { IProfileSetupRepository } from '../domain/interface/profile.setup.interface';
 import type { IVendorRepository } from '../../vendor/domain/interface/vendor.repository.interface';
 
-import { 
+import {
   ServiceAreaDto,
   UpdateServiceAreaDto,
   UpsertOperationHoursDto,
   CreateCuisineDto,
   SetupProfileDto,
- } from '../presentation/dto/profile-setup-flow.dto';
-import { 
+} from '../presentation/dto/profile-setup-flow.dto';
+import {
   CuisineResponseDto,
   VendorProfileSetupResponseDto,
 } from '../presentation/dto/profile-setup-flow.response.dto';
@@ -24,14 +24,13 @@ import { VendorProfileSetupMapper } from '../infrastructure/mapper/vendor-profil
 
 @Injectable()
 export class ProfileSetupFlowService {
-
   constructor(
     @Inject('IProfileSetupRepository')
     private readonly vendorRepository: IProfileSetupRepository,
 
     @Inject('IStorageService')
     private readonly storageService: IStorageService,
-    
+
     @Inject('IVendorRepository')
     private readonly vendorRepo: IVendorRepository,
 
@@ -46,18 +45,14 @@ export class ProfileSetupFlowService {
     let imageUrl: string | undefined;
 
     if (file) {
-      imageUrl = await this.storageService.uploadFile(
-        file,
-        'vendor/profile',
-      );
+      imageUrl = await this.storageService.uploadFile(file, 'vendor/profile');
     }
 
-    const vendor =
-      await this.vendorRepository.updateProfileAndSyncRelations(
-        userId,
-        dto,
-        imageUrl,
-      );
+    const vendor = await this.vendorRepository.updateProfileAndSyncRelations(
+      userId,
+      dto,
+      imageUrl,
+    );
 
     return this.vendorProfileSetupMapper.toResponse(vendor);
   }
@@ -66,24 +61,16 @@ export class ProfileSetupFlowService {
     userId: string,
     dto: UpsertOperationHoursDto,
   ): Promise<void> {
-
     for (const h of dto.hours) {
       if (!h.isClosed && (!h.openTime || !h.closeTime)) {
         throw new Error('Open and close time required when not closed');
       }
     }
 
-    return this.vendorRepository.createOperationHourVersion(
-        userId,
-        dto.hours,
-      );
-    }
+    return this.vendorRepository.createOperationHourVersion(userId, dto.hours);
+  }
 
-  async upsertServiceArea(
-    userId: string,
-    dto: ServiceAreaDto,
-  ): Promise<void> {
-
+  async upsertServiceArea(userId: string, dto: ServiceAreaDto): Promise<void> {
     if (dto.radius > 50) {
       throw new Error('Radius too large (max 50km allowed)');
     }
@@ -95,16 +82,15 @@ export class ProfileSetupFlowService {
     userId: string,
     dto: UpdateServiceAreaDto,
   ): Promise<void> {
-
     const vendor = await this.vendorRepo.findByOwnerId(userId);
-    
-     if (!vendor) {
+
+    if (!vendor) {
       throw new BadRequestException('Vendor profile not found');
     }
 
     if (!dto.latitude && !dto.longitude && !dto.address) {
-    throw new BadRequestException('At least one field must be provided');
-  }
+      throw new BadRequestException('At least one field must be provided');
+    }
 
     return this.vendorRepository.updateServiceArea(vendor.id, dto);
   }
@@ -128,10 +114,7 @@ export class ProfileSetupFlowService {
     let imageUrl: string | undefined;
 
     if (file) {
-      imageUrl = await this.storageService.uploadFile(
-        file,
-        'cuisines',
-      );
+      imageUrl = await this.storageService.uploadFile(file, 'cuisines');
     }
 
     const cuisine = await this.vendorRepository.createCuisine({
@@ -147,5 +130,4 @@ export class ProfileSetupFlowService {
 
     return this.vendorProfileSetupMapper.toListResponse(cuisines);
   }
-
 }

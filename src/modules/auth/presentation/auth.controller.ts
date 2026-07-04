@@ -1,12 +1,12 @@
-import { 
-  Controller, 
-  Get, 
+import {
+  Controller,
+  Get,
   Post,
-  Body, 
-  Req, 
+  Body,
+  Req,
   Res,
-  UnauthorizedException, 
-  UseGuards 
+  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
@@ -18,11 +18,7 @@ import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
 
 import { RegisterDto } from './dto/registerDto/register.dto';
 import { LoginDto } from './dto/loginDto/login.dto';
-import { 
-  SendOtpDto, 
-  VerifyOtpDto,
-  NewPasswordDto,
-} from './dto/mail/otp.dto';
+import { SendOtpDto, VerifyOtpDto, NewPasswordDto } from './dto/mail/otp.dto';
 
 import { CurrentUserResponseDto } from './dto/userDto/user.response.dto';
 
@@ -42,53 +38,51 @@ import { CurrentUser } from '../decorators/get-user.decorator';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-    
   constructor(
     private readonly authService: AuthService,
     private readonly jwtService: JwtService,
-    private readonly configService:ConfigService
+    private readonly configService: ConfigService,
   ) {}
-  
+
   @Post('register')
   @Public()
   @ResponseMessage('Registration Successfull.')
   @ApiOperation({ summary: 'Registration' })
   @ApiResponse({ status: 201, description: 'Registration Successfull' })
-    register(@Body() registerDto: RegisterDto ) {
-      return this.authService.register(registerDto);
+  register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
 
   @Post('login')
   @Public()
   @ResponseMessage('Login Succesful')
   async login(
-    @Body() loginDto: LoginDto, 
-    @Res({ passthrough: true }) res: Response 
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-
     const response = await this.authService.login(loginDto);
     const refreshToken = response.data.refreshToken;
 
     res.cookie('refreshToken', response.data.refreshToken, {
-      httpOnly: true, 
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict', 
+      sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000,
     });
-    
+
     return {
       message: response.message,
       data: {
         accessToken: response.data.accessToken,
         refreshToken: refreshToken,
-        user: response.data.user
-      }
+        user: response.data.user,
+      },
     };
   }
 
   @Get('google/url')
   @Public()
-  async googleAuth(@Req() req){
+  async googleAuth(@Req() req) {
     return {
       url: this.authService.getGoogleAuthUrl(),
     };
@@ -96,9 +90,8 @@ export class AuthController {
 
   @Get('google/callback')
   @Public()
-  @UseGuards(GoogleOAuthGuard) 
+  @UseGuards(GoogleOAuthGuard)
   async googleAuthRedirect(@Req() req, @Res() res: Response) {
-    
     const { tokens } = await this.authService.validateGoogleLogin(req.user);
 
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -108,48 +101,45 @@ export class AuthController {
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    const frontendUrl = this.configService.get<string>('redirect_url.frontEndRedirect');
-    
-   return res.redirect(`${frontendUrl}?token=${tokens.accessToken}`);
+    const frontendUrl = this.configService.get<string>(
+      'redirect_url.frontEndRedirect',
+    );
+
+    return res.redirect(`${frontendUrl}?token=${tokens.accessToken}`);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async me(
-    @CurrentUser() user: AuthUser,
-  ): Promise<CurrentUserResponseDto> {
+  async me(@CurrentUser() user: AuthUser): Promise<CurrentUserResponseDto> {
     return this.authService.getCurrentUser(user.id);
   }
 
   @Post('refresh')
   @Public()
   async refresh(
-    @Req() req: Request, 
-    @Res({ passthrough: true }) res: Response
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
-
-    const refreshToken =
-      req.cookies['refreshToken'] ||
-      req.body.refreshToken;
+    const refreshToken = req.cookies['refreshToken'] || req.body.refreshToken;
 
     if (!refreshToken) throw new UnauthorizedException('Refresh token missing');
 
     const payload = this.jwtService.verify(refreshToken, {
       secret: process.env.JWT_REFRESH_SECRET,
     });
-    
+
     const tokens = await this.authService.refreshToken(
       payload.sub,
       refreshToken,
     );
-    
+
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge:  24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     });
-    
+
     return { accessToken: tokens.accessToken };
   }
 
@@ -185,8 +175,8 @@ export class AuthController {
   @Public()
   @ResponseMessage('Password changed successfully.')
   async resetPassword(
-    @Body('resetToken') resetToken: string, 
-    @Body() dto: NewPasswordDto 
+    @Body('resetToken') resetToken: string,
+    @Body() dto: NewPasswordDto,
   ) {
     await this.authService.resetPasswordWithToken(resetToken, dto.newPassword);
     return null;
@@ -195,11 +185,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @ResponseMessage('Logged out successfully.')
-  async logout(
-    @CurrentUser() user: AuthUser,
-  ): Promise<void> {
-    const userId = user.id; 
+  async logout(@CurrentUser() user: AuthUser): Promise<void> {
+    const userId = user.id;
     await this.authService.logout(userId);
   }
-
 }

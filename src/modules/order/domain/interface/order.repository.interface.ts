@@ -1,4 +1,4 @@
-import { PaymentMethod, Prisma, OrderReportReason  } from '@prisma/client';
+import { PaymentMethod, Prisma, OrderReportReason } from '@prisma/client';
 import { VendorOrderHistoryQueryDto } from '../../presentation/dto/order.dto';
 
 export interface CreateOrderFromCartInput {
@@ -25,13 +25,13 @@ export interface CreateOrderItemInput {
   lineTotal: number;
 
   choiceOptions: {
-    id: string;      
+    id: string;
     name: string;
     price: number;
   }[];
 
   addOns: {
-    id: string;      
+    id: string;
     name: string;
     price: number;
   }[];
@@ -54,17 +54,13 @@ export interface CreateOrderReportInput {
 }
 
 export interface IOrderRepository {
-  
   createOrderFromCart(input: CreateOrderFromCartInput): Promise<any>;
 
   findOrderSummaryById(orderId: string): Promise<any | null>;
 
   findOrderTrackById(orderId: string): Promise<any | null>;
 
-  cancelOrder(data: {
-    orderId: string;
-    cancelledAt: Date;
-  }): Promise<any>;
+  cancelOrder(data: { orderId: string; cancelledAt: Date }): Promise<any>;
 
   findActiveOrdersByVendorId(vendorId: string): Promise<any[]>;
 
@@ -72,17 +68,11 @@ export interface IOrderRepository {
 
   findVendorOrderForCancel(orderId: string): Promise<any | null>;
 
-  cancelVendorOrder(data: {
-    orderId: string;
-    cancelledAt: Date;
-  }): Promise<any>;
+  cancelVendorOrder(data: { orderId: string; cancelledAt: Date }): Promise<any>;
 
   findVendorOrderForAction(orderId: string): Promise<any | null>;
 
-  acceptVendorOrder(data: {
-    orderId: string;
-    confirmedAt: Date;
-  }): Promise<any>;
+  acceptVendorOrder(data: { orderId: string; confirmedAt: Date }): Promise<any>;
 
   markVendorOrderReadyForPickup(data: {
     orderId: string;

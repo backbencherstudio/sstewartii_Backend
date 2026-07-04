@@ -1,12 +1,12 @@
 import {
-  Controller, 
+  Controller,
   Req,
-  Post, 
-  Body, 
-  Request, 
-  UploadedFile, 
-  UseInterceptors, 
-  UseGuards, 
+  Post,
+  Body,
+  Request,
+  UploadedFile,
+  UseInterceptors,
+  UseGuards,
   Patch,
   Get,
 } from '@nestjs/common';
@@ -18,17 +18,17 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { RoleGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
-import { 
+import {
   UpsertOperationHoursDto,
   ServiceAreaDto,
   CreateCuisineDto,
   SetupProfileDto,
- } from './dto/profile-setup-flow.dto';
+} from './dto/profile-setup-flow.dto';
 
- import { 
+import {
   CuisineResponseDto,
   VendorProfileSetupResponseDto,
- } from './dto/profile-setup-flow.response.dto';
+} from './dto/profile-setup-flow.response.dto';
 
 import { UpdateServiceAreaDto } from './dto/profile-setup-flow.dto';
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
@@ -50,7 +50,6 @@ export class ProfileSetupFlowController {
     @Body() dto: SetupProfileDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<VendorProfileSetupResponseDto> {
-    
     return this.service.saveProfile(req.user.id, dto, file);
   }
 
@@ -71,10 +70,7 @@ export class ProfileSetupFlowController {
   @UseGuards(RoleGuard)
   @Roles(Role.VENDOR)
   @ResponseMessage('Step 3: Service area saved successfully')
-  async setServiceArea(
-    @Req() req: any,
-    @Body() dto: ServiceAreaDto,
-  ) {
+  async setServiceArea(@Req() req: any, @Body() dto: ServiceAreaDto) {
     const userId = req.user.id;
 
     return this.service.upsertServiceArea(userId, dto);
@@ -85,7 +81,10 @@ export class ProfileSetupFlowController {
   @Roles(Role.VENDOR)
   @ResponseMessage('Service area updated successfully')
   @ApiOperation({ summary: 'Update Service Area' })
-  @ApiResponse({ status: 201, description: 'Service area updated successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Service area updated successfully',
+  })
   async updateServiceArea(
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateServiceAreaDto,

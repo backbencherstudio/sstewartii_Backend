@@ -1,5 +1,4 @@
-
-import { IsOptional, IsIn} from 'class-validator';
+import { IsOptional, IsIn } from 'class-validator';
 
 export class VendorInsightsOverviewQueryDto {
   @IsOptional()

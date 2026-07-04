@@ -16,7 +16,7 @@ export interface CreateCartItemInput {
 }
 
 export interface ICartRepository {
-   findOrCreateCart(data: {
+  findOrCreateCart(data: {
     customerId: string;
     vendorId: string;
   }): Promise<CartOwnerView>;
@@ -29,7 +29,9 @@ export interface ICartRepository {
 
   findCartListByCustomerId(customerId: string): Promise<any[]>;
 
-  findCartOwner(cartId: string): Promise<{ id: string; customerId: string } | null>;
+  findCartOwner(
+    cartId: string,
+  ): Promise<{ id: string; customerId: string } | null>;
 
   deleteCart(cartId: string): Promise<void>;
 
@@ -42,10 +44,7 @@ export interface ICartRepository {
     };
   } | null>;
 
-  updateCartItemQuantity(
-    itemId: string,
-    quantity: number,
-  ): Promise<void>
+  updateCartItemQuantity(itemId: string, quantity: number): Promise<void>;
 
   deleteCartItem(itemId: string): Promise<void>;
 

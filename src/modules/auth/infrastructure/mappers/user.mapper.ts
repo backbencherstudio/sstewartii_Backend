@@ -1,9 +1,9 @@
 import { User } from '../../domain/entities/user.entity';
 
 export class UserMapper {
-    
   static toDomain(raw: any): User {
-    const extractedPermissions = raw.role?.permissions?.map( (rp: any) => rp.permission.name ) ||[];
+    const extractedPermissions =
+      raw.role?.permissions?.map((rp: any) => rp.permission.name) || [];
 
     return new User({
       id: raw.id,
@@ -14,8 +14,8 @@ export class UserMapper {
       role: raw.role,
       isEmailVerified: raw.isEmailVerified,
 
-      googleId:raw.googleId,
-      provider:raw.provider,
+      googleId: raw.googleId,
+      provider: raw.provider,
 
       permissions: extractedPermissions,
       refreshToken: raw.refreshToken,

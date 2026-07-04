@@ -6,14 +6,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 
-import type { ICartRepository, CreateCartItemInput } from '../domain/interface/cart.repository.interface';
+import type {
+  ICartRepository,
+  CreateCartItemInput,
+} from '../domain/interface/cart.repository.interface';
 import { CartMapper } from '../infrastructure/mapper/cart.mapper';
 
-import { 
+import {
   AddCartItemsDto,
-  AddCartItemPayloadDto
+  AddCartItemPayloadDto,
 } from '../presentation/dto/cart.dto';
-import { 
+import {
   CartResponseDto,
   CartListResponseDto,
   CartDetailResponseDto,
@@ -52,10 +55,7 @@ export class CartService {
       ),
     );
 
-    const products = this.assertProductsFound(
-      productResults,
-      normalizedItems,
-    );
+    const products = this.assertProductsFound(productResults, normalizedItems);
 
     const productMap = new Map<string, (typeof products)[number]>();
 
@@ -82,10 +82,7 @@ export class CartService {
         );
       }
 
-      const sizeOptionId = this.resolveSizeOptionId(
-        item.sizeOptionId,
-        product,
-      );
+      const sizeOptionId = this.resolveSizeOptionId(item.sizeOptionId, product);
 
       const resolvedItem: AddCartItemPayloadDto = {
         ...item,
@@ -246,9 +243,7 @@ export class CartService {
     }
 
     if (dto.addOnIds?.length) {
-      const validAddOnIds = new Set(
-        product.addOns.map((item: any) => item.id),
-      );
+      const validAddOnIds = new Set(product.addOns.map((item: any) => item.id));
 
       for (const addOnId of dto.addOnIds) {
         if (!validAddOnIds.has(addOnId)) {
@@ -319,9 +314,7 @@ export class CartService {
       throw new BadRequestException('Unauthorized access');
     }
 
-    const availability = this.resolveAvailability(
-      cart.vendor.operationHours,
-    );
+    const availability = this.resolveAvailability(cart.vendor.operationHours);
 
     const items = cart.items.map((item: any) => {
       let isAvailable = true;
@@ -348,7 +341,7 @@ export class CartService {
           0,
         ),
 
-        lineTotal: 0, 
+        lineTotal: 0,
 
         note: item.note,
 
@@ -374,8 +367,7 @@ export class CartService {
 
     for (const item of items) {
       const lineTotal =
-        (item.unitPrice + item.sizePrice + item.addOnTotal) *
-        item.quantity;
+        (item.unitPrice + item.sizePrice + item.addOnTotal) * item.quantity;
 
       item.lineTotal = lineTotal;
 
@@ -489,9 +481,7 @@ export class CartService {
 
     const nextSlot = todaysHours.find(
       (item) =>
-        !item.isClosed &&
-        item.openTime !== null &&
-        item.openTime > currentTime,
+        !item.isClosed && item.openTime !== null && item.openTime > currentTime,
     );
 
     if (nextSlot?.openTime) {
@@ -507,7 +497,7 @@ export class CartService {
     };
   }
 
-  private formatTime(time: string): string {  
+  private formatTime(time: string): string {
     const [hourStr, minute] = time.split(':');
     const hour = Number(hourStr);
 
@@ -621,5 +611,4 @@ export class CartService {
 
     return CartMapper.toResponse(cart);
   }
-
 }

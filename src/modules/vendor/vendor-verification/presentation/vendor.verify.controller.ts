@@ -14,8 +14,8 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
 
 interface AuthRequest extends Request {
-   user: {
-    id: string; 
+  user: {
+    id: string;
   };
 }
 
@@ -49,13 +49,9 @@ export class VendorVerificationController {
     @Req() req: AuthRequest,
     @UploadedFiles() files: VendorVerificationFiles,
   ): Promise<VendorVerificationResponseDto> {
+    const result = await this.service.uploadDocuments(req.user.id, files);
 
-    const result = await this.service.uploadDocuments(
-      req.user.id,
-      files,
-    );
-
-   if (!result.submittedAt) {
+    if (!result.submittedAt) {
       throw new Error('submittedAt is missing');
     }
 

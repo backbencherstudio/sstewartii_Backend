@@ -7,11 +7,7 @@ import { StorageModule } from 'src/common/storage/storage.module';
 import { VendorModule } from '../vendor/vendor.module';
 
 @Module({
-  imports: [
-      StorageModule,
-      PrismaModule,
-      VendorModule,
-    ],
+  imports: [StorageModule, PrismaModule, VendorModule],
   controllers: [VendorVerificationController],
   providers: [
     VendorVerificationService,

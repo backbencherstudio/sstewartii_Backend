@@ -13,7 +13,6 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { VendorLiveStatus } from '@prisma/client';
 
-
 export class VendorMenuQueryDto {
   @IsOptional()
   @IsString()
@@ -100,7 +99,7 @@ export class VendorMenuItemsQueryDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  limit?: number = 20; 
+  limit?: number = 20;
 }
 
 export class UpdateVendorMenuItemStatusDto {
@@ -141,4 +140,3 @@ export class VendorFollowersQueryDto {
   @Max(50)
   limit?: number = 10;
 }
-

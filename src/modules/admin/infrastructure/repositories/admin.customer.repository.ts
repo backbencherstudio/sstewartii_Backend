@@ -1,66 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
-import { 
-  Customer,
-  OrderReportReason,
- } from '@prisma/client';
+import { Customer, OrderReportReason } from '@prisma/client';
 
 import type {
- IAdminCustomerRepository,
- FindAllCustomersParams,
+  IAdminCustomerRepository,
+  FindAllCustomersParams,
 } from '../../domain/interface/admin.customer.repository.interface';
 
-import { 
-  VendorVerificationSort,
- } from '../../presentation/dto/admin.dto';
- import { 
+import { VendorVerificationSort } from '../../presentation/dto/admin.dto';
+import {
   CustomerOrderHistoryQueryDto,
-  CustomerReportQueueQueryDto,  
- } from '../../presentation/dto/customer-query.dto';
- import { 
+  CustomerReportQueueQueryDto,
+} from '../../presentation/dto/customer-query.dto';
+import {
   CustomerRawData,
   ReportQueueRawData,
   CustomerReportDetailRawData,
   CustomerVendorReportsRawData,
   CustomerVendorReportsRawData1,
- } from '../mapper/admin.customer.mapper';
+} from '../mapper/admin.customer.mapper';
 
- type VendorReportsRaw = {
+type VendorReportsRaw = {
   vendor: {
-    id:           string;
-    vendorCode:   string;
+    id: string;
+    vendorCode: string;
     businessName: string | null;
-    coverImage:   string | null;
+    coverImage: string | null;
   };
   reports: {
-    id:        string;
+    id: string;
     createdAt: Date;
   }[];
 };
 
 type OrderReportRaw = {
-  id:          string;
-  reason:      OrderReportReason;
+  id: string;
+  reason: OrderReportReason;
   description: string | null;
-  status:      string;
-  createdAt:   Date;
+  status: string;
+  createdAt: Date;
 };
 
 type VendorReportsRaw1 = {
   vendor: {
-    id:           string;
-    vendorCode:   string;
+    id: string;
+    vendorCode: string;
     businessName: string | null;
-    coverImage:   string | null;
+    coverImage: string | null;
   };
   reports: OrderReportRaw[];
 };
 
 @Injectable()
-export class AdminCustomerRepository
-  implements IAdminCustomerRepository
-{
+export class AdminCustomerRepository implements IAdminCustomerRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(params: FindAllCustomersParams) {
@@ -104,7 +97,7 @@ export class AdminCustomerRepository
     query: CustomerOrderHistoryQueryDto,
   ): Promise<CustomerRawData> {
     const { status, sortBy } = query;
-    
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -114,69 +107,62 @@ export class AdminCustomerRepository
       ...(status && { status }),
     };
 
-    const [
-      customer,
-      orderStats,
-      orders,
-      orderCount,
-      lastOrder,
-      reportsFiled,
-    ] = await Promise.all([
-
-      this.prisma.customer.findUnique({
-        where:   { id: customerId },
-        include: {
-          user: {
-            select: {
-              id:        true,
-              name:      true,
-              email:     true,
-              createdAt: true,
+    const [customer, orderStats, orders, orderCount, lastOrder, reportsFiled] =
+      await Promise.all([
+        this.prisma.customer.findUnique({
+          where: { id: customerId },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                createdAt: true,
+              },
             },
           },
-        },
-      }),
+        }),
 
-      this.prisma.order.groupBy({
-        by:    ['status'],
-        where: { customerId },
-        _count: { status: true },
-        _sum:   { totalAmount: true },
-      }),
+        this.prisma.order.groupBy({
+          by: ['status'],
+          where: { customerId },
+          _count: { status: true },
+          _sum: { totalAmount: true },
+        }),
 
-      this.prisma.order.findMany({
-        where: orderWhere,
-        include: {
-          vendor: {
-            select: {
-              businessName: true,
-              publicEmail:  true,
+        this.prisma.order.findMany({
+          where: orderWhere,
+          include: {
+            vendor: {
+              select: {
+                businessName: true,
+                publicEmail: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: sortBy === 'oldest' ? 'asc' : 'desc' },
-        skip,
-        take: limit,
-      }),
+          orderBy: { createdAt: sortBy === 'oldest' ? 'asc' : 'desc' },
+          skip,
+          take: limit,
+        }),
 
-      this.prisma.order.count({
-        where: orderWhere,
-      }),
+        this.prisma.order.count({
+          where: orderWhere,
+        }),
 
-      this.prisma.order.findFirst({
-        where:   { customerId },
-        orderBy: { createdAt: 'desc' },
-        select:  { createdAt: true },
-      }),
+        this.prisma.order.findFirst({
+          where: { customerId },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        }),
 
-      this.prisma.orderReport.count({
-        where: { customerId },
-      }),
-    ]);
+        this.prisma.orderReport.count({
+          where: { customerId },
+        }),
+      ]);
 
     return {
-      customer:     customer!,
-      orderStats:   orderStats as any,
+      customer: customer!,
+      orderStats: orderStats as any,
       orders,
       orderCount,
       lastOrderedAt: lastOrder?.createdAt ?? null,
@@ -187,8 +173,8 @@ export class AdminCustomerRepository
   async findReportQueue(
     query: CustomerReportQueueQueryDto,
   ): Promise<ReportQueueRawData> {
-    const { search, sortBy} = query;
-    
+    const { search, sortBy } = query;
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -198,7 +184,7 @@ export class AdminCustomerRepository
           customer: {
             user: {
               OR: [
-                { name:  { contains: search, mode: 'insensitive' as const } },
+                { name: { contains: search, mode: 'insensitive' as const } },
                 { email: { contains: search, mode: 'insensitive' as const } },
               ],
             },
@@ -208,11 +194,11 @@ export class AdminCustomerRepository
 
     const orderBy =
       sortBy === 'oldest'
-        ? { createdAt: 'asc'  as const }
+        ? { createdAt: 'asc' as const }
         : { createdAt: 'desc' as const };
 
     const grouped = await this.prisma.orderReport.groupBy({
-      by:    ['customerId'],
+      by: ['customerId'],
       where: searchFilter,
       _count: { customerId: true },
     });
@@ -224,7 +210,7 @@ export class AdminCustomerRepository
     const customerIds = grouped.map((g) => g.customerId);
 
     const vendorCounts = await this.prisma.orderReport.groupBy({
-      by:    ['customerId', 'vendorId'],
+      by: ['customerId', 'vendorId'],
       where: { customerId: { in: customerIds } },
       _count: { vendorId: true },
     });
@@ -238,11 +224,11 @@ export class AdminCustomerRepository
     const customers = await this.prisma.customer.findMany({
       where: { id: { in: customerIds } },
       select: {
-        id:     true,
+        id: true,
         avatar: true,
         user: {
           select: {
-            name:  true,
+            name: true,
             email: true,
           },
         },
@@ -254,10 +240,10 @@ export class AdminCustomerRepository
     let items = grouped
       .filter((g) => customerMap.has(g.customerId))
       .map((g) => ({
-        customerId:  g.customerId,
+        customerId: g.customerId,
         reportCount: g._count.customerId,
         vendorCount: vendorCountMap.get(g.customerId) ?? 0,
-        customer:    customerMap.get(g.customerId)!,
+        customer: customerMap.get(g.customerId)!,
       }));
 
     if (sortBy === 'most_reports') {
@@ -274,31 +260,29 @@ export class AdminCustomerRepository
   async findReportDetail(
     customerId: string,
   ): Promise<CustomerReportDetailRawData | null> {
-
     const [customer, vendorReportGroups, totalReportCount, lastOrder] =
       await Promise.all([
-
         this.prisma.customer.findUnique({
           where: { id: customerId },
           select: {
-            id:          true,  
-            avatar:      true,
+            id: true,
+            avatar: true,
             dateOfBirth: true,
-            address:     true,
+            address: true,
             user: {
               select: {
-                name:  true,
+                name: true,
                 email: true,
               },
             },
             orders: {
-              select: { status: true },  
+              select: { status: true },
             },
           },
         }),
 
         this.prisma.orderReport.groupBy({
-          by:    ['vendorId'],
+          by: ['vendorId'],
           where: { customerId },
           _count: { vendorId: true },
         }),
@@ -308,9 +292,9 @@ export class AdminCustomerRepository
         }),
 
         this.prisma.order.findFirst({
-          where:   { customerId },
+          where: { customerId },
           orderBy: { createdAt: 'desc' },
-          select:  { createdAt: true },
+          select: { createdAt: true },
         }),
       ]);
 
@@ -321,10 +305,10 @@ export class AdminCustomerRepository
     const vendors = await this.prisma.vendor.findMany({
       where: { id: { in: vendorIds } },
       select: {
-        id:           true,
-        vendorCode:   true,
+        id: true,
+        vendorCode: true,
         businessName: true,
-        coverImage:   true,
+        coverImage: true,
       },
     });
 
@@ -333,9 +317,9 @@ export class AdminCustomerRepository
     const vendorGroups = vendorReportGroups
       .filter((g) => vendorMap.has(g.vendorId))
       .map((g) => ({
-        vendorId:    g.vendorId,
+        vendorId: g.vendorId,
         reportCount: g._count.vendorId,
-        vendor:      vendorMap.get(g.vendorId)!,
+        vendor: vendorMap.get(g.vendorId)!,
       }));
 
     return {
@@ -349,9 +333,8 @@ export class AdminCustomerRepository
   async findCustomerVendorReports(
     customerId: string,
   ): Promise<CustomerVendorReportsRawData | null> {
-
     const customerExists = await this.prisma.customer.findUnique({
-      where:  { id: customerId },
+      where: { id: customerId },
       select: { id: true },
     });
 
@@ -359,40 +342,42 @@ export class AdminCustomerRepository
 
     const vendorIds = await this.prisma.orderReport
       .findMany({
-        where:   { customerId },
-        select:  { vendorId: true },
-        distinct: ['vendorId'],        
+        where: { customerId },
+        select: { vendorId: true },
+        distinct: ['vendorId'],
       })
       .then((rows) => rows.map((r) => r.vendorId));
 
     if (!vendorIds.length) return { vendorGroups: [] };
 
     const [vendors, reports] = await Promise.all([
-
       this.prisma.vendor.findMany({
-        where:  { id: { in: vendorIds } },
+        where: { id: { in: vendorIds } },
         select: {
-          id:           true,
-          vendorCode:   true,
+          id: true,
+          vendorCode: true,
           businessName: true,
-          coverImage:   true,
+          coverImage: true,
         },
       }),
 
       this.prisma.orderReport.findMany({
-        where:  { customerId },
+        where: { customerId },
         select: {
-          id:        true,
-          vendorId:  true,
+          id: true,
+          vendorId: true,
           createdAt: true,
         },
-        orderBy: { createdAt: 'asc' }, 
+        orderBy: { createdAt: 'asc' },
       }),
     ]);
 
     const vendorMap = new Map(vendors.map((v) => [v.id, v]));
 
-    const reportsByVendor = new Map<string, { id: string; createdAt: Date }[]>();
+    const reportsByVendor = new Map<
+      string,
+      { id: string; createdAt: Date }[]
+    >();
 
     for (const report of reports) {
       const existing = reportsByVendor.get(report.vendorId) ?? [];
@@ -403,7 +388,7 @@ export class AdminCustomerRepository
     const vendorGroups: VendorReportsRaw[] = vendorIds
       .filter((id) => vendorMap.has(id))
       .map((id) => ({
-        vendor:  vendorMap.get(id)!,
+        vendor: vendorMap.get(id)!,
         reports: reportsByVendor.get(id) ?? [],
       }));
 
@@ -413,9 +398,8 @@ export class AdminCustomerRepository
   async findCustomerVendorReports2(
     customerId: string,
   ): Promise<CustomerVendorReportsRawData1 | null> {
-
     const customerExists = await this.prisma.customer.findUnique({
-      where:  { id: customerId },
+      where: { id: customerId },
       select: { id: true },
     });
 
@@ -423,8 +407,8 @@ export class AdminCustomerRepository
 
     const vendorIds = await this.prisma.orderReport
       .findMany({
-        where:    { customerId },
-        select:   { vendorId: true },
+        where: { customerId },
+        select: { vendorId: true },
         distinct: ['vendorId'],
       })
       .then((rows) => rows.map((r) => r.vendorId));
@@ -432,26 +416,25 @@ export class AdminCustomerRepository
     if (!vendorIds.length) return { vendorGroups: [] };
 
     const [vendors, reports] = await Promise.all([
-
       this.prisma.vendor.findMany({
-        where:  { id: { in: vendorIds } },
+        where: { id: { in: vendorIds } },
         select: {
-          id:           true,
-          vendorCode:   true,
+          id: true,
+          vendorCode: true,
           businessName: true,
-          coverImage:   true,
+          coverImage: true,
         },
       }),
 
       this.prisma.orderReport.findMany({
-        where:  { customerId },
+        where: { customerId },
         select: {
-          id:          true,
-          vendorId:    true,
-          reason:      true,          
-          description: true,          
-          status:      true,
-          createdAt:   true,
+          id: true,
+          vendorId: true,
+          reason: true,
+          description: true,
+          status: true,
+          createdAt: true,
         },
         orderBy: { createdAt: 'asc' },
       }),
@@ -463,11 +446,11 @@ export class AdminCustomerRepository
     for (const report of reports) {
       const existing = reportsByVendor.get(report.vendorId) ?? [];
       existing.push({
-        id:          report.id,
-        reason:      report.reason,
+        id: report.id,
+        reason: report.reason,
         description: report.description,
-        status:      report.status,
-        createdAt:   report.createdAt,
+        status: report.status,
+        createdAt: report.createdAt,
       });
       reportsByVendor.set(report.vendorId, existing);
     }
@@ -475,18 +458,16 @@ export class AdminCustomerRepository
     const vendorGroups: VendorReportsRaw1[] = vendorIds
       .filter((id) => vendorMap.has(id))
       .map((id) => ({
-        vendor:  vendorMap.get(id)!,
+        vendor: vendorMap.get(id)!,
         reports: reportsByVendor.get(id) ?? [],
       }));
 
     return { vendorGroups };
   }
 
-  async findActiveStatus(
-    customerId: string,
-  ): Promise<{ isActive: boolean }> {
+  async findActiveStatus(customerId: string): Promise<{ isActive: boolean }> {
     return this.prisma.customer.findUniqueOrThrow({
-      where:  { id: customerId },
+      where: { id: customerId },
       select: { isActive: true },
     });
   }
@@ -494,7 +475,7 @@ export class AdminCustomerRepository
   async deactivateCustomer(customerId: string): Promise<void> {
     await this.prisma.customer.update({
       where: { id: customerId },
-      data:  { isActive: false },
+      data: { isActive: false },
     });
   }
 }

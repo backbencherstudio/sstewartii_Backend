@@ -12,11 +12,10 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-
   constructor(
     private readonly configService: ConfigService,
     @Inject('IUserRepository')
-    private readonly userRepository: IUserRepository, 
+    private readonly userRepository: IUserRepository,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -26,7 +25,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: JwtPayload) {
-
     const user = await this.userRepository.findById(payload.sub);
 
     if (!user) {

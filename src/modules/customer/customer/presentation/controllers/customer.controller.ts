@@ -18,8 +18,8 @@ import { ResponseMessage } from '@/common/decorators/response-message.decorator'
 import { HomeResponseDto } from '../dto/home.response.dto';
 import { HomeService } from '../../application/home.service';
 
-import { 
-  NearbyVendorsQueryDto, 
+import {
+  NearbyVendorsQueryDto,
   SetCustomerLocationDto,
   TopPicksQueryDto,
   ExploreMapQueryDto,
@@ -29,7 +29,7 @@ import {
   CustomerAdvancedSearchQueryDto,
 } from '../dto/customer.dto';
 
-import { 
+import {
   NearbyVendorsResponseDto,
   CustomerResponseDto,
   TopPicksResponseDto,
@@ -49,7 +49,7 @@ export class CustomerController {
 
   @Post('set-location')
   @UseGuards(RoleGuard)
-  @Roles(Role.USER) 
+  @Roles(Role.USER)
   @ResponseMessage('Set Location Successfull.')
   async setLocation(
     @CurrentUser() user: AuthUser,
@@ -60,16 +60,14 @@ export class CustomerController {
 
   @Get('home')
   @UseGuards(RoleGuard)
-  @Roles(Role.USER) 
-  async getHome(
-    @CurrentUser() user: AuthUser,
-  ): Promise<HomeResponseDto> {
+  @Roles(Role.USER)
+  async getHome(@CurrentUser() user: AuthUser): Promise<HomeResponseDto> {
     return this.homeService.getHome(user.id);
   }
 
   @Get('nearby-vendors')
   @UseGuards(RoleGuard)
-  @Roles(Role.USER) 
+  @Roles(Role.USER)
   async getNearbyVendors(
     @CurrentUser() user: AuthUser,
     @Query() query: NearbyVendorsQueryDto,

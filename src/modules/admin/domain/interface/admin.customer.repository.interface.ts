@@ -1,19 +1,16 @@
-import {
-  Prisma,
- } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
- import { 
+import {
   CustomerOrderHistoryQueryDto,
   CustomerReportQueueQueryDto,
-  
- } from '../../presentation/dto/customer-query.dto';
- import { 
+} from '../../presentation/dto/customer-query.dto';
+import {
   CustomerRawData,
   ReportQueueRawData,
   CustomerReportDetailRawData,
   CustomerVendorReportsRawData,
-  CustomerVendorReportsRawData1
- } from '../../infrastructure/mapper/admin.customer.mapper';
+  CustomerVendorReportsRawData1,
+} from '../../infrastructure/mapper/admin.customer.mapper';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -29,16 +26,14 @@ export interface FindAllCustomersParams {
 
 // Main Interface
 export interface IAdminCustomerRepository {
-  findAll(
-    params: FindAllCustomersParams
-  ): Promise<PaginatedResult<any>>; 
+  findAll(params: FindAllCustomersParams): Promise<PaginatedResult<any>>;
 
   findRawCustomerData(
     customerId: string,
     query: CustomerOrderHistoryQueryDto,
   ): Promise<CustomerRawData>;
 
-  existsById(customerId: string): Promise<boolean> 
+  existsById(customerId: string): Promise<boolean>;
 
   findRawCustomerData(
     customerId: string,

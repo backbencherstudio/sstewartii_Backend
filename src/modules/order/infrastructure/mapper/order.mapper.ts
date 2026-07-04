@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
-import { 
+import {
   OrderStatus,
   OrderReportReason,
   OrderReportStatus,
 } from '@prisma/client';
 
-import { 
+import {
   CreateOrderResponseDto,
   OrderSummaryResponseDto,
   OrderTrackResponseDto,
@@ -25,7 +25,7 @@ import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
 export class OrderMapper {
-  constructor(private readonly mediaService:MediaService){}
+  constructor(private readonly mediaService: MediaService) {}
 
   static toCreateResponse(order: any): CreateOrderResponseDto {
     return {
@@ -115,7 +115,7 @@ export class OrderMapper {
     };
   }
 
-static toTrackResponse(order: any): OrderTrackResponseDto {
+  static toTrackResponse(order: any): OrderTrackResponseDto {
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -180,8 +180,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
           : 'Your order has been received.',
         isCompleted: orderConfirmedDone,
         isCurrent:
-          status === OrderStatus.PENDING ||
-          status === OrderStatus.CONFIRMED,
+          status === OrderStatus.PENDING || status === OrderStatus.CONFIRMED,
         timestamp: order.confirmedAt ?? order.createdAt,
         estimatedTime: null,
       },
@@ -230,13 +229,10 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
   }
 
   private static canCancelOrder(status: OrderStatus): boolean {
-    return (
-      status === OrderStatus.PENDING ||
-      status === OrderStatus.CONFIRMED
-    );
+    return status === OrderStatus.PENDING || status === OrderStatus.CONFIRMED;
   }
 
- toVendorActiveOrdersResponse(
+  toVendorActiveOrdersResponse(
     orders: any[],
     now: Date = new Date(),
   ): VendorActiveOrdersResponseDto {
@@ -252,7 +248,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
 
         const timeMeta = OrderMapper.getVendorOrderTimeMeta(order, now);
 
-       return {
+        return {
           id: order.id,
           orderNumber: order.orderNumber,
           status: order.status,
@@ -321,7 +317,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
         return {
           label: '',
           type: 'NONE',
-          enabled: false, 
+          enabled: false,
         };
     }
   }
@@ -498,9 +494,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
     }).format(date);
   }
 
-  toVendorOrderDetailResponse(
-    order: any,
-  ): VendorOrderDetailResponseDto {
+  toVendorOrderDetailResponse(order: any): VendorOrderDetailResponseDto {
     const itemCount = order.orderItems.reduce(
       (sum: number, item: any) => sum + item.quantity,
       0,
@@ -520,12 +514,10 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       customer: {
         id: order.customer.id,
         name:
-          order.customer.user?.name ??
-          order.customer.user?.email ??
-          'Customer',
+          order.customer.user?.name ?? order.customer.user?.email ?? 'Customer',
         email: order.customer.user?.email ?? undefined,
         imageUrl: this.mediaService.getUrl(order.customer.avatar),
-          
+
         customerSince: order.customer.createdAt,
       },
 
@@ -599,9 +591,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
         ? `${item.quantity} x ${item.productName} (${optionNames.join(', ')})`
         : `${item.quantity} x ${item.productName}`,
 
-      optionSummary: optionNames.length
-        ? optionNames.join(' • ')
-        : undefined,
+      optionSummary: optionNames.length ? optionNames.join(' • ') : undefined,
     };
   }
 
@@ -656,8 +646,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
           status === OrderStatus.READY_FOR_PICKUP ||
           status === OrderStatus.COMPLETED,
         isCurrent:
-          status === OrderStatus.CONFIRMED ||
-          status === OrderStatus.PREPARING,
+          status === OrderStatus.CONFIRMED || status === OrderStatus.PREPARING,
         timestamp: order.confirmedAt ?? null,
       },
       {
@@ -702,12 +691,10 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       canAccept: status === OrderStatus.PENDING,
 
       canCancel:
-        status === OrderStatus.PENDING ||
-        status === OrderStatus.CONFIRMED,
+        status === OrderStatus.PENDING || status === OrderStatus.CONFIRMED,
 
       canMarkReadyForPickup:
-        status === OrderStatus.CONFIRMED ||
-        status === OrderStatus.PREPARING,
+        status === OrderStatus.CONFIRMED || status === OrderStatus.PREPARING,
 
       canComplete: status === OrderStatus.READY_FOR_PICKUP,
 
@@ -741,9 +728,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
     };
   }
 
-  toVendorPendingOrdersResponse(
-    orders: any[],
-  ): VendorPendingOrdersResponseDto {
+  toVendorPendingOrdersResponse(orders: any[]): VendorPendingOrdersResponseDto {
     return {
       total: orders.length,
       items: orders.map((order) => {
@@ -838,8 +823,7 @@ static toTrackResponse(order: any): OrderTrackResponseDto {
       total: data.total,
       page: data.page,
       limit: data.limit,
-      totalPages:
-        data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
+      totalPages: data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
 
       completedCount: data.completedCount,
       cancelledCount: data.cancelledCount,

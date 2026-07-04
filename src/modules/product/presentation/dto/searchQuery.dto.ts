@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsNumber, IsBoolean,  } from 'class-validator';
-import { Type, Transform  } from 'class-transformer';
+import { IsOptional, IsString, IsNumber, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 export class SearchProductQueryDto {
   @IsOptional()

@@ -1,5 +1,5 @@
-import { CustomerEntity } from "../entities/customer.entity";
-import { 
+import { CustomerEntity } from '../entities/customer.entity';
+import {
   NearbyVendorsQueryDto,
   ExploreMapQueryDto,
   FoodFilterQueryDto,
@@ -7,10 +7,9 @@ import {
   TopPicksQueryDto,
   FavoriteVendorsQueryDto,
   CustomerAdvancedSearchQueryDto,
- } from "../../presentation/dto/customer.dto";
+} from '../../presentation/dto/customer.dto';
 
 export interface ICustomerRepository {
-  
   findByUserId(userId: string): Promise<CustomerEntity | null>;
   findByCustomerId(userId: string): Promise<CustomerEntity | null>;
 
@@ -30,21 +29,13 @@ export interface ICustomerRepository {
     },
   ): Promise<any>;
 
-  findNearbyVendorCandidates(
-    query: NearbyVendorsQueryDto,
-  ): Promise<any[]>;
+  findNearbyVendorCandidates(query: NearbyVendorsQueryDto): Promise<any[]>;
 
-  findTopPickProducts(
-    query: TopPicksQueryDto,
-  ): Promise<any[]>;
+  findTopPickProducts(query: TopPicksQueryDto): Promise<any[]>;
 
-  findExploreMapVendorCandidates(
-    query: ExploreMapQueryDto,
-  ): Promise<any[]>;
+  findExploreMapVendorCandidates(query: ExploreMapQueryDto): Promise<any[]>;
 
-  findFoodCandidates(
-    query: FoodFilterQueryDto,
-  ): Promise<any[]>;
+  findFoodCandidates(query: FoodFilterQueryDto): Promise<any[]>;
 
   findActiveProductById(productId: string): Promise<{ id: string } | null>;
 

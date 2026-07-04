@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-    
   constructor(private readonly configService: ConfigService) {
     super({
       clientID: configService.getOrThrow<string>('google.clientId'),
@@ -15,9 +14,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback): Promise<any> {
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+    done: VerifyCallback,
+  ): Promise<any> {
     const { id, name, emails } = profile;
-    
+
     const userProfile = {
       googleId: id,
       email: emails[0].value,

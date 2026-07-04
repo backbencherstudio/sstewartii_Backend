@@ -42,7 +42,6 @@ export interface PaginatedProducts {
 }
 
 export interface IProductRepository {
-
   createFullProduct(data: {
     vendorId: string;
     dto: any;
@@ -51,30 +50,19 @@ export interface IProductRepository {
 
   findProductByVendorId(vendorId: string): Promise<Product[]>;
 
-  searchProducts(
-    params: SearchProductsParams,
-  ): Promise<Product[]>;
+  searchProducts(params: SearchProductsParams): Promise<Product[]>;
 
-  updateProductStatus(
-    productId: string,
-    isActive: boolean,
-  ): Promise<Product>;  
+  updateProductStatus(productId: string, isActive: boolean): Promise<Product>;
 
-  findProductByIdAndVendorId(
-    userId: string,
-    productId: string,
-  );
+  findProductByIdAndVendorId(userId: string, productId: string);
 
   deleteProduct(productId: string): Promise<void>;
 
-  findProductDetailById(
-    productId: string,
-  ): Promise<ProductDetailPrisma | null>;
+  findProductDetailById(productId: string): Promise<ProductDetailPrisma | null>;
 
   findActiveProductForCart(productId: string): Promise<ProductCart | null>;
 
   existsCuisineById(cuisineId: string): Promise<boolean>;
 
   existsActiveCategoryById(categoryId: string): Promise<boolean>;
-  
 }

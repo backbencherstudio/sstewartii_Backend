@@ -9,15 +9,8 @@ import { VendorProfileSetupMapper } from './infrastructure/mapper/vendor-profile
 import { MediaModule } from '@/common/media/media.module';
 
 @Module({
-  imports: [
-    StorageModule,
-    PrismaModule,
-    VendorModule,
-    MediaModule,
-  ],
-  controllers: [
-    ProfileSetupFlowController
-  ],
+  imports: [StorageModule, PrismaModule, VendorModule, MediaModule],
+  controllers: [ProfileSetupFlowController],
   providers: [
     ProfileSetupFlowService,
     VendorProfileSetupMapper,
@@ -26,7 +19,7 @@ import { MediaModule } from '@/common/media/media.module';
       useClass: ProfileSetupRepository,
     },
   ],
-  
+
   exports: [ProfileSetupFlowService],
 })
 export class VendorProfileSetupModule {}

@@ -1,4 +1,11 @@
-import { IsEmail, IsString, Length, IsNotEmpty, MinLength, IsJWT  } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  Length,
+  IsNotEmpty,
+  MinLength,
+  IsJWT,
+} from 'class-validator';
 import { Match } from 'src/common/decorators/match.decorator';
 
 export class SendOtpDto {
@@ -7,7 +14,7 @@ export class SendOtpDto {
 }
 
 export class VerifyOtpDto {
-  @IsEmail()  
+  @IsEmail()
   email!: string;
 
   @IsString()
@@ -16,7 +23,6 @@ export class VerifyOtpDto {
 }
 
 export class NewPasswordDto {
-
   @IsNotEmpty({ message: 'Reset token is required' })
   @IsJWT({ message: 'Invalid reset session. Please start over.' })
   resetToken!: string;

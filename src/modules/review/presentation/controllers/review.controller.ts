@@ -12,16 +12,16 @@ import {
 
 import { FilesInterceptor } from '@nestjs/platform-express';
 
-import { 
+import {
   CreateVendorTruckReviewDto,
   VendorTruckReviewsQueryDto,
   CreateFoodReviewDto,
- } from '../dto/review.dto';
-import { 
+} from '../dto/review.dto';
+import {
   CreateVendorTruckReviewResponseDto,
   VendorTruckReviewTagListResponseDto,
   VendorTruckReviewsResponseDto,
-  CreateFoodReviewResponseDto
+  CreateFoodReviewResponseDto,
 } from '../dto/review.response.dto';
 
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';

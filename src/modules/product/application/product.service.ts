@@ -32,12 +32,12 @@ export class ProductService {
 
     @Inject('IStorageService')
     private readonly storage: IStorageService,
-    
+
     private readonly mediaService: MediaService,
     private readonly productMapper: ProductMapper,
   ) {}
 
-  async findActiveProductForCart( 
+  async findActiveProductForCart(
     productId: string,
   ): Promise<ProductCart | null> {
     return this.productRepo.findActiveProductForCart(productId);
@@ -53,54 +53,55 @@ export class ProductService {
     return this.cuisineRepo.findByVendorId(vendor.id);
   }
 
-async createProduct(
-  userId: string,
-  dto: CreateProductDto,
-  files: Express.Multer.File[],
-): Promise<ProductResponseDto> {
-  const vendor = await this.vendorRepo.findByOwnerId(userId);
+  async createProduct(
+    userId: string,
+    dto: CreateProductDto,
+    files: Express.Multer.File[],
+  ): Promise<ProductResponseDto> {
+    const vendor = await this.vendorRepo.findByOwnerId(userId);
 
-  if (!vendor) {
-    throw new BadRequestException('Vendor not found');
-  }
-
-  if (!files || files.length === 0) {
-    throw new BadRequestException('At least one image required');
-  }
-
-  if (dto.categoryId) {
-    const categoryExists =
-      await this.productRepo.existsActiveCategoryById(dto.categoryId);
-
-    if (!categoryExists) {
-      throw new BadRequestException('Invalid category');
+    if (!vendor) {
+      throw new BadRequestException('Vendor not found');
     }
-  }
 
-  if (dto.cuisineId) {
-    const cuisineExists = await this.productRepo.existsCuisineById(
-      dto.cuisineId,
+    if (!files || files.length === 0) {
+      throw new BadRequestException('At least one image required');
+    }
+
+    if (dto.categoryId) {
+      const categoryExists = await this.productRepo.existsActiveCategoryById(
+        dto.categoryId,
+      );
+
+      if (!categoryExists) {
+        throw new BadRequestException('Invalid category');
+      }
+    }
+
+    if (dto.cuisineId) {
+      const cuisineExists = await this.productRepo.existsCuisineById(
+        dto.cuisineId,
+      );
+
+      if (!cuisineExists) {
+        throw new BadRequestException('Invalid cuisine');
+      }
+    }
+
+    const folder = 'vendor/product/productImages';
+
+    const imageUrls = await Promise.all(
+      files.map((file) => this.storage.uploadFile(file, folder)),
     );
 
-    if (!cuisineExists) {
-      throw new BadRequestException('Invalid cuisine');
-    }
+    const product = await this.productRepo.createFullProduct({
+      vendorId: vendor.id,
+      dto,
+      images: imageUrls,
+    });
+
+    return this.productMapper.toResponse(product);
   }
-
-  const folder = 'vendor/product/productImages';
-
-  const imageUrls = await Promise.all(
-    files.map((file) => this.storage.uploadFile(file, folder)),
-  );
-
-  const product = await this.productRepo.createFullProduct({
-    vendorId: vendor.id,
-    dto,
-    images: imageUrls,
-  });
-
-  return this.productMapper.toResponse(product);
-}
 
   async getVendorProducts(userId: string): Promise<ProductResponseDto[]> {
     const vendor = await this.vendorRepo.findByOwnerId(userId);
@@ -111,9 +112,7 @@ async createProduct(
 
     const products = await this.productRepo.findProductByVendorId(vendor.id);
 
-     return products.map((product) =>
-        this.productMapper.toResponse(product),
-     );
+    return products.map((product) => this.productMapper.toResponse(product));
   }
 
   // async searchProducts(
@@ -173,10 +172,7 @@ async createProduct(
   //   return ProductMapper.toResponse(updated);
   // }
 
-  async deleteProduct(
-    userId: string,
-    productId: string,
-  ): Promise<void> {
+  async deleteProduct(userId: string, productId: string): Promise<void> {
     const vendor = await this.vendorRepo.findByOwnerId(userId);
 
     if (!vendor) {
@@ -189,7 +185,9 @@ async createProduct(
     );
 
     if (!product) {
-      throw new NotFoundException('Product not found or does not belong to this vendor');
+      throw new NotFoundException(
+        'Product not found or does not belong to this vendor',
+      );
     }
 
     await this.productRepo.deleteProduct(productId);
@@ -253,5 +251,4 @@ async createProduct(
   //     })),
   //   };
   // }
-  
 }

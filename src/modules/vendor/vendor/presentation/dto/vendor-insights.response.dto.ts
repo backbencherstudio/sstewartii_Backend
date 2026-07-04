@@ -1,9 +1,4 @@
-export type VendorInsightPlan =
-  | 'FREE'
-  | 'TRIAL'
-  | 'STARTER'
-  | 'PRO'
-  | 'ELITE';
+export type VendorInsightPlan = 'FREE' | 'TRIAL' | 'STARTER' | 'PRO' | 'ELITE';
 
 export class VendorInsightAccessDto {
   plan!: VendorInsightPlan;

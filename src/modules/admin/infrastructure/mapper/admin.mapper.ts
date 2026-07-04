@@ -1,4 +1,4 @@
-import { 
+import {
   VerificationStatus,
   KycStatus,
   SubscriptionStatus,
@@ -11,10 +11,7 @@ import {
 } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 
-import { 
-    Injectable,
-    NotFoundException,
- } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import {
   AdminVendorVerificationDocumentType,
@@ -58,22 +55,20 @@ export interface RevenueChartItem {
   value: number;
 }
 
-export type VendorSubscriptionWithPlan =
-  Prisma.VendorSubscriptionGetPayload<{
-    include: { subscriptionPlan: true };
+export type VendorSubscriptionWithPlan = Prisma.VendorSubscriptionGetPayload<{
+  include: { subscriptionPlan: true };
 }>;
 
 @Injectable()
 export class AdminMapper {
- constructor(private readonly mediaService: MediaService) {}
+  constructor(private readonly mediaService: MediaService) {}
 
   toManagementResponse(data: {
     stats: VendorVerificationStatsResult;
     result: VendorVerificationListResult;
-    page:  number;
+    page: number;
     limit: number;
   }): VendorVerificationManagementResponseDto {
-
     return {
       stats: {
         totalPending: data.stats.totalPending,
@@ -92,9 +87,7 @@ export class AdminMapper {
             : Math.ceil(data.result.total / data.limit),
       },
 
-      items: data.result.items.map((item) =>
-        this.toListItemResponse(item),
-      ),
+      items: data.result.items.map((item) => this.toListItemResponse(item)),
     };
   }
 
@@ -252,61 +245,61 @@ export class AdminMapper {
     documentType: AdminVendorVerificationDocumentType;
   }): AdminVendorVerificationFileResponseDto {
     const filePath = this.getDocumentFilePath(
-        data.verification,
-        data.documentType,
+      data.verification,
+      data.documentType,
     );
 
     if (!filePath) {
-        throw new NotFoundException('Document file not found');
+      throw new NotFoundException('Document file not found');
     }
 
     return {
-        verificationId: data.verification.id,
-        vendorId: data.verification.vendor.id,
+      verificationId: data.verification.id,
+      vendorId: data.verification.vendor.id,
 
-        documentType: data.documentType,
-        label: this.getDocumentLabel(data.documentType),
+      documentType: data.documentType,
+      label: this.getDocumentLabel(data.documentType),
 
-        fileName: this.extractFileName1(filePath),
-        fileUrl: this.resolveMediaUrl(filePath),
-        mimeType: this.resolveMimeType(filePath),
-     };
-   }
+      fileName: this.extractFileName1(filePath),
+      fileUrl: this.resolveMediaUrl(filePath),
+      mimeType: this.resolveMimeType(filePath),
+    };
+  }
 
   private getDocumentFilePath(
-     verification: any,
-     documentType: AdminVendorVerificationDocumentType,
-   ): string | null {
+    verification: any,
+    documentType: AdminVendorVerificationDocumentType,
+  ): string | null {
     switch (documentType) {
-        case AdminVendorVerificationDocumentType.BUSINESS_LICENSE:
+      case AdminVendorVerificationDocumentType.BUSINESS_LICENSE:
         return verification.businessLicense;
 
-        case AdminVendorVerificationDocumentType.HEALTH_PERMIT:
+      case AdminVendorVerificationDocumentType.HEALTH_PERMIT:
         return verification.healthPermit;
 
-        case AdminVendorVerificationDocumentType.INSURANCE_PROOF:
+      case AdminVendorVerificationDocumentType.INSURANCE_PROOF:
         return verification.insuranceProof;
 
-        default:
+      default:
         return null;
-      }
     }
+  }
 
   private getDocumentLabel(
     documentType: AdminVendorVerificationDocumentType,
   ): string {
-  switch (documentType) {
+    switch (documentType) {
       case AdminVendorVerificationDocumentType.BUSINESS_LICENSE:
-      return 'Business License';
+        return 'Business License';
 
       case AdminVendorVerificationDocumentType.HEALTH_PERMIT:
-      return 'Health Permit';
+        return 'Health Permit';
 
       case AdminVendorVerificationDocumentType.INSURANCE_PROOF:
-      return 'Proof of Insurance';
+        return 'Proof of Insurance';
 
       default:
-      return 'Document';
+        return 'Document';
     }
   }
 
@@ -318,20 +311,20 @@ export class AdminMapper {
     const extension = path.split('.').pop()?.toLowerCase();
 
     switch (extension) {
-        case 'pdf':
+      case 'pdf':
         return 'application/pdf';
 
-        case 'jpg':
-        case 'jpeg':
+      case 'jpg':
+      case 'jpeg':
         return 'image/jpeg';
 
-        case 'png':
+      case 'png':
         return 'image/png';
 
-        case 'webp':
+      case 'webp':
         return 'image/webp';
 
-        default:
+      default:
         return undefined;
     }
   }
@@ -443,19 +436,11 @@ export class AdminMapper {
       vendorCode: vendor.vendorCode,
 
       businessName:
-        vendor.businessName ??
-        vendor.owner?.name ??
-        'Unnamed Vendor',
+        vendor.businessName ?? vendor.owner?.name ?? 'Unnamed Vendor',
 
-      ownerName:
-        vendor.owner?.name ??
-        vendor.businessName ??
-        'Unnamed Vendor',
+      ownerName: vendor.owner?.name ?? vendor.businessName ?? 'Unnamed Vendor',
 
-      email:
-        vendor.publicEmail ??
-        vendor.owner?.email ??
-        'No email found',
+      email: vendor.publicEmail ?? vendor.owner?.email ?? 'No email found',
 
       status: vendor.kycStatus,
       statusLabel: this.toKycStatusLabel(vendor.kycStatus),
@@ -570,9 +555,7 @@ export class AdminMapper {
         id: vendor.id,
         vendorCode: vendor.vendorCode,
         businessName:
-          vendor.businessName ??
-          vendor.owner?.name ??
-          'Unnamed Vendor',
+          vendor.businessName ?? vendor.owner?.name ?? 'Unnamed Vendor',
         coverImage: vendor.coverImage
           ? this.mediaService.getUrl(vendor.coverImage)
           : undefined,
@@ -591,9 +574,7 @@ export class AdminMapper {
 
       contactInfo: {
         ownerName:
-          vendor.owner?.name ??
-          vendor.businessName ??
-          'Unnamed Vendor',
+          vendor.owner?.name ?? vendor.businessName ?? 'Unnamed Vendor',
         registeredEmail: vendor.owner?.email ?? 'No email found',
         publicEmail: vendor.publicEmail ?? undefined,
         contactNumber: vendor.contactNumber ?? undefined,
@@ -601,8 +582,7 @@ export class AdminMapper {
 
       businessProfile: {
         bio: vendor.bio ?? undefined,
-        cuisines:
-          vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+        cuisines: vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
         socialLinks:
           vendor.socialLinks?.map((item: any) => ({
             id: item.id,
@@ -788,7 +768,7 @@ export class AdminMapper {
         expiresAt: undefined,
         expiresAtLabel: undefined,
         fileUrl: doc.fileKey
-          ? this.mediaService.getUrl(doc.fileKey) ?? ''
+          ? (this.mediaService.getUrl(doc.fileKey) ?? '')
           : '',
       })),
     };
@@ -833,11 +813,11 @@ export class AdminMapper {
   }
 
   private formatStatus(status: VendorAdminStatus): string {
-      const statusMap: Record<VendorAdminStatus, string> = {
-        ACTIVE: 'Active',
-        SUSPENDED: 'Suspended',
-        DISABLED: 'Disabled',
-      };
+    const statusMap: Record<VendorAdminStatus, string> = {
+      ACTIVE: 'Active',
+      SUSPENDED: 'Suspended',
+      DISABLED: 'Disabled',
+    };
     return statusMap[status];
   }
 }

@@ -18,7 +18,11 @@ export class MailService {
     });
   }
 
-  async sendOtpEmail(to: string, otp: string, purpose: 'Verification' | 'Password Reset') {
+  async sendOtpEmail(
+    to: string,
+    otp: string,
+    purpose: 'Verification' | 'Password Reset',
+  ) {
     try {
       await this.transporter.sendMail({
         from: `"Sstewartii Support" <${this.configService.get<string>('mail.from')}>`,
@@ -33,7 +37,9 @@ export class MailService {
       });
     } catch (error) {
       console.error('Error sending email:', error);
-      throw new InternalServerErrorException('Failed to send email. Please try again later.');
+      throw new InternalServerErrorException(
+        'Failed to send email. Please try again later.',
+      );
     }
   }
 }

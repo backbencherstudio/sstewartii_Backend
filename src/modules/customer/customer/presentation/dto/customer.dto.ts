@@ -1,6 +1,6 @@
-import { 
+import {
   IsNumber,
-  IsOptional, 
+  IsOptional,
   IsString,
   IsInt,
   Max,

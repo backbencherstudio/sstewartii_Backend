@@ -1,4 +1,3 @@
-
 export class CustomerOrderHistoryDto {
   orderId!: string;
   orderNumber!: string;
@@ -34,58 +33,58 @@ export class CustomerDetailResponseDto {
 }
 
 export class CustomerReportQueueItemDto {
-  customerId!:  string;
+  customerId!: string;
   customerCode!: string;
-  fullName!:    string;
-  email!:       string;
-  avatar!:      string | null;
+  fullName!: string;
+  email!: string;
+  avatar!: string | null;
   reportCount!: number;
   vendorCount!: number;
 }
 
 export class CustomerReportQueueResponseDto {
-  data!:  CustomerReportQueueItemDto[];
+  data!: CustomerReportQueueItemDto[];
   total!: number;
-  page!:  number;
+  page!: number;
   limit!: number;
 }
 
 export class ReportingVendorDto {
-  vendorId!:     string;
-  vendorCode!:   string;       
+  vendorId!: string;
+  vendorCode!: string;
   businessName!: string;
-  coverImage!:   string | null;
-  reportCount!:  number;
+  coverImage!: string | null;
+  reportCount!: number;
 }
 
 export class CustomerReportDetailResponseDto {
-  customerId!:       string;
-  customerCode!:     string;
-  fullName!:         string;
-  avatar!:           string | null;
-  completedOrders!:  number;
-  cancelledOrders!:  number;
+  customerId!: string;
+  customerCode!: string;
+  fullName!: string;
+  avatar!: string | null;
+  completedOrders!: number;
+  cancelledOrders!: number;
   incompleteOrders!: number;
-  reportCount!:      number;
-  vendorCount!:      number;
-  lastOrderedAt!:    Date | null;
-  vendors!:          ReportingVendorDto[];
-} 
+  reportCount!: number;
+  vendorCount!: number;
+  lastOrderedAt!: Date | null;
+  vendors!: ReportingVendorDto[];
+}
 
 export class ReportItemDto {
-  reportId!:    string;
-  reportNumber!: string;   
-  createdAt!:   Date;
-  displayDate!: string;     
+  reportId!: string;
+  reportNumber!: string;
+  createdAt!: Date;
+  displayDate!: string;
 }
 
 export class VendorReportGroupDto {
-  vendorId!:     string;
-  vendorCode!:   string;     
+  vendorId!: string;
+  vendorCode!: string;
   businessName!: string;
-  coverImage!:   string | null;
-  reportCount!:  number;
-  reports!:      ReportItemDto[];
+  coverImage!: string | null;
+  reportCount!: number;
+  reports!: ReportItemDto[];
 }
 
 export class CustomerVendorReportsResponseDto {
@@ -93,22 +92,22 @@ export class CustomerVendorReportsResponseDto {
 }
 
 export class ReportDetailItemDto {
-  reportId!:     string;
-  reportNumber!: string;       
-  reason!:       string;        
-  description!:  string | null; 
-  status!:       string;
-  displayDate!:  string;       
-  createdAt!:    Date;
+  reportId!: string;
+  reportNumber!: string;
+  reason!: string;
+  description!: string | null;
+  status!: string;
+  displayDate!: string;
+  createdAt!: Date;
 }
 
 export class VendorReportGroupDto2 {
-  vendorId!:     string;
-  vendorCode!:   string;
+  vendorId!: string;
+  vendorCode!: string;
   businessName!: string;
-  coverImage!:   string | null;
-  reportCount!:  number;
-  reports!:      ReportDetailItemDto[];
+  coverImage!: string | null;
+  reportCount!: number;
+  reports!: ReportDetailItemDto[];
 }
 
 export class CustomerVendorReportsResponseDto2 {

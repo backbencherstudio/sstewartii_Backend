@@ -1,8 +1,8 @@
-import { 
-  PaymentMethod, 
+import {
+  PaymentMethod,
   OrderStatus,
   OrderReportReason,
-  OrderReportStatus,  
+  OrderReportStatus,
 } from '@prisma/client';
 
 export class OrderItemChoiceOptionResponseDto {
@@ -128,7 +128,7 @@ export class OrderTrackVendorDto {
 }
 
 export class OrderTrackStepDto {
-  status!: 
+  status!:
     | 'ORDER_CONFIRMED'
     | 'PREPARING'
     | 'READY_FOR_PICKUP'
@@ -456,14 +456,10 @@ export class VendorActiveOrderItemDto {
 }
 
 export type VendorOrderActionType =
-  | 'MARK_READY_FOR_PICKUP'
-  | 'COMPLETE_ORDER'
-  | 'NONE';
+  'MARK_READY_FOR_PICKUP' | 'COMPLETE_ORDER' | 'NONE';
 
 export type VendorOrderStatusUiType =
-  | 'CONFIRMED'
-  | 'PREPPING'
-  | 'READY_FOR_PICKUP';
+  'CONFIRMED' | 'PREPPING' | 'READY_FOR_PICKUP';
 
 export class VendorActiveOrderActionDto {
   label!: string;

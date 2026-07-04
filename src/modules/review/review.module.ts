@@ -11,11 +11,7 @@ import { MediaModule } from '@/common/media/media.module';
 import { VendorTruckReviewMapper } from './infrastructure/mapper/review.mapper';
 
 @Module({
-  imports:[
-    CustomerModule,
-    VendorModule,
-    MediaModule,
-  ],
+  imports: [CustomerModule, VendorModule, MediaModule],
   controllers: [ReviewController],
   providers: [
     ReviewService,
@@ -27,4 +23,4 @@ import { VendorTruckReviewMapper } from './infrastructure/mapper/review.mapper';
     },
   ],
 })
-export class ReviewModule {}    
+export class ReviewModule {}

@@ -28,35 +28,35 @@ export class HelpCenterService {
   async createTicket(
     userId: string,
     dto: CreateHelpTicketDto,
-    ): Promise<HelpTicketResponseDto> {
+  ): Promise<HelpTicketResponseDto> {
     const vendor = await this.vendorService.execute(userId);
 
     if (vendor) {
-        const ticket = await this.helpCenterRepository.createHelpTicket({
+      const ticket = await this.helpCenterRepository.createHelpTicket({
         userId,
         customerId: null,
         vendorId: vendor.id,
         userType: HelpTicketUserType.VENDOR,
         subject: dto.subject,
         message: dto.message,
-        });
+      });
 
-        return this.helpCenterMapper.toResponse(ticket);
+      return this.helpCenterMapper.toResponse(ticket);
     }
 
     const customer = await this.customerService.findActiveByUserId(userId);
 
     if (customer) {
-        const ticket = await this.helpCenterRepository.createHelpTicket({
+      const ticket = await this.helpCenterRepository.createHelpTicket({
         userId,
         customerId: customer.id,
         vendorId: null,
         userType: HelpTicketUserType.CUSTOMER,
         subject: dto.subject,
         message: dto.message,
-        });
+      });
 
-        return this.helpCenterMapper.toResponse(ticket);
+      return this.helpCenterMapper.toResponse(ticket);
     }
 
     throw new NotFoundException('Customer or vendor profile not found');

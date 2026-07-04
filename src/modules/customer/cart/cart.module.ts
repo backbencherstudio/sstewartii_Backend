@@ -9,12 +9,7 @@ import { MediaModule } from '@/common/media/media.module';
 import { CartMapper } from './infrastructure/mapper/cart.mapper';
 
 @Module({
-  imports: [
-    CustomerModule, 
-    ProductModule,
-    PrismaModule,
-    MediaModule
-  ],
+  imports: [CustomerModule, ProductModule, PrismaModule, MediaModule],
   controllers: [CartController],
   providers: [
     CartService,

@@ -1,16 +1,15 @@
 import { Prisma } from '@prisma/client';
 
-export type UserWithRelations =
-  Prisma.UserGetPayload<{
-    include: {
-      role: true;
+export type UserWithRelations = Prisma.UserGetPayload<{
+  include: {
+    role: true;
 
-      customer: true;
+    customer: true;
 
-      vendorStore: {
-        include: {
-          serviceArea: true;
-        };
+    vendorStore: {
+      include: {
+        serviceArea: true;
       };
     };
-  }>;
+  };
+}>;

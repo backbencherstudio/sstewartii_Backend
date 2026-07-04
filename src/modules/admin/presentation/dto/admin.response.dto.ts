@@ -1,11 +1,11 @@
-import { 
+import {
   VerificationStatus,
   KycStatus,
   SubscriptionStatus,
   VendorLiveStatus,
   OrderStatus,
   VendorAdminStatus,
- } from '@prisma/client';
+} from '@prisma/client';
 
 import {
   DashboardRevenueMetric,
@@ -335,7 +335,7 @@ export class AdminVendorAccountOrdersResponseDto {
 
 export class AdminVendorDocumentItemDto {
   id!: string;
-  documentType!: string; 
+  documentType!: string;
   documentName!: string;
   status!: 'ACTIVE' | 'EXPIRED';
   statusLabel!: string;
@@ -395,4 +395,3 @@ export class CustomerListItemDto {
   orders!: number;
   totalSpent!: number;
 }
-

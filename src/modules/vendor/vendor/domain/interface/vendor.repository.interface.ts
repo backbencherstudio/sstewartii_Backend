@@ -1,4 +1,4 @@
-import { 
+import {
   VendorLiveStatus,
   VerificationStatus,
   KycStatus,
@@ -6,12 +6,12 @@ import {
   OrderStatus,
 } from '@prisma/client';
 
-import { Vendor } from "../entities/vendor.entity";
+import { Vendor } from '../entities/vendor.entity';
 import {
-   VendorMenuQueryDto,
-   VendorMenuItemsQueryDto,
-   VendorReviewsQueryDtoMe,
-  } from '../../presentation/dto/vendor.dto';
+  VendorMenuQueryDto,
+  VendorMenuItemsQueryDto,
+  VendorReviewsQueryDtoMe,
+} from '../../presentation/dto/vendor.dto';
 
 import { VendorInsightsOverviewQueryDto } from '../../presentation/dto/vendor-insights.query.dto';
 
@@ -223,12 +223,11 @@ export interface VendorFollowersResult {
 
 // Main interface
 export interface IVendorRepository {
-
   findByVendorId(ownerId: string): Promise<Vendor | null>;
   findByOwnerId(ownerId: string): Promise<Vendor | null>;
 
   findById(id: string): Promise<Vendor | null>;
-  
+
   findVendorMenuById(
     vendorId: string,
     query: VendorMenuQueryDto,
@@ -260,14 +259,10 @@ export interface IVendorRepository {
     pendingOrders: number;
     cancelledOrders: number;
   }>;
-  
-  findVendorStatusByOwnerId(
-    ownerId: string,
-  ): Promise<VendorStatusView | null>;
 
-  updateVendorStatus(
-    data: UpdateVendorStatusInput,
-  ): Promise<VendorStatusView>;
+  findVendorStatusByOwnerId(ownerId: string): Promise<VendorStatusView | null>;
+
+  updateVendorStatus(data: UpdateVendorStatusInput): Promise<VendorStatusView>;
 
   findGoLiveEligibilityByOwnerId(
     ownerId: string,
@@ -282,13 +277,15 @@ export interface IVendorRepository {
 
   findVendorIdByOwnerId(ownerId: string): Promise<{ id: string } | null>;
 
-  findVendorMenuItemOwner(productId: string): Promise<VendorMenuItemOwnerView | null>;
+  findVendorMenuItemOwner(
+    productId: string,
+  ): Promise<VendorMenuItemOwnerView | null>;
 
   updateVendorMenuItemStatus(data: {
     productId: string;
     isActive: boolean;
   }): Promise<VendorMenuItemStatusView>;
-  
+
   softDeleteVendorMenuItem(
     productId: string,
   ): Promise<DeleteVendorMenuItemView>;
@@ -311,17 +308,13 @@ export interface IVendorRepository {
     data: VendorInsightsDateRangeInput,
   ): Promise<VendorFavoriteCountView>;
 
-  findAiProfileByOwnerId(
-    ownerId: string,
-  ): Promise<VendorAiProfileView | null>;
+  findAiProfileByOwnerId(ownerId: string): Promise<VendorAiProfileView | null>;
 
   findOrdersForAiGuidance(
     data: VendorAiDateRangeInput,
   ): Promise<VendorAiOrderView[]>;
 
-  getVendorReviewSummary(
-    vendorId: string,
-  ): Promise<VendorReviewSummaryResult>;
+  getVendorReviewSummary(vendorId: string): Promise<VendorReviewSummaryResult>;
 
   findVendorReviews(
     vendorId: string,
@@ -351,5 +344,5 @@ export interface IVendorRepository {
     customerId?: string;
   }): Promise<void>;
 
-  findCustomerIdByUserId(userId: string): Promise<string | null>
+  findCustomerIdByUserId(userId: string): Promise<string | null>;
 }

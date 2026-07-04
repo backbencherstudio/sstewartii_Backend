@@ -1,12 +1,13 @@
-import { 
-  Controller, 
+import {
+  Controller,
   Req,
-  Post, 
-  Body, 
-  Request, 
+  Post,
+  Body,
+  Request,
   UseGuards,
   Query,
-  Get } from '@nestjs/common';
+  Get,
+} from '@nestjs/common';
 
 import { CategorySearchQueryDto } from '../dto/category.dto';
 import { CategoryResponseDto } from '../dto/category.response.dto';

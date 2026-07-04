@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 
-import { 
+import {
   CreateVendorTruckReviewResponseDto,
   VendorTruckReviewTagListResponseDto,
   VendorTruckReviewsResponseDto,
   CreateFoodReviewResponseDto,
- } from '../../presentation/dto/review.response.dto';
+} from '../../presentation/dto/review.response.dto';
 
 import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
 export class VendorTruckReviewMapper {
-constructor(private readonly mediaService:MediaService){}
-  
+  constructor(private readonly mediaService: MediaService) {}
+
   toCreateResponse(review: any): CreateVendorTruckReviewResponseDto {
     return {
       id: review.id,
@@ -22,7 +22,7 @@ constructor(private readonly mediaService:MediaService){}
       reviewText: review.reviewText ?? undefined,
       images: review.images.map((image: any) => ({
         id: image.id,
-        imageUrl: this.mediaService.getUrl(image.imageUrl) ,
+        imageUrl: this.mediaService.getUrl(image.imageUrl),
         position: image.position,
       })),
       tags: review.tags.map((entry: any) => ({
@@ -110,5 +110,4 @@ constructor(private readonly mediaService:MediaService){}
       createdAt: review.createdAt,
     };
   }
-
 }

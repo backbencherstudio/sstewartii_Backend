@@ -1,9 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 
 import { CreateHelpTicketDto } from '../dto/help-center.dto';
 import { HelpTicketResponseDto } from '../dto/help-center.response.dto';
@@ -29,9 +24,6 @@ export class HelpCenterController {
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateHelpTicketDto,
   ): Promise<HelpTicketResponseDto> {
-    return this.helpCenterService.createTicket(
-      user.id,
-      dto,
-    );
+    return this.helpCenterService.createTicket(user.id, dto);
   }
 }

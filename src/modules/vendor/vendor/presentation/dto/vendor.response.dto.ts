@@ -5,7 +5,6 @@ import {
   VerificationStatus,
 } from '@prisma/client';
 
-
 import { VendorInsightAccessDto } from './vendor-insights.response.dto';
 
 export class VendorMenuProductResponseDto {
@@ -63,7 +62,6 @@ export class VendorInfoResponseDto {
   openingHours!: VendorInfoOpeningHourResponseDto[];
   socialLinks!: VendorInfoSocialLinkResponseDto[];
 }
-
 
 export class TruckGalleryImageResponseDto {
   id!: string;

@@ -9,9 +9,7 @@ import { VendorInsightsMapper } from './infrastructure/mapper/vendor-insights.ma
 import { VendorInsightAccessService } from './application/vendor-insight-access.service';
 
 @Module({
-  imports: [
-    MediaModule,
-  ],
+  imports: [MediaModule],
   controllers: [VendorController],
   providers: [
     VendorService,

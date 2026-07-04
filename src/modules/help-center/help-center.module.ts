@@ -8,10 +8,7 @@ import { CustomerModule } from '@/modules/customer/customer/customer.module';
 import { VendorModule } from '../vendor/vendor/vendor.module';
 
 @Module({
-  imports: [
-    CustomerModule,
-    VendorModule,
-  ],
+  imports: [CustomerModule, VendorModule],
   controllers: [HelpCenterController],
   providers: [
     HelpCenterService,

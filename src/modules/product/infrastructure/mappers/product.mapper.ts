@@ -2,9 +2,7 @@
 
 import { Prisma } from '@prisma/client';
 import { Product } from '../../domain/entities/product.entity';
-import { 
-  ProductResponseDto,
- } from '../../presentation/dto/product.response.dto';
+import { ProductResponseDto } from '../../presentation/dto/product.response.dto';
 import { ProductCart } from '../../domain/entities/product.entity';
 import { Injectable } from '@nestjs/common';
 import { MediaService } from '@/common/media/media.service';
@@ -28,16 +26,16 @@ export class ProductMapper {
   constructor(private readonly mediaService: MediaService) {}
 
   static toDomain(raw: PrismaProductFull): Product {
-    const entity          = new Product();
-    entity.id             = raw.id;
-    entity.name           = raw.name;
-    entity.description    = raw.description;
-    entity.price          = raw.price;
+    const entity = new Product();
+    entity.id = raw.id;
+    entity.name = raw.name;
+    entity.description = raw.description;
+    entity.price = raw.price;
     entity.estimateCookTime = raw.estimateCookTime;
-    entity.isActive       = raw.isActive;
-    entity.vendorId       = raw.vendorId;
-    entity.categoryId     = raw.categoryId;
-    entity.createdAt      = raw.createdAt;
+    entity.isActive = raw.isActive;
+    entity.vendorId = raw.vendorId;
+    entity.categoryId = raw.categoryId;
+    entity.createdAt = raw.createdAt;
     return entity;
   }
 

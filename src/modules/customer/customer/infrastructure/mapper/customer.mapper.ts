@@ -48,17 +48,14 @@ export class CustomerMapper {
 
       distanceKm: Number((vendor.distanceKm ?? 0).toFixed(1)),
 
-      cityLabel: CustomerMapper.extractCityLabel(
-        vendor.serviceArea?.address,
-      ),
+      cityLabel: CustomerMapper.extractCityLabel(vendor.serviceArea?.address),
 
       vendorStatus: vendor.status as VendorLiveStatus,
 
       isOpen: vendor.availability?.isOpen ?? false,
       statusLabel: vendor.availability?.label ?? 'Closed',
 
-      cuisines:
-        vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+      cuisines: vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
 
       rating: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
       reviewCount: vendor.truckReviewCount ?? 0,
@@ -132,7 +129,7 @@ export class CustomerMapper {
 
       categoryName: product.category?.name ?? undefined,
       cuisines:
-      product.vendor?.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+        product.vendor?.cuisines?.map((item: any) => item.cuisine.name) ?? [],
 
       rating: Number((product.vendor?.reviewAverage ?? 0).toFixed(1)),
       reviewCount: product.vendor?.reviewCount ?? 0,
@@ -171,7 +168,9 @@ export class CustomerMapper {
     return {
       id: vendor.id,
       businessName: vendor.businessName ?? 'Unnamed Vendor',
-      coverImage: this.media.getUrl(vendor.coverImage ?? vendor.products?.[0]?.images?.[0]?.url),
+      coverImage: this.media.getUrl(
+        vendor.coverImage ?? vendor.products?.[0]?.images?.[0]?.url,
+      ),
 
       cuisines: vendor.cuisines?.map((entry: any) => entry.cuisine.name) ?? [],
 
@@ -230,10 +229,12 @@ export class CustomerMapper {
       type: 'TRUCK',
       id: vendor.id,
       businessName: vendor.businessName ?? 'Unnamed Vendor',
-      coverImage: this.media.getUrl( vendor.coverImage ??
-        vendor.truckGalleryImages?.[0]?.url ??
-        vendor.products?.[0]?.images?.[0]?.url ),
-        
+      coverImage: this.media.getUrl(
+        vendor.coverImage ??
+          vendor.truckGalleryImages?.[0]?.url ??
+          vendor.products?.[0]?.images?.[0]?.url,
+      ),
+
       cityLabel: CustomerMapper.extractCityLabel(vendor.serviceArea?.address),
       address: vendor.serviceArea?.address ?? undefined,
 

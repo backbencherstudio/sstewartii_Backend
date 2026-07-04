@@ -1,12 +1,12 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
-import { 
+import {
   Injectable,
-  Inject, 
+  Inject,
   ConflictException,
-  UnauthorizedException, 
-  BadRequestException, 
+  UnauthorizedException,
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -25,7 +25,7 @@ import { AuthOtpQueueService } from '../infrastructure/queues/auth-otp-queue.ser
 import { RegisterDto } from '../presentation/dto/registerDto/register.dto';
 import { LoginDto } from '../presentation/dto/loginDto/login.dto';
 import { MailService } from 'src/common/mail/mail.service';
-import { VerifyOtpDto  } from '../presentation/dto/mail/otp.dto';
+import { VerifyOtpDto } from '../presentation/dto/mail/otp.dto';
 import { CurrentUserResponseDto } from '../presentation/dto/userDto/user.response.dto';
 
 @Injectable()
@@ -36,31 +36,30 @@ export class AuthService {
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
 
-    @Inject('IOtpRepository') 
+    @Inject('IOtpRepository')
     private readonly otpRepository: IOtpRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
     private readonly authOtpQueueService: AuthOtpQueueService,
   ) {
-     this.googleClient = new OAuth2Client(
-     this.configService.get<string>('google.clientId'),
-     this.configService.get<string>('google.clientSecret'),
-     this.configService.get<string>('google.callbackUrl')
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('google.clientId'),
+      this.configService.get<string>('google.clientSecret'),
+      this.configService.get<string>('google.callbackUrl'),
     );
   }
 
   async register(registerDto: RegisterDto): Promise<any> {
-    
-    const { email, password, confirmPassword, accountType, name  } = registerDto;
+    const { email, password, confirmPassword, accountType, name } = registerDto;
 
-    if(password !== confirmPassword){
-      throw new BadRequestException;
+    if (password !== confirmPassword) {
+      throw new BadRequestException();
     }
 
     const existingUser = await this.userRepository.findByEmail(email);
-   
-    if (existingUser){
+
+    if (existingUser) {
       throw new ConflictException('Email already exist');
     }
 
@@ -77,7 +76,7 @@ export class AuthService {
 
     const savedUser = await this.userRepository.create(newUser, roleType);
 
-   // await this.generateAndSendOtp(savedUser, 'EMAIL_VERIFICATION');
+    // await this.generateAndSendOtp(savedUser, 'EMAIL_VERIFICATION');
 
     await this.authOtpQueueService.addEmailVerificationOtpJob({
       userId: savedUser.id,
@@ -91,35 +90,31 @@ export class AuthService {
         email: savedUser.email,
         role: savedUser.role?.name,
         isVerified: savedUser.isEmailVerified,
-      }
+      },
     };
   }
 
   async login(loginDto: LoginDto): Promise<any> {
-    
     const { email, password } = loginDto;
     const user = await this.userRepository.findLoginUserByEmail(email);
 
-    if(!user){
+    if (!user) {
       throw new ConflictException({
-          success: false,
-          message: 'Invalid Creadential',
-        }
-      );
+        success: false,
+        message: 'Invalid Creadential',
+      });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password)
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordValid){
+    if (!isPasswordValid) {
       throw new UnauthorizedException({
-          success: false,
-          message: 'Invalid Creadential',
-        }
-      );
+        success: false,
+        message: 'Invalid Creadential',
+      });
     }
 
     if (!user.isEmailVerified) {
-
       await this.authOtpQueueService.addEmailVerificationOtpJob({
         userId: user.id,
         email: user.email,
@@ -131,7 +126,7 @@ export class AuthService {
     await this.updateRefreshTokenHash(user.id, token.refreshToken);
 
     const locationState = this.buildLocationState(user);
-    
+
     return {
       success: true,
       message: 'Login successful',
@@ -144,10 +139,9 @@ export class AuthService {
           role: user.role?.name,
           isVerified: user.isEmailVerified,
 
-        hasLocation: locationState.hasLocation,
-        locationRequired: locationState.locationRequired,
-        nextStep: locationState.nextStep,
-
+          hasLocation: locationState.hasLocation,
+          locationRequired: locationState.locationRequired,
+          nextStep: locationState.nextStep,
         },
       },
     };
@@ -192,20 +186,23 @@ export class AuthService {
   }
 
   async refreshToken(userId: string, refreshToken: string): Promise<any> {
-
     const user = await this.userRepository.findById(userId);
 
     if (!user) throw new ForbiddenException('Access Denied');
-    
-    const storeRefreshTokenHash = await this.userRepository.getRefreshToken(userId);
+
+    const storeRefreshTokenHash =
+      await this.userRepository.getRefreshToken(userId);
 
     if (!storeRefreshTokenHash) {
       throw new ForbiddenException('Access Denied');
     }
 
-    const isRefreshTokenValid = await bcrypt.compare(refreshToken, storeRefreshTokenHash);
+    const isRefreshTokenValid = await bcrypt.compare(
+      refreshToken,
+      storeRefreshTokenHash,
+    );
 
-    if (!isRefreshTokenValid){
+    if (!isRefreshTokenValid) {
       throw new ForbiddenException('Access Denied');
     }
 
@@ -216,11 +213,14 @@ export class AuthService {
     return token;
   }
 
-  private async getTokens(userId: string, email: string, roleName: string): Promise<any> {
-
+  private async getTokens(
+    userId: string,
+    email: string,
+    roleName: string,
+  ): Promise<any> {
     const jwtPayload = { sub: userId, email, roleName };
 
-    const[accessToken, refreshToken] = await Promise.all([
+    const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(jwtPayload, {
         secret: this.configService.get<string>('jwt.secret'),
         expiresIn: '7d',
@@ -241,28 +241,29 @@ export class AuthService {
     let user = await this.userRepository.findByEmail(email);
 
     if (user) {
-    
       if (!user.googleId) {
-         await this.userRepository.update(user.id, { googleId, provider: 'GOOGLE' });
+        await this.userRepository.update(user.id, {
+          googleId,
+          provider: 'GOOGLE',
+        });
       }
     } else {
-
       const newUser = new User({
         id: uuidv4(),
         email: email,
         name: name,
-        password: null, 
-        googleId: googleId, 
+        password: null,
+        googleId: googleId,
         provider: 'GOOGLE',
       });
 
-      const roleType = 'USER'; 
+      const roleType = 'USER';
 
       user = await this.userRepository.create(newUser, roleType);
     }
 
     const tokens = await this.getTokens(user.id, user.email, user.role.name);
-    
+
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
     return { user, tokens };
@@ -270,9 +271,9 @@ export class AuthService {
 
   getGoogleAuthUrl(): string {
     const url = this.googleClient.generateAuthUrl({
-      access_type: 'offline', 
+      access_type: 'offline',
       scope: ['email', 'profile'],
-      prompt: 'consent'
+      prompt: 'consent',
     });
 
     return url;
@@ -288,11 +289,12 @@ export class AuthService {
 
     if (!user) throw new BadRequestException('User not found');
 
-    if (user.isEmailVerified) throw new BadRequestException('Email is already verified');
-    
+    if (user.isEmailVerified)
+      throw new BadRequestException('Email is already verified');
+
     await this.authOtpQueueService.addEmailVerificationOtpJob({
-        userId: user.id,
-        email: user.email,
+      userId: user.id,
+      email: user.email,
     });
 
     //await this.generateAndSendOtp(user, 'EMAIL_VERIFICATION');
@@ -323,13 +325,19 @@ export class AuthService {
     await this.userRepository.update(user.id, { isEmailVerified: true });
   }
 
-  private async validateOtp(userId: string, plainOtp: string, type: string): Promise<void> {
+  private async validateOtp(
+    userId: string,
+    plainOtp: string,
+    type: string,
+  ): Promise<void> {
     const otpRecord = await this.otpRepository.findLatest(userId, type);
 
     if (!otpRecord) throw new BadRequestException('Invalid or expired OTP');
 
     if (otpRecord.expiresAt < new Date()) {
-      throw new BadRequestException('OTP has expired. Please request a new one.');
+      throw new BadRequestException(
+        'OTP has expired. Please request a new one.',
+      );
     }
 
     const isValid = await bcrypt.compare(plainOtp, otpRecord.otp);
@@ -338,9 +346,9 @@ export class AuthService {
     await this.otpRepository.deleteUserOtps(userId, type);
   }
 
-  async forgotPassword(email: string): Promise<void>  {
+  async forgotPassword(email: string): Promise<void> {
     const user = await this.userRepository.findByEmail(email);
-    
+
     if (user && user.provider === 'LOCAL') {
       await this.generateAndSendOtp(user, 'PASSWORD_RESET');
     }
@@ -352,14 +360,17 @@ export class AuthService {
 
     await this.validateOtp(user.id, dto.otp, 'PASSWORD_RESET');
     const resetToken = await this.jwtService.signAsync(
-      { sub: user.id, type: 'PASSWORD_RESET_TOKEN' }, 
-      { secret: this.configService.get('jwt.resetSecret'), expiresIn: '10m' }
+      { sub: user.id, type: 'PASSWORD_RESET_TOKEN' },
+      { secret: this.configService.get('jwt.resetSecret'), expiresIn: '10m' },
     );
 
     return { resetToken };
   }
 
-  async resetPasswordWithToken(resetToken: string, newPassword: string): Promise<void> {
+  async resetPasswordWithToken(
+    resetToken: string,
+    newPassword: string,
+  ): Promise<void> {
     try {
       const payload = await this.jwtService.verifyAsync(resetToken, {
         secret: this.configService.get('jwt.resetSecret'),
@@ -370,11 +381,10 @@ export class AuthService {
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await this.userRepository.update(payload.sub, { 
+      await this.userRepository.update(payload.sub, {
         password: hashedPassword,
-        refreshToken: null 
+        refreshToken: null,
       });
-
     } catch (error) {
       throw new UnauthorizedException('Reset session expired or invalid');
     }
@@ -384,12 +394,8 @@ export class AuthService {
     await this.userRepository.updateRefreshToken(userId, null);
   }
 
-  async getCurrentUser(
-    userId: string,
-  ): Promise<CurrentUserResponseDto> {
-
-    const user =
-      await this.userRepository.findLoginUserById(userId);
+  async getCurrentUser(userId: string): Promise<CurrentUserResponseDto> {
+    const user = await this.userRepository.findLoginUserById(userId);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -403,4 +409,3 @@ export class AuthService {
     };
   }
 }
-

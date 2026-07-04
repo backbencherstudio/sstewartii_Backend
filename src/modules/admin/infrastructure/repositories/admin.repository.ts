@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
-import { 
+import {
   Prisma,
   VerificationStatus,
   KycStatus,
@@ -11,7 +11,7 @@ import {
   VendorVerification,
   Vendor,
   VendorAdminStatus,
- } from '@prisma/client';
+} from '@prisma/client';
 
 import type {
   FindVendorVerificationsInput,
@@ -32,23 +32,20 @@ import type {
   UpdateVendorVerificationData,
 } from '../../domain/interface/admin.repository.interface';
 
-import { 
-  AnalyticsSummaryRawData,
- } from '../mapper/admin-analytics.mapper';
+import { AnalyticsSummaryRawData } from '../mapper/admin-analytics.mapper';
 
-import { 
+import {
   VendorVerificationSort,
   AdminVendorAccountSort,
   AdminVendorOrderStatusFilter,
   AdminVendorOrderSort,
- } from '../../presentation/dto/admin.dto';
+} from '../../presentation/dto/admin.dto';
 
-import { PlatformGrowthQueryDto } from '../../presentation/dto/analytics-summary.response.dto';  
+import { PlatformGrowthQueryDto } from '../../presentation/dto/analytics-summary.response.dto';
 
-export type VendorSubscriptionWithPlan =
-  Prisma.VendorSubscriptionGetPayload<{
-    include: { subscriptionPlan: true };
-  }>;
+export type VendorSubscriptionWithPlan = Prisma.VendorSubscriptionGetPayload<{
+  include: { subscriptionPlan: true };
+}>;
 
 type UpdateVendorStatusData = {
   adminStatus: VendorAdminStatus;
@@ -58,9 +55,7 @@ type UpdateVendorStatusData = {
 };
 
 @Injectable()
-export class AdminVendorVerificationRepository
-  implements IAdminVendorVerificationRepository
-{
+export class AdminVendorVerificationRepository implements IAdminVendorVerificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findManagementList(
@@ -160,19 +155,15 @@ export class AdminVendorVerificationRepository
       }),
     ]);
 
-    const totalReviewDays = reviewedVerifications.reduce(
-      (sum, item) => {
-        if (!item.reviewedAt) return sum;
+    const totalReviewDays = reviewedVerifications.reduce((sum, item) => {
+      if (!item.reviewedAt) return sum;
 
-        const diffMs =
-          item.reviewedAt.getTime() - item.submittedAt.getTime();
+      const diffMs = item.reviewedAt.getTime() - item.submittedAt.getTime();
 
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
-        return sum + diffDays;
-      },
-      0,
-    );
+      return sum + diffDays;
+    }, 0);
 
     const avgReviewTimeDays =
       reviewedVerifications.length > 0
@@ -434,7 +425,7 @@ export class AdminVendorVerificationRepository
     };
   }
 
-    async findSubscriptionRevenueRows(
+  async findSubscriptionRevenueRows(
     startDate: Date,
   ): Promise<RevenueSubscriptionRow[]> {
     return this.prisma.vendorSubscription.findMany({
@@ -506,9 +497,7 @@ export class AdminVendorVerificationRepository
     });
   }
 
-  async approveVerification(
-    verificationId: string,
-  ): Promise<any> {
+  async approveVerification(verificationId: string): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
       const verification = await tx.vendorVerification.update({
         where: {
@@ -540,9 +529,7 @@ export class AdminVendorVerificationRepository
     });
   }
 
-  async rejectVerification(
-    verificationId: string,
-  ): Promise<any> {
+  async rejectVerification(verificationId: string): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
       const verification = await tx.vendorVerification.update({
         where: {
@@ -592,7 +579,7 @@ export class AdminVendorVerificationRepository
 
       ...(search && {
         OR: [
-           {
+          {
             vendorCode: {
               contains: search,
               mode: Prisma.QueryMode.insensitive,
@@ -707,39 +694,35 @@ export class AdminVendorVerificationRepository
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [
-      totalVendors,
-      verifiedVendors,
-      newThisMonth,
-      suspendedVendors,
-    ] = await Promise.all([
-      this.prisma.vendor.count(),
+    const [totalVendors, verifiedVendors, newThisMonth, suspendedVendors] =
+      await Promise.all([
+        this.prisma.vendor.count(),
 
-      this.prisma.vendor.count({
-        where: {
-          kycStatus: KycStatus.APPROVED,
-        },
-      }),
-
-      this.prisma.vendor.count({
-        where: {
-          createdAt: {
-            gte: startOfMonth,
+        this.prisma.vendor.count({
+          where: {
+            kycStatus: KycStatus.APPROVED,
           },
-        },
-      }),
+        }),
 
-      /**
-       * Your schema does not have SUSPENDED vendor status.
-       * For this dashboard, we treat CANCELLED subscription as suspended.
-       * If you add VendorAccountStatus later, change this logic.
-       */
-      this.prisma.vendor.count({
-        where: {
-          subscriptionStatus: SubscriptionStatus.CANCELLED,
-        },
-      }),
-    ]);
+        this.prisma.vendor.count({
+          where: {
+            createdAt: {
+              gte: startOfMonth,
+            },
+          },
+        }),
+
+        /**
+         * Your schema does not have SUSPENDED vendor status.
+         * For this dashboard, we treat CANCELLED subscription as suspended.
+         * If you add VendorAccountStatus later, change this logic.
+         */
+        this.prisma.vendor.count({
+          where: {
+            subscriptionStatus: SubscriptionStatus.CANCELLED,
+          },
+        }),
+      ]);
 
     return {
       totalVendors,
@@ -790,8 +773,7 @@ export class AdminVendorVerificationRepository
     }
   }
 
-
-   async findVendorOverviewById(vendorId: string): Promise<any | null> {
+  async findVendorOverviewById(vendorId: string): Promise<any | null> {
     return this.prisma.vendor.findUnique({
       where: {
         id: vendorId,
@@ -1042,10 +1024,7 @@ export class AdminVendorVerificationRepository
       vendorId: input.vendorId,
     };
 
-    if (
-      input.status &&
-      input.status !== AdminVendorOrderStatusFilter.ALL
-    ) {
+    if (input.status && input.status !== AdminVendorOrderStatusFilter.ALL) {
       where.status = input.status as OrderStatus;
     }
 
@@ -1177,7 +1156,7 @@ export class AdminVendorVerificationRepository
       include: {
         subscriptionPlan: true,
       },
-    }); 
+    });
   }
 
   async updateStatus(
@@ -1191,26 +1170,20 @@ export class AdminVendorVerificationRepository
   }
 
   async getAnalyticalSummary(): Promise<AnalyticsSummaryRawData> {
-    const [
-      totalVendors,
-      totalCustomers,
-      totalSubscribers,
-      revenueAggregate,
-    ] = await Promise.all([
+    const [totalVendors, totalCustomers, totalSubscribers, revenueAggregate] =
+      await Promise.all([
+        this.prisma.vendor.count(),
 
-      this.prisma.vendor.count(),
+        this.prisma.customer.count(),
 
-      this.prisma.customer.count(),
+        this.prisma.vendorSubscription.count({
+          where: { status: SubscriptionStatus.ACTIVE },
+        }),
 
-      this.prisma.vendorSubscription.count({
-        where: { status: SubscriptionStatus.ACTIVE },
-      }),
-
-      this.prisma.subscriptionTransaction.aggregate({
-        _sum: { amount: true },
-      }),
-
-    ]);
+        this.prisma.subscriptionTransaction.aggregate({
+          _sum: { amount: true },
+        }),
+      ]);
 
     return {
       totalVendors,

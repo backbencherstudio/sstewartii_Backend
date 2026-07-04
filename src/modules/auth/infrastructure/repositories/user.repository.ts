@@ -1,21 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 
-import { IUserRepository, LoginUserView} from '../../domain/interfaces/user.repository.interface';
+import {
+  IUserRepository,
+  LoginUserView,
+} from '../../domain/interfaces/user.repository.interface';
 import { User } from '../../domain/entities/user.entity';
 import { UserMapper } from '../mappers/user.mapper';
 import { UserWithRelations } from '../../domain/types/user-with-relations.type';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
-
   constructor(private readonly prisma: PrismaService) {}
 
   async findByEmail(email: string): Promise<User | null> {
-
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { role:true }
+      include: { role: true },
     });
 
     if (!user) return null;
@@ -68,37 +69,35 @@ export class UserRepository implements IUserRepository {
     });
   }
 
- async update(userId: string, updateData: Partial<User>): Promise<User> {
-    
+  async update(userId: string, updateData: Partial<User>): Promise<User> {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
         email: updateData.email ?? undefined,
         password: updateData.password ?? undefined,
-        name: updateData.name ?? undefined, 
+        name: updateData.name ?? undefined,
         googleId: updateData.googleId ?? undefined,
         appleId: updateData.appleId ?? undefined,
         provider: updateData.provider ?? undefined,
         refreshToken: updateData.refreshToken ?? undefined,
         isEmailVerified: updateData.isEmailVerified ?? undefined,
       },
-      
-      include: { 
+
+      include: {
         role: {
           include: {
             permissions: {
-              include: { permission: true }
-            }
-          }
-        } 
-      }
+              include: { permission: true },
+            },
+          },
+        },
+      },
     });
 
     return UserMapper.toDomain(updatedUser);
   }
 
   async create(user: User, roleType: 'USER' | 'VENDOR'): Promise<User> {
-
     const created = await this.prisma.user.create({
       data: {
         id: user.id,
@@ -108,65 +107,62 @@ export class UserRepository implements IUserRepository {
         googleId: user.googleId ?? null,
         appleId: user.appleId ?? null,
         provider: user.provider ?? 'LOCAL',
-  
+
         role: {
-          connect: { name: roleType }
-        } 
+          connect: { name: roleType },
+        },
       },
-      include: { role: true }
+      include: { role: true },
     });
 
-   return UserMapper.toDomain(created);
+    return UserMapper.toDomain(created);
   }
 
   async findById(id: string): Promise<User | null> {
-
     const user = await this.prisma.user.findUnique({
-       where: { id },
-       include: {
+      where: { id },
+      include: {
         role: {
           include: {
             permissions: {
               include: {
                 permission: true,
-              }
-            }
-          }
-        }
-       }
+              },
+            },
+          },
+        },
+      },
+    });
 
-       });
-
-    if(!user) return null;
+    if (!user) return null;
 
     return UserMapper.toDomain(user);
   }
 
-  async getRefreshToken(userId: string): Promise<string | null>{
-
+  async getRefreshToken(userId: string): Promise<string | null> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { refreshToken: true },
     });
 
-    if(!user || !user.refreshToken){
+    if (!user || !user.refreshToken) {
       return null;
     }
-    
+
     return user.refreshToken;
   }
 
-  async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
-    
+  async updateRefreshToken(
+    userId: string,
+    refreshToken: string | null,
+  ): Promise<void> {
     await this.prisma.user.update({
-      where: { id: userId},
+      where: { id: userId },
       data: { refreshToken },
     });
   }
 
-  async findLoginUserById(
-    userId: string,
-  ): Promise<UserWithRelations | null> {
+  async findLoginUserById(userId: string): Promise<UserWithRelations | null> {
     return this.prisma.user.findUnique({
       where: {
         id: userId,

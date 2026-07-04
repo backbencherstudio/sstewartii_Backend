@@ -1,10 +1,10 @@
-import { 
-  Inject, 
+import {
+  Inject,
   Injectable,
   NotFoundException,
   ConflictException,
   BadRequestException,
- } from '@nestjs/common';
+} from '@nestjs/common';
 
 import {
   VerificationStatus,
@@ -12,18 +12,18 @@ import {
   VendorAdminStatus,
 } from '@prisma/client';
 
-import type { 
+import type {
   IAdminVendorVerificationRepository,
   RevenueSubscriptionRow,
   SalesOrderRow,
   AdminVendorOverviewOrderRow,
   AdminVendorOverviewProfileViewRow,
- } from '../domain/interface/admin.repository.interface';
- 
+} from '../domain/interface/admin.repository.interface';
+
 import { AdminMapper } from '../infrastructure/mapper/admin.mapper';
 import { AdminAnalyticsMapper } from '../infrastructure/mapper/admin-analytics.mapper';
 
-import { 
+import {
   VendorVerificationListQueryDto,
   VendorVerificationSort,
   AdminVendorVerificationDocumentType,
@@ -39,8 +39,8 @@ import {
   AdminVendorOrderStatusFilter,
   AdminVendorOrderSort,
   UpdateVendorStatusData,
- } from '../presentation/dto/admin.dto';
-import { 
+} from '../presentation/dto/admin.dto';
+import {
   VendorVerificationManagementResponseDto,
   AdminVendorVerificationDetailResponseDto,
   AdminVendorVerificationFileResponseDto,
@@ -53,10 +53,8 @@ import {
   AdminVendorDocumentsResponseDto,
   AdminVendorSubscriptionResponseDto,
   AdminVendorStatusResponseDto,
- } from '../presentation/dto/admin.response.dto';
- import { 
-  AnalyticsSummaryResponseDto,
- } from '../presentation/dto/analytics-summary.response.dto';
+} from '../presentation/dto/admin.response.dto';
+import { AnalyticsSummaryResponseDto } from '../presentation/dto/analytics-summary.response.dto';
 
 import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
 
@@ -78,8 +76,8 @@ export class AdminVendorVerificationService {
     @Inject('IAdminVendorVerificationRepository')
     private readonly repository: IAdminVendorVerificationRepository,
     private readonly adminMapper: AdminMapper,
-    private readonly vendorService: VendorService, 
-    private readonly adminAnalyticsMapper: AdminAnalyticsMapper, 
+    private readonly vendorService: VendorService,
+    private readonly adminAnalyticsMapper: AdminAnalyticsMapper,
   ) {}
 
   async getManagementList(
@@ -111,8 +109,7 @@ export class AdminVendorVerificationService {
   async getVerificationDetail(
     verificationId: string,
   ): Promise<AdminVendorVerificationDetailResponseDto> {
-    const verification =
-      await this.repository.findDetailById(verificationId);
+    const verification = await this.repository.findDetailById(verificationId);
 
     if (!verification) {
       throw new NotFoundException('Vendor verification not found');
@@ -141,7 +138,6 @@ export class AdminVendorVerificationService {
   async getOverview(
     query: AdminDashboardOverviewQueryDto,
   ): Promise<AdminDashboardOverviewResponseDto> {
-  
     void query;
 
     const overview = await this.repository.getOverview();
@@ -273,11 +269,11 @@ export class AdminVendorVerificationService {
     return Number(total.toFixed(2));
   }
 
-  private resolveSubscriptionCurrency(
-    rows: RevenueSubscriptionRow[],
-  ): string {
-    return rows.find((row) => row.subscriptionPlan?.currency)?.subscriptionPlan
-      ?.currency ?? 'USD';
+  private resolveSubscriptionCurrency(rows: RevenueSubscriptionRow[]): string {
+    return (
+      rows.find((row) => row.subscriptionPlan?.currency)?.subscriptionPlan
+        ?.currency ?? 'USD'
+    );
   }
 
   private buildDateBuckets(range: DashboardRevenueRange): {
@@ -411,9 +407,7 @@ export class AdminVendorVerificationService {
     }
 
     if (verification.status === VerificationStatus.APPROVED) {
-      throw new ConflictException(
-        'Vendor verification is already approved',
-      );
+      throw new ConflictException('Vendor verification is already approved');
     }
 
     if (verification.status === VerificationStatus.REJECTED) {
@@ -441,8 +435,7 @@ export class AdminVendorVerificationService {
       );
     }
 
-    const approved =
-      await this.repository.approveVerification(verificationId);
+    const approved = await this.repository.approveVerification(verificationId);
 
     return this.adminMapper.toActionResponse({
       verification: approved,
@@ -461,9 +454,7 @@ export class AdminVendorVerificationService {
     }
 
     if (verification.status === VerificationStatus.APPROVED) {
-      throw new ConflictException(
-        'Vendor verification is already approved',
-      );
+      throw new ConflictException('Vendor verification is already approved');
     }
 
     if (verification.status === VerificationStatus.REJECTED) {
@@ -476,7 +467,7 @@ export class AdminVendorVerificationService {
       verification.status !== VerificationStatus.PENDING &&
       verification.status !== VerificationStatus.IN_REVIEW
     ) {
-      throw new BadRequestException(  
+      throw new BadRequestException(
         'Vendor verification cannot be approved from current status',
       );
     }
@@ -532,17 +523,11 @@ export class AdminVendorVerificationService {
   ): Promise<AdminVendorAccountOverviewResponseDto> {
     const range = query.range ?? AdminVendorOverviewRange.MONTH;
 
-    const { startDate, endDate, buckets } =
-      this.buildDateBuckets1(range);
+    const { startDate, endDate, buckets } = this.buildDateBuckets1(range);
 
-    const previousRange = this.buildPreviousDateRange(
-      startDate,
-      endDate,
-    );
+    const previousRange = this.buildPreviousDateRange(startDate, endDate);
 
-    const vendor = await this.repository.findVendorOverviewById(
-      vendorId,
-    );
+    const vendor = await this.repository.findVendorOverviewById(vendorId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -591,9 +576,7 @@ export class AdminVendorVerificationService {
       }),
     ]);
 
-    const favoriteCustomerIds = recentFavorites.map(
-      (item) => item.customer.id,
-    );
+    const favoriteCustomerIds = recentFavorites.map((item) => item.customer.id);
 
     const favoriteCustomerOrderSummaries =
       await this.repository.findFavoriteCustomerOrderSummaries({
@@ -602,32 +585,23 @@ export class AdminVendorVerificationService {
       });
 
     const favoriteOrderSummaryMap = new Map(
-      favoriteCustomerOrderSummaries.map((item) => [
-        item.customerId,
-        item,
-      ]),
+      favoriteCustomerOrderSummaries.map((item) => [item.customerId, item]),
     );
 
     const favorites = {
       count: favoriteCount,
       recent: recentFavorites.map((item) => {
-        const orderSummary = favoriteOrderSummaryMap.get(
-          item.customer.id,
-        );
+        const orderSummary = favoriteOrderSummaryMap.get(item.customer.id);
 
         return {
           customerId: item.customer.id,
           customerName:
-            item.customer.user.name ??
-            item.customer.user.email ??
-            'Customer',
+            item.customer.user.name ?? item.customer.user.email ?? 'Customer',
           email: item.customer.user.email,
           favoritedAt: item.createdAt,
 
           orderCount: orderSummary?.orderCount ?? 0,
-          totalSpent: Number(
-            (orderSummary?.totalSpent ?? 0).toFixed(2),
-          ),
+          totalSpent: Number((orderSummary?.totalSpent ?? 0).toFixed(2)),
         };
       }),
     };
@@ -637,8 +611,7 @@ export class AdminVendorVerificationService {
       0,
     );
 
-    const orderDistribution =
-      this.calculateOrderDistribution(orders);
+    const orderDistribution = this.calculateOrderDistribution(orders);
 
     const revenueChart = this.calculateRevenueChart({
       orders,
@@ -646,11 +619,10 @@ export class AdminVendorVerificationService {
       currency: vendor.subscriptionPlan?.currency ?? 'USD',
     });
 
-    const customerEngagement =
-      this.calculateCustomerEngagement({
-        orders,
-        buckets,
-      });
+    const customerEngagement = this.calculateCustomerEngagement({
+      orders,
+      buckets,
+    });
 
     const profileViews = this.calculateProfileViews({
       rows: profileViewRows,
@@ -671,9 +643,7 @@ export class AdminVendorVerificationService {
     });
   }
 
-  private calculateOrderDistribution(
-    orders: AdminVendorOverviewOrderRow[],
-  ) {
+  private calculateOrderDistribution(orders: AdminVendorOverviewOrderRow[]) {
     const totalOrders = orders.length;
 
     const completed = orders.filter(
@@ -693,10 +663,7 @@ export class AdminVendorVerificationService {
     const itemsSold = orders.reduce((sum, order) => {
       return (
         sum +
-        order.orderItems.reduce(
-          (itemSum, item) => itemSum + item.quantity,
-          0,
-        )
+        order.orderItems.reduce((itemSum, item) => itemSum + item.quantity, 0)
       );
     }, 0);
 
@@ -724,10 +691,7 @@ export class AdminVendorVerificationService {
         continue;
       }
 
-      const bucket = this.findBucketForDate(
-        order.createdAt,
-        data.buckets,
-      );
+      const bucket = this.findBucketForDate(order.createdAt, data.buckets);
 
       if (!bucket) {
         continue;
@@ -863,10 +827,7 @@ export class AdminVendorVerificationService {
     return Number(((value / total) * 100).toFixed(1));
   }
 
-  private calculateGrowthPercent(
-    current: number,
-    previous: number,
-  ): number {
+  private calculateGrowthPercent(current: number, previous: number): number {
     if (previous === 0) {
       return current > 0 ? 100 : 0;
     }
@@ -1020,9 +981,7 @@ export class AdminVendorVerificationService {
     const previousEnd = new Date(startDate);
     previousEnd.setMilliseconds(previousEnd.getMilliseconds() - 1);
 
-    const previousStart = new Date(
-      previousEnd.getTime() - durationMs,
-    );
+    const previousStart = new Date(previousEnd.getTime() - durationMs);
 
     return {
       startDate: previousStart,
@@ -1064,8 +1023,7 @@ export class AdminVendorVerificationService {
   async getVendorDocuments(
     vendorId: string,
   ): Promise<AdminVendorDocumentsResponseDto> {
-    const verification =
-      await this.repository.findVendorDocuments(vendorId);
+    const verification = await this.repository.findVendorDocuments(vendorId);
 
     if (!verification) {
       throw new NotFoundException('Documents not found');
@@ -1094,7 +1052,6 @@ export class AdminVendorVerificationService {
     status: VendorAdminStatus,
     reason?: string,
   ): Promise<AdminVendorStatusResponseDto> {
-
     const vendor = await this.vendorService.findByVendorId(vendorId);
 
     if (!vendor) {
@@ -1122,20 +1079,14 @@ export class AdminVendorVerificationService {
       data.statusReason = null;
     }
 
-    const updatedVendor = await this.repository.updateStatus(
-      vendorId,
-      data,
-    );
-    
+    const updatedVendor = await this.repository.updateStatus(vendorId, data);
+
     return this.adminMapper.toResponse(updatedVendor);
   }
 
   async getAnalyticalSummary(): Promise<AnalyticsSummaryResponseDto> {
-
     const raw = await this.repository.getAnalyticalSummary();
 
     return this.adminAnalyticsMapper.toSummaryResponse(raw);
   }
 }
-
-

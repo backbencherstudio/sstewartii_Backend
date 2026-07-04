@@ -22,7 +22,7 @@ export interface UserProps {
 export class User {
   public id: string;
   public email: string;
-  public password?: string | null ;
+  public password?: string | null;
   public name!: string;
   public roleId?: string;
   public role?: any;
@@ -47,11 +47,10 @@ export class User {
     this.roleId = props.roleId;
     this.role = props.role;
 
-    this.googleId = props.googleId,
-    this.appleId = props.appleId,
-    this.provider = props.provider || 'LOCAL',
-
-    this.permissions = props.permissions;
+    ((this.googleId = props.googleId),
+      (this.appleId = props.appleId),
+      (this.provider = props.provider || 'LOCAL'),
+      (this.permissions = props.permissions));
     this.refreshToken = props.refreshToken;
 
     this.isEmailVerified = props.isEmailVerified ?? false;

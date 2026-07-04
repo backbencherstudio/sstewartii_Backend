@@ -58,7 +58,7 @@ function parseAndTransform<T>(value: any, cls: new () => T): T[] {
 
     const result = plainToInstance(cls, parsed);
 
-    return Array.isArray(result) ? result : [result]; 
+    return Array.isArray(result) ? result : [result];
   } catch {
     return [];
   }
@@ -114,4 +114,3 @@ export class UpdateProductStatusDto {
   @IsBoolean()
   isActive!: boolean;
 }
-

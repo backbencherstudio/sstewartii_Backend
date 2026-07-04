@@ -17,10 +17,12 @@ export class LocalStorageService implements IStorageService {
       await fs.mkdir(targetFolder, { recursive: true });
 
       await fs.writeFile(fullPath, file.buffer);
-      
+
       return `/uploads/${folder}/${fileName}`;
     } catch (error) {
-      throw new InternalServerErrorException('Failed to save file to local storage');
+      throw new InternalServerErrorException(
+        'Failed to save file to local storage',
+      );
     }
   }
 
@@ -28,8 +30,6 @@ export class LocalStorageService implements IStorageService {
     try {
       const absolutePath = path.join(process.cwd(), fileUrl);
       await fs.unlink(absolutePath);
-    } catch (e) {
-        
-    }
+    } catch (e) {}
   }
 }

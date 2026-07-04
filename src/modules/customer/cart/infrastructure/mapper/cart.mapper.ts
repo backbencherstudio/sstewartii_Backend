@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { 
+import {
   CartResponseDto,
   CartListResponseDto,
 } from '../../presentation/dto/cart.response.dto';
@@ -9,7 +9,7 @@ import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
 export class CartMapper {
-  constructor(private readonly mediaService:MediaService){}
+  constructor(private readonly mediaService: MediaService) {}
 
   static toResponse(cart: any): CartResponseDto {
     const items = cart.items ?? [];
@@ -100,16 +100,15 @@ export class CartMapper {
           id: cart.vendor.id,
           businessName: cart.vendor.businessName ?? 'Unnamed Vendor',
           coverImage: this.mediaService.getUrl(
-            cart.vendor.coverImage ??
-            cart.vendor.truckGalleryImages?.[0]?.url
+            cart.vendor.coverImage ?? cart.vendor.truckGalleryImages?.[0]?.url,
           ),
-          address: cart.vendor.serviceArea?.address
+          address: cart.vendor.serviceArea?.address,
         },
         items: cart.items.map((item: any) => ({
           id: item.id,
           productId: item.productId,
           productName: item.product.name,
-          productImage: this.mediaService.getUrl(item.product.images?.[0]?.url), 
+          productImage: this.mediaService.getUrl(item.product.images?.[0]?.url),
           quantity: item.quantity,
         })),
         totalAmount: cart.totalAmount,
@@ -121,5 +120,4 @@ export class CartMapper {
       })),
     };
   }
-
 }

@@ -201,7 +201,9 @@ export class CartRepository implements ICartRepository {
     });
   }
 
-  async findCartOwner(cartId: string): Promise<{ id: string; customerId: string } | null> {
+  async findCartOwner(
+    cartId: string,
+  ): Promise<{ id: string; customerId: string } | null> {
     return this.prisma.cart.findUnique({
       where: { id: cartId },
       select: {

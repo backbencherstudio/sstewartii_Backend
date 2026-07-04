@@ -1,11 +1,11 @@
-import {Injectable} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   KycStatus,
   SubscriptionStatus,
   VerificationStatus,
 } from '@prisma/client';
 
-import { 
+import {
   UploadTruckGalleryResponseDto,
   TruckGalleryResponseDto,
   VendorHomeResponseDto,
@@ -17,12 +17,10 @@ import {
   VendorMenuResponseDto,
   VendorInfoResponseDto,
   VendorFollowersResponseDto,
-  VendorMenuDetailResponseDto ,
+  VendorMenuDetailResponseDto,
 } from '../../presentation/dto/vendor.response.dto';
 
-import {
-  VendorInsightAccessDto,
-} from '../../presentation/dto/vendor-insights.response.dto';
+import { VendorInsightAccessDto } from '../../presentation/dto/vendor-insights.response.dto';
 
 import type {
   VendorTruckGalleryView,
@@ -37,7 +35,6 @@ export class VendorMapper {
   constructor(private readonly mediaService: MediaService) {}
 
   static toDomain(raw: any): Vendor {
-
     return new Vendor({
       id: raw.id,
       ownerId: raw.ownerId,
@@ -54,11 +51,11 @@ export class VendorMapper {
       subscriptionExpiry: raw.subscriptionExpiry ?? null,
 
       createdAt: raw.createdAt,
-      updatedAt: raw.updatedAt, 
+      updatedAt: raw.updatedAt,
     });
   }
 
- toMenuResponse(
+  toMenuResponse(
     vendor: any,
     extra: {
       distanceKm?: number;
@@ -126,13 +123,12 @@ export class VendorMapper {
         statusLabel: extra.statusLabel,
         reviewAverage: Number((vendor.truckReviewAverage ?? 0).toFixed(1)),
         reviewCount: vendor.truckReviewCount ?? 0,
-        cuisines:
-          vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
+        cuisines: vendor.cuisines?.map((item: any) => item.cuisine.name) ?? [],
       },
       sections: Array.from(grouped.values()),
     };
   }
-  
+
   static toInfoResponse(vendor: any): VendorInfoResponseDto {
     return {
       id: vendor.id,
@@ -192,7 +188,7 @@ export class VendorMapper {
     }
 
     return 'Website';
-  } 
+  }
 
   static toUploadTruckGalleryResponse(): UploadTruckGalleryResponseDto {
     return {
@@ -235,72 +231,72 @@ export class VendorMapper {
     unreadNotificationCount: number;
     isLive: boolean;
   }): VendorHomeResponseDto {
-      const vendor = data.vendor;
+    const vendor = data.vendor;
 
-      const kycApproved = vendor.kycStatus === KycStatus.APPROVED;
+    const kycApproved = vendor.kycStatus === KycStatus.APPROVED;
 
-      const businessApproved =
-        vendor.vendorVerification?.status === VerificationStatus.APPROVED;
+    const businessApproved =
+      vendor.vendorVerification?.status === VerificationStatus.APPROVED;
 
-      const subscriptionActive =
-        vendor.subscriptionStatus === SubscriptionStatus.ACTIVE;
+    const subscriptionActive =
+      vendor.subscriptionStatus === SubscriptionStatus.ACTIVE;
 
-      const canGoLive = kycApproved && businessApproved && subscriptionActive;
+    const canGoLive = kycApproved && businessApproved && subscriptionActive;
 
-      const actionRequired = !canGoLive;
+    const actionRequired = !canGoLive;
 
-      return {
-        vendor: {
-          id: vendor.id,
-          businessName: vendor.businessName ?? 'Unnamed Vendor',
-          coverImage: this.mediaService.getUrl( vendor.coverImage),
-          address: vendor.serviceArea?.address ?? undefined,
-          latitude: vendor.serviceArea?.latitude ?? undefined,
-          longitude: vendor.serviceArea?.longitude ?? undefined,
-        },
+    return {
+      vendor: {
+        id: vendor.id,
+        businessName: vendor.businessName ?? 'Unnamed Vendor',
+        coverImage: this.mediaService.getUrl(vendor.coverImage),
+        address: vendor.serviceArea?.address ?? undefined,
+        latitude: vendor.serviceArea?.latitude ?? undefined,
+        longitude: vendor.serviceArea?.longitude ?? undefined,
+      },
 
-        verification: {
-          isLimitedMode: !canGoLive,
-          kycStatus: vendor.kycStatus,
-          businessVerificationStatus:
-            vendor.vendorVerification?.status ?? undefined,
-          subscriptionStatus: vendor.subscriptionStatus,
-          onboardingStep: vendor.onboardingStep,
-          actionRequired,
-          title: actionRequired ? 'Action Required' : undefined,
-          message: actionRequired
-            ? 'Your account is currently in "Limited Mode". To start accepting order requests and accessing the marketplace, please complete your identity and fleet verification.'
-            : undefined,
-          buttonText: actionRequired ? 'Complete Verification' : undefined,
-        },
-
-        liveStatus: {
-          canGoLive,
-          isLive: canGoLive ? data.isLive : false,
-          disabledReason: canGoLive
-            ? undefined
-            : 'Verify account to toggle status',
-        },
-
-        stats: {
-          todaySale: Number(data.stats.todaySale.toFixed(2)),
-          ordersCompleted: data.stats.ordersCompleted,
-          pendingOrders: data.stats.pendingOrders,
-          cancelledOrders: data.stats.cancelledOrders,
-        },
-
-        currentLocation: vendor.serviceArea
-          ? {
-              address: vendor.serviceArea.address ?? undefined,
-              latitude: vendor.serviceArea.latitude,
-              longitude: vendor.serviceArea.longitude,
-              radius: vendor.serviceArea.radius,
-            }
+      verification: {
+        isLimitedMode: !canGoLive,
+        kycStatus: vendor.kycStatus,
+        businessVerificationStatus:
+          vendor.vendorVerification?.status ?? undefined,
+        subscriptionStatus: vendor.subscriptionStatus,
+        onboardingStep: vendor.onboardingStep,
+        actionRequired,
+        title: actionRequired ? 'Action Required' : undefined,
+        message: actionRequired
+          ? 'Your account is currently in "Limited Mode". To start accepting order requests and accessing the marketplace, please complete your identity and fleet verification.'
           : undefined,
+        buttonText: actionRequired ? 'Complete Verification' : undefined,
+      },
 
-        unreadNotificationCount: data.unreadNotificationCount,
-      };
-    }
+      liveStatus: {
+        canGoLive,
+        isLive: canGoLive ? data.isLive : false,
+        disabledReason: canGoLive
+          ? undefined
+          : 'Verify account to toggle status',
+      },
+
+      stats: {
+        todaySale: Number(data.stats.todaySale.toFixed(2)),
+        ordersCompleted: data.stats.ordersCompleted,
+        pendingOrders: data.stats.pendingOrders,
+        cancelledOrders: data.stats.cancelledOrders,
+      },
+
+      currentLocation: vendor.serviceArea
+        ? {
+            address: vendor.serviceArea.address ?? undefined,
+            latitude: vendor.serviceArea.latitude,
+            longitude: vendor.serviceArea.longitude,
+            radius: vendor.serviceArea.radius,
+          }
+        : undefined,
+
+      unreadNotificationCount: data.unreadNotificationCount,
+    };
+  }
 
   toMenuCategoriesResponse(vendor: any): VendorMenuResponseDto {
     const categoryMap = new Map<
@@ -379,8 +375,7 @@ export class VendorMapper {
       total: data.total,
       page: data.page,
       limit: data.limit,
-      totalPages:
-        data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
+      totalPages: data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
 
       items: data.items.map((product: any) => {
         const firstImage = product.images?.[0];
@@ -422,13 +417,11 @@ export class VendorMapper {
     };
   }
 
-  toDeleteVendorMenuItemResponse(
-    product: {
-      id: string;
-      isDeleted: boolean;
-      deletedAt: Date | null;
-    },
-  ): DeleteVendorMenuItemResponseDto {
+  toDeleteVendorMenuItemResponse(product: {
+    id: string;
+    isDeleted: boolean;
+    deletedAt: Date | null;
+  }): DeleteVendorMenuItemResponseDto {
     return {
       id: product.id,
       deleted: product.isDeleted,
@@ -487,8 +480,7 @@ export class VendorMapper {
         total: data.total,
         page: data.page,
         limit: data.limit,
-        totalPages:
-          data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
+        totalPages: data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
       },
 
       reviews: data.reviews.map((review) => ({
@@ -543,9 +535,7 @@ export class VendorMapper {
       return {
         rating,
         count,
-        percent: totalReviews
-          ? Math.round((count / totalReviews) * 100)
-          : 0,
+        percent: totalReviews ? Math.round((count / totalReviews) * 100) : 0,
       };
     });
   }
@@ -621,8 +611,7 @@ export class VendorMapper {
         total: data.total,
         page: data.page,
         limit: data.limit,
-        totalPages:
-          data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
+        totalPages: data.total === 0 ? 0 : Math.ceil(data.total / data.limit),
       },
 
       followers: data.followers.map((follower) => {
@@ -652,10 +641,7 @@ export class VendorMapper {
     };
   }
 
-  private calculateGrowthPercent(
-    current: number,
-    previous: number,
-  ): number {
+  private calculateGrowthPercent(current: number, previous: number): number {
     if (previous === 0 && current > 0) {
       return 100;
     }

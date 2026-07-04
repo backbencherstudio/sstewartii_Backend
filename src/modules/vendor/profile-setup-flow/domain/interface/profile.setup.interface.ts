@@ -1,9 +1,9 @@
-import { 
+import {
   OperationHourDto,
   SetupProfileDto,
   ServiceAreaDto,
   UpdateServiceAreaDto,
- } from "../../presentation/dto/profile-setup-flow.dto";
+} from '../../presentation/dto/profile-setup-flow.dto';
 
 export interface CuisineView {
   id: string;
@@ -38,7 +38,6 @@ export interface VendorProfileSetupView {
 
 // main interface
 export interface IProfileSetupRepository {
-  
   updateProfileAndSyncRelations(
     userId: string,
     data: SetupProfileDto,
@@ -46,19 +45,13 @@ export interface IProfileSetupRepository {
   ): Promise<VendorProfileSetupView>;
 
   createOperationHourVersion(
-    userId: string, 
-    hours:OperationHourDto[]
+    userId: string,
+    hours: OperationHourDto[],
   ): Promise<void>;
 
-  upsertServiceArea(
-    userId: string,
-    data: ServiceAreaDto
-  ): Promise<void>;
+  upsertServiceArea(userId: string, data: ServiceAreaDto): Promise<void>;
 
-  updateServiceArea(
-    userId: string,
-    dto: UpdateServiceAreaDto,
-  ): Promise<void> 
+  updateServiceArea(userId: string, dto: UpdateServiceAreaDto): Promise<void>;
 
   findByName(name: string): Promise<CuisineView | null>;
 
@@ -66,6 +59,6 @@ export interface IProfileSetupRepository {
     name: string;
     imageUrl?: string;
   }): Promise<CuisineView>;
-  
+
   findAllCuisine(): Promise<CuisineView[]>;
 }

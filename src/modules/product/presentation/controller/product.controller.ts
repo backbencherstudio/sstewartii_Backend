@@ -1,17 +1,18 @@
-import { Controller,
-   Post,
-   Body, 
-   UseGuards, 
-   Get,
-   UseInterceptors, 
-   UploadedFiles, 
-   Query ,
-   Patch,
-   ParseUUIDPipe,
-   Param,
-   Delete,
-  } from '@nestjs/common';
-   
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  UseInterceptors,
+  UploadedFiles,
+  Query,
+  Patch,
+  ParseUUIDPipe,
+  Param,
+  Delete,
+} from '@nestjs/common';
+
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
@@ -39,9 +40,7 @@ export class ProductController {
   @ResponseMessage('Cuisines Get Successfull.')
   @ApiOperation({ summary: 'Cuisines' })
   @ApiResponse({ status: 200, description: 'Get Cuisines Successfull' })
-  async getVendorCuisines(
-    @CurrentUser() user: AuthUser,
-  ) {
+  async getVendorCuisines(@CurrentUser() user: AuthUser) {
     return this.service.getVendorCuisines(user.id);
   }
 
@@ -120,5 +119,4 @@ export class ProductController {
   // ): Promise<ProductResponseDto> {
   //   return this.service.getProductDetail(id);
   // }
-
 }

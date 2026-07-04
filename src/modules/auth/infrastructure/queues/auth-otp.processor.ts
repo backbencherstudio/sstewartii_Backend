@@ -56,15 +56,9 @@ export class AuthOtpProcessor extends WorkerHost {
     );
 
     const purpose =
-      data.type === 'EMAIL_VERIFICATION'
-        ? 'Verification'
-        : 'Password Reset';
+      data.type === 'EMAIL_VERIFICATION' ? 'Verification' : 'Password Reset';
 
-    await this.mailService.sendOtpEmail(
-      data.email,
-      otp,
-      purpose,
-    );
+    await this.mailService.sendOtpEmail(data.email, otp, purpose);
 
     this.logger.log(
       `OTP email sent successfully. userId=${data.userId}, type=${data.type}`,

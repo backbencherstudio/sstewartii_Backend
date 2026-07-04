@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 
 import { ICustomerRepository } from '../../domain/interface/customer.repository.interface';
 import { CustomerEntity } from '../../domain/entities/customer.entity';
 
-import { 
+import {
   NearbyVendorsQueryDto,
   TopPicksQueryDto,
   ExploreMapQueryDto,
@@ -251,9 +251,7 @@ export class CustomerRepository implements ICustomerRepository {
     });
   }
 
-  async findTopPickProducts(
-    query: TopPicksQueryDto,
-  ): Promise<any[]> {
+  async findTopPickProducts(query: TopPicksQueryDto): Promise<any[]> {
     const search = query.search?.trim();
     const category = query.category?.trim();
 
@@ -442,9 +440,7 @@ export class CustomerRepository implements ICustomerRepository {
     });
   }
 
-  async findFoodCandidates(
-    query: FoodFilterQueryDto,
-  ): Promise<any[]> {
+  async findFoodCandidates(query: FoodFilterQueryDto): Promise<any[]> {
     const search = query.search?.trim();
     const category = query.category?.trim();
     const cuisine = query.cuisine?.trim();
@@ -544,7 +540,9 @@ export class CustomerRepository implements ICustomerRepository {
     });
   }
 
-  async findActiveProductById(productId: string): Promise<{ id: string } | null> {
+  async findActiveProductById(
+    productId: string,
+  ): Promise<{ id: string } | null> {
     return this.prisma.product.findFirst({
       where: {
         id: productId,
@@ -761,136 +759,136 @@ export class CustomerRepository implements ICustomerRepository {
   }
 
   async findFoodSearchCandidates(
-  query: CustomerAdvancedSearchQueryDto,
-): Promise<any[]> {
-  const search = query.search?.trim();
-  const category = query.category?.trim();
-  const cuisine = query.cuisine?.trim();
+    query: CustomerAdvancedSearchQueryDto,
+  ): Promise<any[]> {
+    const search = query.search?.trim();
+    const category = query.category?.trim();
+    const cuisine = query.cuisine?.trim();
 
-  const where: Prisma.ProductWhereInput = {
-    isActive: true,
-    vendor: {
-      serviceArea: {
-        isNot: null,
-      },
-      ...(query.minRating !== undefined
-        ? {
-            truckReviewAverage: {
-              gte: query.minRating,
-            },
-          }
-        : {}),
-    },
-  };
-
-  const andConditions: Prisma.ProductWhereInput[] = [];
-
-  if (search) {
-    andConditions.push({
-      OR: [
-        {
-          name: {
-            contains: search,
-            mode: Prisma.QueryMode.insensitive,
-          },
+    const where: Prisma.ProductWhereInput = {
+      isActive: true,
+      vendor: {
+        serviceArea: {
+          isNot: null,
         },
-        {
-          description: {
-            contains: search,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-        {
-          vendor: {
-            businessName: {
-              contains: search,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          },
-        },
-        {
-          vendor: {
-            cuisines: {
-              some: {
-                cuisine: {
-                  name: {
-                    contains: search,
-                    mode: Prisma.QueryMode.insensitive,
-                  },
-                },
+        ...(query.minRating !== undefined
+          ? {
+              truckReviewAverage: {
+                gte: query.minRating,
               },
-            },
-          },
-        },
-        {
-          category: {
+            }
+          : {}),
+      },
+    };
+
+    const andConditions: Prisma.ProductWhereInput[] = [];
+
+    if (search) {
+      andConditions.push({
+        OR: [
+          {
             name: {
               contains: search,
               mode: Prisma.QueryMode.insensitive,
             },
           },
-        },
-      ],
-    });
-  }
-
-  if (category && category.toLowerCase() !== 'all') {
-    andConditions.push({
-      category: {
-        name: {
-          contains: category,
-          mode: Prisma.QueryMode.insensitive,
-        },
-      },
-    });
-  }
-
-  if (cuisine && cuisine.toLowerCase() !== 'all') {
-    andConditions.push({
-      vendor: {
-        cuisines: {
-          some: {
-            cuisine: {
-              name: {
-                contains: cuisine,
+          {
+            description: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            vendor: {
+              businessName: {
+                contains: search,
                 mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+          {
+            vendor: {
+              cuisines: {
+                some: {
+                  cuisine: {
+                    name: {
+                      contains: search,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
+            category: {
+              name: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    if (category && category.toLowerCase() !== 'all') {
+      andConditions.push({
+        category: {
+          name: {
+            contains: category,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+      });
+    }
+
+    if (cuisine && cuisine.toLowerCase() !== 'all') {
+      andConditions.push({
+        vendor: {
+          cuisines: {
+            some: {
+              cuisine: {
+                name: {
+                  contains: cuisine,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    return this.prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        images: {
+          orderBy: { position: 'asc' },
+          take: 1,
+        },
+        vendor: {
+          include: {
+            serviceArea: true,
+            operationHours: true,
+            cuisines: {
+              include: {
+                cuisine: true,
               },
             },
           },
         },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
   }
-
-  if (andConditions.length > 0) {
-    where.AND = andConditions;
-  }
-
-  return this.prisma.product.findMany({
-    where,
-    include: {
-      category: true,
-      images: {
-        orderBy: { position: 'asc' },
-        take: 1,
-      },
-      vendor: {
-        include: {
-          serviceArea: true,
-          operationHours: true,
-          cuisines: {
-            include: {
-              cuisine: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-}
 
   async findTruckSearchCandidates(
     query: CustomerAdvancedSearchQueryDto,

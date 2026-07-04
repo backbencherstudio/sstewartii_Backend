@@ -8,24 +8,24 @@ import { ProductCart } from '../../domain/entities/product.entity';
 import { ProductCartMapper } from '../mappers/product.mapper';
 import { CreateProductDto } from '../../presentation/dto/product.dto';
 
-  type ProductDetailPrisma = Prisma.ProductGetPayload<{
-    include: {
-      category: true;
-      images: true;
-      sizeOptions: true;
-      choiceOptions: true;
-      addOns: true;
-      vendor: {
-        include: {
-          cuisines: {
-            include: {
-              cuisine: true;
-            };
+type ProductDetailPrisma = Prisma.ProductGetPayload<{
+  include: {
+    category: true;
+    images: true;
+    sizeOptions: true;
+    choiceOptions: true;
+    addOns: true;
+    vendor: {
+      include: {
+        cuisines: {
+          include: {
+            cuisine: true;
           };
         };
       };
     };
-  }>;
+  };
+}>;
 
 @Injectable()
 export class ProductRepository implements IProductRepository {
@@ -124,7 +124,7 @@ export class ProductRepository implements IProductRepository {
           })),
         });
       }
-      
+
       if (dto.cuisineId) {
         await tx.vendorCuisine.upsert({
           where: {
@@ -217,9 +217,8 @@ export class ProductRepository implements IProductRepository {
       });
     });
   }
-  
-  async findProductByVendorId(vendorId: string): Promise<Product[]> {
 
+  async findProductByVendorId(vendorId: string): Promise<Product[]> {
     const raws = await this.prisma.product.findMany({
       where: { vendorId },
       include: {
@@ -239,8 +238,7 @@ export class ProductRepository implements IProductRepository {
     page: number;
     limit: number;
   }): Promise<Product[]> {
-
-    const { vendorId, search, category,  isActive,  page, limit,  } = params;
+    const { vendorId, search, category, isActive, page, limit } = params;
 
     const raws = await this.prisma.product.findMany({
       where: {
@@ -251,7 +249,7 @@ export class ProductRepository implements IProductRepository {
         ...(search && {
           name: {
             contains: search,
-            mode: 'insensitive', 
+            mode: 'insensitive',
           },
         }),
 
@@ -281,8 +279,8 @@ export class ProductRepository implements IProductRepository {
   }
 
   async findProductByIdAndVendorId(
-  productId: string,
-  vendorId: string,
+    productId: string,
+    vendorId: string,
   ): Promise<Product | null> {
     const raw = await this.prisma.product.findFirst({
       where: {
@@ -298,7 +296,7 @@ export class ProductRepository implements IProductRepository {
       },
     });
 
-    return raw ? ProductMapper.toDomain(raw) : null; 
+    return raw ? ProductMapper.toDomain(raw) : null;
   }
 
   async updateProductStatus(
@@ -317,7 +315,7 @@ export class ProductRepository implements IProductRepository {
       },
     });
 
-    return ProductMapper.toDomain(raw);            
+    return ProductMapper.toDomain(raw);
   }
 
   async deleteProduct(productId: string): Promise<void> {
@@ -325,7 +323,7 @@ export class ProductRepository implements IProductRepository {
       where: { id: productId },
     });
   }
-  
+
   async findProductDetailById(
     productId: string,
   ): Promise<ProductDetailPrisma | null> {

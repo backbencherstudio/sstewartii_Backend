@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 
 import { AdminController } from './presentation/controllers/admin.controller';
@@ -15,13 +14,8 @@ import { AdminAnalyticsMapper } from './infrastructure/mapper/admin-analytics.ma
 import { CustomerModule } from '../customer/customer/customer.module';
 
 @Module({
-  controllers: [
-    AdminController,
-  ],
-  imports: [
-    VendorModule,
-    CustomerModule,
-  ],
+  controllers: [AdminController],
+  imports: [VendorModule, CustomerModule],
   providers: [
     AdminVendorVerificationService,
     AdminMapper,
@@ -34,13 +28,11 @@ import { CustomerModule } from '../customer/customer/customer.module';
       provide: 'IAdminVendorVerificationRepository',
       useClass: AdminVendorVerificationRepository,
     },
-     {
+    {
       provide: 'IAdminCustomerRepository',
       useClass: AdminCustomerRepository,
     },
   ],
-  exports: [
-    AdminVendorVerificationService,
-  ],
+  exports: [AdminVendorVerificationService],
 })
 export class AdminModule {}

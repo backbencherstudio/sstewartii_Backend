@@ -2,7 +2,6 @@ import { VerificationStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
 export class VendorVerification {
-
   constructor(
     public id: string,
     public vendorId: string,
@@ -21,7 +20,6 @@ export class VendorVerification {
     healthPermit: string,
     insuranceProof: string,
   ): VendorVerification {
-    
     return new VendorVerification(
       crypto.randomUUID(),
       vendorId,

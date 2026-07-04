@@ -22,7 +22,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
     return next.handle().pipe(
       map((payload) => {
         let data = payload;
-        let message = staticMessage;              
+        let message = staticMessage;
 
         if (payload && typeof payload === 'object' && 'message' in payload) {
           message = payload.message;
@@ -44,7 +44,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         return {
           success: true,
           statusCode: status,
-          message,                               
+          message,
           data,
         };
       }),

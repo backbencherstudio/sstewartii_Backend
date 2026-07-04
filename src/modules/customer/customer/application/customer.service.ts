@@ -12,9 +12,8 @@ import { CustomerEntity } from '../domain/entities/customer.entity';
 
 import { CustomerMapper } from '../infrastructure/mapper/customer.mapper';
 
-
-import { 
-  NearbyVendorsQueryDto, 
+import {
+  NearbyVendorsQueryDto,
   TopPicksQueryDto,
   ExploreMapQueryDto,
   FoodFilterQueryDto,
@@ -26,8 +25,8 @@ import {
   CustomerSearchType,
 } from '../presentation/dto/customer.dto';
 
-import { 
-  NearbyVendorsResponseDto, 
+import {
+  NearbyVendorsResponseDto,
   TopPicksResponseDto,
   ExploreMapResponseDto,
   FoodFilterResponseDto,
@@ -35,7 +34,7 @@ import {
   CustomerResponseDto,
   FavoriteVendorsResponseDto,
   CustomerAdvancedSearchResponseDto,
- } from '../presentation/dto/customer.response.dto';
+} from '../presentation/dto/customer.response.dto';
 
 import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
 
@@ -45,14 +44,16 @@ export class CustomerService {
     @Inject('ICustomerRepository')
     private readonly repo: ICustomerRepository,
     private readonly vendorService: VendorService,
-    private readonly mapper: CustomerMapper
+    private readonly mapper: CustomerMapper,
   ) {}
 
   async findActiveByUserId(userId: string): Promise<CustomerEntity | null> {
     return this.repo.findByUserId(userId);
   }
 
-  async findActiveByCustomerId(customerId: string): Promise<CustomerEntity | null> {
+  async findActiveByCustomerId(
+    customerId: string,
+  ): Promise<CustomerEntity | null> {
     return this.repo.findByCustomerId(customerId);
   }
 
@@ -143,20 +144,11 @@ export class CustomerService {
           return a.distanceKm - b.distanceKm;
         }
 
-        if (
-          (b.truckReviewAverage ?? 0) !==
-          (a.truckReviewAverage ?? 0)
-        ) {
-          return (
-            (b.truckReviewAverage ?? 0) -
-            (a.truckReviewAverage ?? 0)
-          );
+        if ((b.truckReviewAverage ?? 0) !== (a.truckReviewAverage ?? 0)) {
+          return (b.truckReviewAverage ?? 0) - (a.truckReviewAverage ?? 0);
         }
 
-        return (
-          (b.truckReviewCount ?? 0) -
-          (a.truckReviewCount ?? 0)
-        );
+        return (b.truckReviewCount ?? 0) - (a.truckReviewCount ?? 0);
       });
 
     const page = query.page ?? 1;
@@ -170,10 +162,7 @@ export class CustomerService {
 
     return {
       items: paginated.map((vendor) =>
-        this.mapper.toNearbyVendorCard(
-          vendor,
-          favoriteVendorIdSet,
-        ),
+        this.mapper.toNearbyVendorCard(vendor, favoriteVendorIdSet),
       ),
       page,
       limit,
@@ -231,7 +220,9 @@ export class CustomerService {
       .filter((product) => product.withinRadius)
       .sort((a, b) => {
         if ((b.vendor?.reviewAverage ?? 0) !== (a.vendor?.reviewAverage ?? 0)) {
-          return (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0);
+          return (
+            (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0)
+          );
         }
 
         if ((b.vendor?.reviewCount ?? 0) !== (a.vendor?.reviewCount ?? 0)) {
@@ -276,8 +267,8 @@ export class CustomerService {
     const dLng = toRad(lng2 - lng1);
 
     const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) *
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
         Math.cos(toRad(lat2)) *
         Math.sin(dLng / 2) *
         Math.sin(dLng / 2);
@@ -336,9 +327,7 @@ export class CustomerService {
 
     const nextSlot = todaysHours.find(
       (item) =>
-        !item.isClosed &&
-        item.openTime !== null &&
-        item.openTime > currentTime,
+        !item.isClosed && item.openTime !== null && item.openTime > currentTime,
     );
 
     if (nextSlot?.openTime) {
@@ -368,7 +357,7 @@ export class CustomerService {
     userId: string,
     query: ExploreMapQueryDto,
   ): Promise<ExploreMapResponseDto> {
-      const customer = await this.repo.findByUserId(userId);
+    const customer = await this.repo.findByUserId(userId);
 
     if (
       !customer ||
@@ -503,9 +492,13 @@ export class CustomerService {
         switch (sortBy) {
           case 'popular':
             if ((b.vendor?.reviewCount ?? 0) !== (a.vendor?.reviewCount ?? 0)) {
-              return (b.vendor?.reviewCount ?? 0) - (a.vendor?.reviewCount ?? 0);
+              return (
+                (b.vendor?.reviewCount ?? 0) - (a.vendor?.reviewCount ?? 0)
+              );
             }
-            return (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0);
+            return (
+              (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0)
+            );
 
           case 'open_now':
             if (a.availability.isOpen !== b.availability.isOpen) {
@@ -514,8 +507,12 @@ export class CustomerService {
             return a.distanceKm - b.distanceKm;
 
           case 'top_rated':
-            if ((b.vendor?.reviewAverage ?? 0) !== (a.vendor?.reviewAverage ?? 0)) {
-              return (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0);
+            if (
+              (b.vendor?.reviewAverage ?? 0) !== (a.vendor?.reviewAverage ?? 0)
+            ) {
+              return (
+                (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0)
+              );
             }
             return (b.vendor?.reviewCount ?? 0) - (a.vendor?.reviewCount ?? 0);
 
@@ -534,11 +531,17 @@ export class CustomerService {
             if (a.availability.isOpen !== b.availability.isOpen) {
               return a.availability.isOpen ? -1 : 1;
             }
-            if ((b.vendor?.reviewAverage ?? 0) !== (a.vendor?.reviewAverage ?? 0)) {
-              return (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0);
+            if (
+              (b.vendor?.reviewAverage ?? 0) !== (a.vendor?.reviewAverage ?? 0)
+            ) {
+              return (
+                (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0)
+              );
             }
             if ((b.vendor?.reviewCount ?? 0) !== (a.vendor?.reviewCount ?? 0)) {
-              return (b.vendor?.reviewCount ?? 0) - (a.vendor?.reviewCount ?? 0);
+              return (
+                (b.vendor?.reviewCount ?? 0) - (a.vendor?.reviewCount ?? 0)
+              );
             }
             return a.distanceKm - b.distanceKm;
         }
@@ -618,9 +621,7 @@ export class CustomerService {
     const paginated = favoriteProducts.slice(start, start + limit);
 
     return {
-      items: paginated.map((item) =>
-        this.mapper.toFavoriteProductItem(item),
-      ),
+      items: paginated.map((item) => this.mapper.toFavoriteProductItem(item)),
       page,
       limit,
       total,
@@ -644,10 +645,7 @@ export class CustomerService {
       throw new NotFoundException('Vendor not found');
     }
 
-    const existing = await this.repo.findFavoriteVendor(
-      customer.id,
-      vendorId,
-    );
+    const existing = await this.repo.findFavoriteVendor(customer.id, vendorId);
 
     if (existing) {
       await this.repo.removeFavoriteVendor(existing.id);
@@ -720,7 +718,9 @@ export class CustomerService {
         }
 
         if ((b.vendor?.reviewAverage ?? 0) !== (a.vendor?.reviewAverage ?? 0)) {
-          return (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0);
+          return (
+            (b.vendor?.reviewAverage ?? 0) - (a.vendor?.reviewAverage ?? 0)
+          );
         }
 
         return (b.vendor?.reviewCount ?? 0) - (a.vendor?.reviewCount ?? 0);
@@ -734,9 +734,7 @@ export class CustomerService {
     const paginated = enriched.slice(start, start + limit);
 
     return {
-      items: paginated.map((item) =>
-        this.mapper.toFavoriteVendorItem(item),
-      ),
+      items: paginated.map((item) => this.mapper.toFavoriteVendorItem(item)),
       page,
       limit,
       total,
@@ -756,9 +754,7 @@ export class CustomerService {
       customer.latitude == null ||
       customer.longitude == null
     ) {
-      throw new BadRequestException(
-        'Customer location is required to search',
-      );
+      throw new BadRequestException('Customer location is required to search');
     }
 
     const customerLat = customer.latitude;
@@ -877,7 +873,9 @@ export class CustomerService {
           vendor.serviceArea.longitude,
         );
 
-        const availability = this.resolveAvailability(vendor.operationHours ?? []);
+        const availability = this.resolveAvailability(
+          vendor.operationHours ?? [],
+        );
 
         return {
           ...vendor,
@@ -916,10 +914,7 @@ export class CustomerService {
     };
   }
 
-  private sortFoods(
-    items: any[],
-    sortBy?: CustomerSearchSortBy,
-  ): any[] {
+  private sortFoods(items: any[], sortBy?: CustomerSearchSortBy): any[] {
     const selectedSort = sortBy ?? CustomerSearchSortBy.RECOMMENDED;
 
     return [...items].sort((a, b) => {
@@ -968,10 +963,7 @@ export class CustomerService {
     });
   }
 
-  private sortTrucks(
-    items: any[],
-    sortBy?: CustomerSearchSortBy,
-  ): any[] {
+  private sortTrucks(items: any[], sortBy?: CustomerSearchSortBy): any[] {
     const selectedSort = sortBy ?? CustomerSearchSortBy.RECOMMENDED;
 
     return [...items].sort((a, b) => {

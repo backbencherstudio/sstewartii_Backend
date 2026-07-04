@@ -8,16 +8,16 @@ import {
 
 import { OrderStatus } from '@prisma/client';
 
-import type { IVendorTruckReviewRepository} from '../domain/interface/review.repository.interface';
+import type { IVendorTruckReviewRepository } from '../domain/interface/review.repository.interface';
 
 import { VendorTruckReviewMapper } from '../infrastructure/mapper/review.mapper';
 
-import { 
+import {
   CreateVendorTruckReviewDto,
   VendorTruckReviewsQueryDto,
   CreateFoodReviewDto,
- } from '../presentation/dto/review.dto';
-import { 
+} from '../presentation/dto/review.dto';
+import {
   CreateVendorTruckReviewResponseDto,
   VendorTruckReviewTagListResponseDto,
   VendorTruckReviewsResponseDto,
@@ -48,7 +48,7 @@ export class ReviewService {
     return this.vendorTruckReviewMapper.toTagListResponse(tags);
   }
 
-   async createVendorTruckReview(
+  async createVendorTruckReview(
     userId: string,
     dto: CreateVendorTruckReviewDto,
     files?: Express.Multer.File[],
@@ -71,9 +71,7 @@ export class ReviewService {
     });
 
     if (existingReview) {
-      throw new BadRequestException(
-        'You have already reviewed this truck',
-      );
+      throw new BadRequestException('You have already reviewed this truck');
     }
 
     const tagIds = dto.tagIds ?? [];
@@ -114,7 +112,8 @@ export class ReviewService {
     vendorId: string,
     query: VendorTruckReviewsQueryDto,
   ): Promise<VendorTruckReviewsResponseDto> {
-    const vendor = await this.reviewRepository.findVendorReviewSummary(vendorId);
+    const vendor =
+      await this.reviewRepository.findVendorReviewSummary(vendorId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -177,9 +176,7 @@ export class ReviewService {
       );
 
     if (existingReview) {
-      throw new BadRequestException(
-        'This food item has already been reviewed',
-      );
+      throw new BadRequestException('This food item has already been reviewed');
     }
 
     const tagIds = dto.tagIds ?? [];
@@ -188,7 +185,9 @@ export class ReviewService {
       const tags = await this.reviewRepository.foodReviewValidateTags(tagIds);
 
       if (tags.length !== tagIds.length) {
-        throw new BadRequestException('One or more food review tags are invalid');
+        throw new BadRequestException(
+          'One or more food review tags are invalid',
+        );
       }
     }
 

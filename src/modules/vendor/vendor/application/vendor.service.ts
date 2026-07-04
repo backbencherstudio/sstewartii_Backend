@@ -1,26 +1,26 @@
-import { 
+import {
   Injectable,
-  NotFoundException, 
-  Inject, 
+  NotFoundException,
+  Inject,
   BadRequestException,
-  ForbiddenException
+  ForbiddenException,
 } from '@nestjs/common';
 
-import { 
+import {
   VendorLiveStatus,
   VerificationStatus,
   KycStatus,
 } from '@prisma/client';
 
-import type { 
-  IVendorRepository, 
+import type {
+  IVendorRepository,
   VendorInsightsDateRange,
 } from '../domain/interface/vendor.repository.interface';
 
 import { VendorMapper } from '../infrastructure/mapper/vendor.mapper';
 import { VendorInsightsMapper } from '../infrastructure/mapper/vendor-insights.mapper';
 
-import { 
+import {
   VendorMenuQueryDto,
   UploadTruckGalleryDto,
   UpdateVendorStatusDto,
@@ -28,13 +28,13 @@ import {
   UpdateVendorMenuItemStatusDto,
   VendorReviewsQueryDtoMe,
   VendorFollowersQueryDto,
- } from '../presentation/dto/vendor.dto';
-import { 
+} from '../presentation/dto/vendor.dto';
+import {
   VendorInsightsOverviewQueryDto,
   VendorAiGuidanceQueryDto,
- } from '../presentation/dto/vendor-insights.query.dto';
+} from '../presentation/dto/vendor-insights.query.dto';
 
-import { 
+import {
   VendorMenuResponseDto,
   UploadTruckGalleryResponseDto,
   VendorInfoResponseDto,
@@ -48,21 +48,19 @@ import {
   VendorReviewsResponseDto,
   VendorFollowersResponseDto,
   VendorMenuDetailResponseDto,
- } from '../presentation/dto/vendor.response.dto';
- import { 
+} from '../presentation/dto/vendor.response.dto';
+import {
   VendorInsightsOverviewResponseDto,
   VendorAiGuidanceResponseDto,
- } from '../presentation/dto/vendor-insights.response.dto';
+} from '../presentation/dto/vendor-insights.response.dto';
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { VendorInsightAccessService } from './vendor-insight-access.service';
 
-
 @Injectable()
 export class VendorService {
-
   constructor(
-    @Inject('IVendorRepository') 
+    @Inject('IVendorRepository')
     private readonly vendorRepository: IVendorRepository,
     private readonly storageService: LocalStorageService,
     private readonly vendorMapper: VendorMapper,
@@ -93,7 +91,7 @@ export class VendorService {
   async getVendorMenu(
     vendorId: string,
     query: VendorMenuQueryDto,
-     userId?: string,
+    userId?: string,
     customerLocation?: { latitude: number; longitude: number },
   ): Promise<VendorMenuDetailResponseDto> {
     const vendor = await this.vendorRepository.findVendorMenuById(
@@ -105,7 +103,7 @@ export class VendorService {
       throw new NotFoundException('Vendor not found');
     }
 
-   await this.trackVendorProfileViewSafely(vendorId, userId);
+    await this.trackVendorProfileViewSafely(vendorId, userId);
 
     let distanceKm: number | undefined;
 
@@ -124,9 +122,7 @@ export class VendorService {
       );
     }
 
-    const availability = this.resolveAvailability(
-      vendor.operationHours ?? [],
-    );
+    const availability = this.resolveAvailability(vendor.operationHours ?? []);
 
     return this.vendorMapper.toMenuResponse(vendor, {
       distanceKm,
@@ -209,9 +205,7 @@ export class VendorService {
 
     const nextSlot = todaysHours.find(
       (item) =>
-        !item.isClosed &&
-        item.openTime !== null &&
-        item.openTime > currentTime,
+        !item.isClosed && item.openTime !== null && item.openTime > currentTime,
     );
 
     if (nextSlot?.openTime) {
@@ -245,9 +239,7 @@ export class VendorService {
     return address.split(',')[0]?.trim() || undefined;
   }
 
-  async getVendorInfo(
-    vendorId: string,
-  ): Promise<VendorInfoResponseDto> {
+  async getVendorInfo(vendorId: string): Promise<VendorInfoResponseDto> {
     const vendor = await this.vendorRepository.findVendorInfoById(vendorId);
 
     if (!vendor) {
@@ -344,9 +336,8 @@ export class VendorService {
     ownerId: string,
     dto: UpdateVendorStatusDto,
   ): Promise<VendorStatusResponseDto> {
-    const vendor = await this.vendorRepository.findGoLiveEligibilityByOwnerId(
-      ownerId,
-    );
+    const vendor =
+      await this.vendorRepository.findGoLiveEligibilityByOwnerId(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -419,7 +410,8 @@ export class VendorService {
   async getVendorMenuCategories(
     ownerId: string,
   ): Promise<VendorMenuCategoriesResponseDto> {
-    const vendor = await this.vendorRepository.findVendorMenuCategories(ownerId);
+    const vendor =
+      await this.vendorRepository.findVendorMenuCategories(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -441,7 +433,7 @@ export class VendorService {
       total: result.total,
       page: query.page ?? 1,
       limit: query.limit ?? 20,
-      items: result.items,  
+      items: result.items,
     });
   }
 
@@ -456,7 +448,8 @@ export class VendorService {
       throw new NotFoundException('Vendor not found');
     }
 
-    const product = await this.vendorRepository.findVendorMenuItemOwner(productId);
+    const product =
+      await this.vendorRepository.findVendorMenuItemOwner(productId);
 
     if (!product) {
       throw new NotFoundException('Menu item not found');
@@ -492,7 +485,8 @@ export class VendorService {
       throw new NotFoundException('Vendor not found');
     }
 
-    const product = await this.vendorRepository.findVendorMenuItemOwner(productId);
+    const product =
+      await this.vendorRepository.findVendorMenuItemOwner(productId);
 
     if (!product) {
       throw new NotFoundException('Menu item not found');
@@ -510,18 +504,16 @@ export class VendorService {
       };
     }
 
-    const deletedProduct =
-      await this.vendorRepository.softDeleteVendorMenuItem(product.id);
+    const deletedProduct = await this.vendorRepository.softDeleteVendorMenuItem(
+      product.id,
+    );
 
     return this.vendorMapper.toDeleteVendorMenuItemResponse(deletedProduct);
   }
 
-  async getMyTruckGallery(
-    ownerId: string,
-  ): Promise<TruckGalleryResponseDto> {
-    const vendor = await this.vendorRepository.findTruckGalleryByOwnerId(
-      ownerId,
-    );
+  async getMyTruckGallery(ownerId: string): Promise<TruckGalleryResponseDto> {
+    const vendor =
+      await this.vendorRepository.findTruckGalleryByOwnerId(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -535,9 +527,7 @@ export class VendorService {
     query: VendorInsightsOverviewQueryDto,
   ): Promise<VendorInsightsOverviewResponseDto> {
     const vendor =
-      await this.vendorRepository.findVendorInsightProfileByOwnerId(
-        ownerId,
-      );
+      await this.vendorRepository.findVendorInsightProfileByOwnerId(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -574,9 +564,7 @@ export class VendorService {
     });
   }
 
-  private resolveInsightDateRange(
-    query: VendorInsightsOverviewQueryDto,
-  ): {
+  private resolveInsightDateRange(query: VendorInsightsOverviewQueryDto): {
     startDate: Date;
     endDate: Date;
   } {
@@ -606,15 +594,7 @@ export class VendorService {
 
     if (range === 'year') {
       const startDate = new Date(now.getFullYear(), 0, 1);
-      const endDate = new Date(
-        now.getFullYear(),
-        11,
-        31,
-        23,
-        59,
-        59,
-        999,
-      );
+      const endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
 
       return { startDate, endDate };
     }
@@ -637,9 +617,7 @@ export class VendorService {
     ownerId: string,
     query: VendorAiGuidanceQueryDto,
   ): Promise<VendorAiGuidanceResponseDto> {
-    const vendor = await this.vendorRepository.findAiProfileByOwnerId(
-      ownerId,
-    );
+    const vendor = await this.vendorRepository.findAiProfileByOwnerId(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -671,9 +649,7 @@ export class VendorService {
     ownerId: string,
     query: VendorReviewsQueryDtoMe,
   ): Promise<VendorReviewsResponseDto> {
-    const vendor = await this.vendorRepository.findVendorIdByOwnerId(
-      ownerId,
-    );
+    const vendor = await this.vendorRepository.findVendorIdByOwnerId(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -699,9 +675,7 @@ export class VendorService {
     query: VendorFollowersQueryDto,
   ): Promise<VendorFollowersResponseDto> {
     const vendor =
-      await this.vendorRepository.findFollowersProfileByOwnerId(
-        ownerId,
-      );
+      await this.vendorRepository.findFollowersProfileByOwnerId(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
@@ -724,11 +698,7 @@ export class VendorService {
 
     const now = new Date();
 
-    const currentMonthStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-    );
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const currentMonthEnd = new Date(
       now.getFullYear(),
@@ -756,32 +726,28 @@ export class VendorService {
       999,
     );
 
-    const [
-      totalFollowers,
-      thisMonthFollowers,
-      previousMonthFollowers,
-      result,
-    ] = await Promise.all([
-      this.vendorRepository.countVendorFollowers(vendor.id),
+    const [totalFollowers, thisMonthFollowers, previousMonthFollowers, result] =
+      await Promise.all([
+        this.vendorRepository.countVendorFollowers(vendor.id),
 
-      this.vendorRepository.countVendorFollowersInRange({
-        vendorId: vendor.id,
-        startDate: currentMonthStart,
-        endDate: currentMonthEnd,
-      }),
+        this.vendorRepository.countVendorFollowersInRange({
+          vendorId: vendor.id,
+          startDate: currentMonthStart,
+          endDate: currentMonthEnd,
+        }),
 
-      this.vendorRepository.countVendorFollowersInRange({
-        vendorId: vendor.id,
-        startDate: previousMonthStart,
-        endDate: previousMonthEnd,
-      }),
+        this.vendorRepository.countVendorFollowersInRange({
+          vendorId: vendor.id,
+          startDate: previousMonthStart,
+          endDate: previousMonthEnd,
+        }),
 
-      this.vendorRepository.findVendorFollowers({
-        vendorId: vendor.id,
-        page,
-        limit,
-      }),
-    ]);
+        this.vendorRepository.findVendorFollowers({
+          vendorId: vendor.id,
+          page,
+          limit,
+        }),
+      ]);
 
     return this.vendorMapper.toFollowerResponse({
       access,
@@ -813,7 +779,7 @@ export class VendorService {
 
       await this.vendorRepository.createVendorProfileViewOncePerDay({
         vendorId,
-        customerId,  
+        customerId,
       });
     } catch (error) {
       console.error('Failed to track vendor profile view', error);

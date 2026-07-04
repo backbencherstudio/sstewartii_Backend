@@ -1,5 +1,3 @@
-
-
 export class CuisineResponseDto {
   id!: string;
   name!: string;

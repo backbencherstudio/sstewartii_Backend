@@ -1,8 +1,8 @@
-import { 
+import {
   Controller,
   Get,
   Req,
-  Param, 
+  Param,
   Query,
   Post,
   UseGuards,
@@ -15,7 +15,7 @@ import {
 
 import { FilesInterceptor } from '@nestjs/platform-express';
 
-import { 
+import {
   VendorMenuQueryDto,
   UploadTruckGalleryDto,
   UpdateVendorStatusDto,
@@ -23,13 +23,13 @@ import {
   UpdateVendorMenuItemStatusDto,
   VendorReviewsQueryDtoMe,
   VendorFollowersQueryDto,
- } from '../dto/vendor.dto';
-import { 
+} from '../dto/vendor.dto';
+import {
   VendorInsightsOverviewQueryDto,
   VendorAiGuidanceQueryDto,
 } from '../dto/vendor-insights.query.dto';
 
-import { 
+import {
   VendorMenuResponseDto,
   VendorInfoResponseDto,
   UploadTruckGalleryResponseDto,
@@ -43,11 +43,11 @@ import {
   VendorReviewsResponseDto,
   VendorFollowersResponseDto,
   VendorMenuDetailResponseDto,
- } from '../dto/vendor.response.dto';
-import { 
+} from '../dto/vendor.response.dto';
+import {
   VendorInsightsOverviewResponseDto,
   VendorAiGuidanceResponseDto,
- } from '../dto/vendor-insights.response.dto';
+} from '../dto/vendor-insights.response.dto';
 
 import { VendorService } from '../../application/vendor.service';
 
@@ -62,13 +62,11 @@ import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interf
 
 @Controller('vendor')
 export class VendorController {
-  constructor(
-    private readonly vendorService: VendorService
-  ) {}
+  constructor(private readonly vendorService: VendorService) {}
 
   @Get('me')
   async getMyVendor(@Req() req: any) {
-    const userId = req.user.sub;  
+    const userId = req.user.sub;
     return this.vendorService.execute(userId);
   }
 
@@ -80,11 +78,7 @@ export class VendorController {
     @Param('vendorId') vendorId: string,
     @Query() query: VendorMenuQueryDto,
   ): Promise<VendorMenuDetailResponseDto> {
-    return this.vendorService.getVendorMenu(
-      vendorId,
-      query,
-      user.id,
-    );
+    return this.vendorService.getVendorMenu(vendorId, query, user.id);
   }
 
   @Public()
@@ -190,10 +184,7 @@ export class VendorController {
     @CurrentUser() user: AuthUser,
     @Query() query: VendorInsightsOverviewQueryDto,
   ): Promise<VendorInsightsOverviewResponseDto> {
-    return this.vendorService.getVendorInsightsOverview(
-      user.id,
-      query,
-    );
+    return this.vendorService.getVendorInsightsOverview(user.id, query);
   }
 
   @Get('insights/ai-guidance')
@@ -213,10 +204,7 @@ export class VendorController {
     @CurrentUser() user: AuthUser,
     @Query() query: VendorReviewsQueryDtoMe,
   ): Promise<VendorReviewsResponseDto> {
-    return this.vendorService.getVendorRatingsAndReviews(
-      user.id,
-      query,
-    );
+    return this.vendorService.getVendorRatingsAndReviews(user.id, query);
   }
 
   @Get('insights/followers')
@@ -229,4 +217,3 @@ export class VendorController {
     return this.vendorService.getVendorFollowers(user.id, query);
   }
 }
-

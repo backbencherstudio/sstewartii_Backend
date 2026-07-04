@@ -6,7 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/infrastructure/guards/jwt-auth.guard';
-import { APP_INTERCEPTOR } from '@nestjs/core'; 
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -32,8 +32,8 @@ import { AdminModule } from './modules/admin/admin.module';
       load: [configuration],
     }),
     ServeStaticModule.forRoot({
-    rootPath: join(process.cwd(), 'uploads'),
-    serveRoot: '/uploads', 
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
     }),
 
     BullModule.forRoot({

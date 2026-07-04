@@ -2,7 +2,6 @@ import { VendorVerification } from '../../domain/entities/vendor-verification.en
 import { VerificationStatus } from '@prisma/client';
 
 export class VendorVerificationMapper {
-
   static toDomain(raw: any): VendorVerification {
     return new VendorVerification(
       raw.id,
@@ -11,9 +10,9 @@ export class VendorVerificationMapper {
       raw.healthPermit,
       raw.insuranceProof,
       raw.status as VerificationStatus,
-      raw.rejectionReason ?? null, 
-      raw.submittedAt, 
-      raw.reviewedAt ?? null, 
+      raw.rejectionReason ?? null,
+      raw.submittedAt,
+      raw.reviewedAt ?? null,
     );
   }
 }

@@ -17,11 +17,8 @@ import {
   VendorOrderHistoryQueryDto,
   CreateOrderReportDto,
 } from '../dto/order.dto';
-import { 
-  CreateOrderDto,
-  CancelOrderDto,
-} from '../dto/create-order.dto';
-import { 
+import { CreateOrderDto, CancelOrderDto } from '../dto/create-order.dto';
+import {
   OrderSummaryResponseDto,
   OrderTrackResponseDto,
   CreateOrderResponseDto,
@@ -32,7 +29,7 @@ import {
   VendorPendingOrdersResponseDto,
   VendorOrderHistoryResponseDto,
   CreateOrderReportResponseDto,
-  VendorOrderReportResponseDto
+  VendorOrderReportResponseDto,
 } from '../dto/order.response.dto';
 
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
@@ -42,7 +39,6 @@ import { OrderService } from '../../application/order.service';
 import { RoleGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
-
 
 @Controller('orders')
 export class OrderController {
@@ -171,7 +167,7 @@ export class OrderController {
     @Param('orderId') orderId: string,
   ): Promise<VendorOrderActionResponseDto> {
     return this.orderService.completeVendorOrder(user.id, orderId);
-  }  
+  }
 
   @Post('vendor/:orderId/create-report')
   @UseGuards(RoleGuard)
@@ -201,4 +197,4 @@ export class OrderController {
   ): Promise<VendorOrderReportResponseDto> {
     return this.orderService.getVendorOrderReport(user.id, orderId);
   }
-} 
+}

@@ -10,7 +10,6 @@ import type {
   CreateFoodReviewInput,
 } from '../../domain/interface/review.repository.interface';
 
-
 @Injectable()
 export class VendorTruckReviewRepository implements IVendorTruckReviewRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -349,5 +348,4 @@ export class VendorTruckReviewRepository implements IVendorTruckReviewRepository
       });
     });
   }
-
 }

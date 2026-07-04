@@ -13,8 +13,8 @@ import { StorageModule } from '@/common/storage/storage.module';
 
 @Module({
   imports: [
-    CustomerModule, 
-    CartModule, 
+    CustomerModule,
+    CartModule,
     VendorModule,
     MediaModule,
     StorageModule,

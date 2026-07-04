@@ -9,14 +9,10 @@ import { Prisma } from '@prisma/client';
 type VendorVerificationRecord = Prisma.VendorVerificationGetPayload<{}>;
 
 @Injectable()
-export class VendorVerificationRepository
-  implements IVendorVerificationRepository
-{
+export class VendorVerificationRepository implements IVendorVerificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByVendorId(
-    vendorId: string,
-  ): Promise<VendorVerification | null> {
+  async findByVendorId(vendorId: string): Promise<VendorVerification | null> {
     const record: VendorVerificationRecord | null =
       await this.prisma.vendorVerification.findUnique({
         where: { vendorId },
@@ -27,10 +23,7 @@ export class VendorVerificationRepository
     return VendorVerificationMapper.toDomain(record);
   }
 
-  async upsert(
-    data: VendorVerification,
-  ): Promise<VendorVerification> {
-    
+  async upsert(data: VendorVerification): Promise<VendorVerification> {
     const saved = await this.prisma.vendorVerification.upsert({
       where: { vendorId: data.vendorId },
 
@@ -81,7 +74,7 @@ export class VendorVerificationRepository
 
         rejectionReason:
           status === VerificationStatus.REJECTED
-            ? reason ?? 'Rejected by admin'
+            ? (reason ?? 'Rejected by admin')
             : null,
 
         reviewedAt: new Date(),

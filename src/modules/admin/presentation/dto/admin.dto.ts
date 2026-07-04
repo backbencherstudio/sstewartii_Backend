@@ -1,18 +1,11 @@
 import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, Max, Min, IsString } from 'class-validator';
 import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  Max,
-  Min,
-  IsString,
-} from 'class-validator';
-import { 
   VerificationStatus,
   VendorAdminStatus,
   KycStatus,
   SubscriptionStatus,
- } from '@prisma/client';
+} from '@prisma/client';
 
 export enum VendorVerificationSort {
   NEWEST = 'newest',
@@ -211,4 +204,3 @@ export class CustomerResponseDto {
   email!: string;
   createdAt!: Date;
 }
-

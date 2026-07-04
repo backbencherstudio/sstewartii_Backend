@@ -1,15 +1,10 @@
-import {
-  Injectable,
-  Inject,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 
 import { randomUUID } from 'crypto';
 import type { IVendorVerificationRepository } from '../domain/interface/vendor.verification.interface';
 import { VendorVerification } from '../domain/entities/vendor-verification.entity';
 import type { IStorageService } from 'src/common/storage/storage.interface';
 import type { IVendorRepository } from '../../vendor/domain/interface/vendor.repository.interface';
-
 
 @Injectable()
 export class VendorVerificationService {
@@ -32,7 +27,6 @@ export class VendorVerificationService {
       insuranceProof?: Express.Multer.File[];
     },
   ): Promise<VendorVerification> {
-
     if (
       !files.businessLicense ||
       !files.healthPermit ||
