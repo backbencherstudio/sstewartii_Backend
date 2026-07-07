@@ -23,12 +23,6 @@ import { SendOtpDto, VerifyOtpDto, NewPasswordDto } from './dto/mail/otp.dto';
 import { CurrentUserResponseDto } from './dto/userDto/user.response.dto';
 
 import { AuthService } from '../application/auth.service';
-import { RoleGuard } from 'src/common/guards/roles.guard';
-import { PermissionGuard } from 'src/common/guards/permissions.guard';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { Permissions } from 'src/common/decorators/permissions.decorator';
-import { Permission } from 'src/common/enums/permission.enum';
-import { Role } from 'src/common/enums/role.enum';
 import { GoogleOAuthGuard } from 'src/common/guards/google-oauth.guard';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
@@ -82,7 +76,7 @@ export class AuthController {
 
   @Get('google/url')
   @Public()
-  async googleAuth(@Req() req) {
+  googleAuth() {
     return {
       url: this.authService.getGoogleAuthUrl(),
     };

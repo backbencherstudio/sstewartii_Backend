@@ -13,8 +13,6 @@ import {
   VendorReviewsQueryDtoMe,
 } from '../../presentation/dto/vendor.dto';
 
-import { VendorInsightsOverviewQueryDto } from '../../presentation/dto/vendor-insights.query.dto';
-
 export interface VendorStatusView {
   id: string;
   status: VendorLiveStatus;

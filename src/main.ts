@@ -74,7 +74,6 @@ async function bootstrap() {
 
   await app.listen(port, host);
 
-  console.log(`API: ${host}:${port}/api/v1`);
   if (nodeEnv !== 'production') {
     console.log(`Docs: ${host}:${port}/docs`);
   }

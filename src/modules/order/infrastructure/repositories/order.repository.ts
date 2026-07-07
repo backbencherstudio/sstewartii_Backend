@@ -406,7 +406,7 @@ export class OrderRepository implements IOrderRepository {
         },
         orderItems: {
           orderBy: {
-            createdAt: 'asc',
+            createdAt: 'desc',
           },
           include: {
             orderItemChoiceOption: true,
@@ -415,7 +415,7 @@ export class OrderRepository implements IOrderRepository {
         },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: 'desc',
       },
     });
   }

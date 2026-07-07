@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { PrismaClient } from '@prisma/client';
+import { OrderStatus, PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
@@ -246,55 +246,7 @@ async function main(): Promise<void> {
   }
 
   // ============================================
-  // 5. SEED FOOD CATEGORIES
-  // ============================================
-  console.log('📝 Seeding food categories...');
-
-  const categories = [
-    'Popular Items',
-    'Breakfast',
-    'Burgers',
-    'Pizza',
-    'Tacos & Burritos',
-    'Sandwiches & Wraps',
-    'Rice Bowls',
-    'Noodles & Pasta',
-    'BBQ & Grilled',
-    'Chicken',
-    'Seafood',
-    'Vegetarian',
-    'Vegan',
-    'Halal',
-    'Salads',
-    'Soups',
-    'Sides',
-    'Desserts',
-    'Drinks',
-    'Combo Meals',
-  ];
-
-  const categoryMap: Record<string, string> = {};
-
-  for (const [index, name] of categories.entries()) {
-    const category = await upsertData<{ id: string }>(
-      prisma.category,
-      { name },
-      {
-        name,
-        position: index,
-        isActive: true,
-      },
-      {
-        position: index,
-        isActive: true,
-      },
-    );
-    categoryMap[name] = category.id;
-  }
-  console.log(`✅ ${categories.length} food categories seeded`);
-
-  // ============================================
-  // 6. SEED CUISINES
+  // 5. SEED CUISINES
   // ============================================
   console.log('📝 Seeding cuisines...');
 
@@ -338,7 +290,7 @@ async function main(): Promise<void> {
   console.log(`✅ ${cuisines.length} cuisines seeded`);
 
   // ============================================
-  // 7. SEED REVIEW TAGS
+  // 6. SEED REVIEW TAGS
   // ============================================
   console.log('📝 Seeding review tags...');
 
@@ -380,7 +332,7 @@ async function main(): Promise<void> {
   console.log(`✅ ${foodReviewTags.length} food review tags seeded`);
 
   // ============================================
-  // 8. CREATE USERS
+  // 7. CREATE USERS
   // ============================================
   console.log('📝 Creating users...');
 
@@ -442,7 +394,7 @@ async function main(): Promise<void> {
   }
 
   // ============================================
-  // 9. CREATE CUSTOMER (for USER role)
+  // 8. CREATE CUSTOMER (for USER role)
   // ============================================
   console.log('📝 Creating customer...');
 
@@ -471,7 +423,7 @@ async function main(): Promise<void> {
   console.log('✅ Customer created/updated');
 
   // ============================================
-  // 10. CREATE VENDOR
+  // 9. CREATE VENDOR
   // ============================================
   console.log('📝 Creating vendor...');
 
@@ -518,7 +470,7 @@ async function main(): Promise<void> {
   );
 
   // ============================================
-  // 11. CREATE VENDOR SUBSCRIPTION
+  // 10. CREATE VENDOR SUBSCRIPTION
   // ============================================
   console.log('📝 Creating vendor subscription...');
 
@@ -541,7 +493,7 @@ async function main(): Promise<void> {
   console.log('✅ Vendor subscription created/updated');
 
   // ============================================
-  // 12. CREATE KYC PROFILE
+  // 11. CREATE KYC PROFILE
   // ============================================
   console.log('📝 Creating KYC profile...');
 
@@ -573,7 +525,7 @@ async function main(): Promise<void> {
   console.log('✅ KYC profile created/updated');
 
   // ============================================
-  // 13. CREATE SERVICE AREA
+  // 12. CREATE SERVICE AREA
   // ============================================
   console.log('📝 Creating service area...');
 
@@ -597,7 +549,7 @@ async function main(): Promise<void> {
   console.log('✅ Service area created/updated');
 
   // ============================================
-  // 14. CREATE OPERATION HOURS
+  // 13. CREATE OPERATION HOURS
   // ============================================
   console.log('📝 Creating operation hours...');
 
@@ -627,7 +579,7 @@ async function main(): Promise<void> {
   console.log('✅ Operation hours created/updated');
 
   // ============================================
-  // 15. CREATE VENDOR CUISINES
+  // 14. CREATE VENDOR CUISINES
   // ============================================
   console.log('📝 Creating vendor cuisines...');
 
@@ -653,7 +605,7 @@ async function main(): Promise<void> {
   console.log('✅ Vendor cuisines created/updated');
 
   // ============================================
-  // 16. CREATE SOCIAL LINKS
+  // 15. CREATE SOCIAL LINKS
   // ============================================
   console.log('📝 Creating social links...');
 
@@ -672,6 +624,59 @@ async function main(): Promise<void> {
     });
   }
   console.log('✅ Social links created');
+
+  // ============================================
+  // 16. SEED FOOD CATEGORIES (Vendor-specific)
+  // ============================================
+  console.log('📝 Seeding food categories for vendor...');
+
+  const categories = [
+    'Popular Items',
+    'Breakfast',
+    'Burgers',
+    'Pizza',
+    'Tacos & Burritos',
+    'Sandwiches & Wraps',
+    'Rice Bowls',
+    'Noodles & Pasta',
+    'BBQ & Grilled',
+    'Chicken',
+    'Seafood',
+    'Vegetarian',
+    'Vegan',
+    'Halal',
+    'Salads',
+    'Soups',
+    'Sides',
+    'Desserts',
+    'Drinks',
+    'Combo Meals',
+  ];
+
+  const categoryMap: Record<string, string> = {};
+
+  for (const [index, name] of categories.entries()) {
+    const category = await prisma.category.upsert({
+      where: {
+        vendorId_name: {
+          vendorId: vendor.id,
+          name: name,
+        },
+      },
+      update: {
+        position: index,
+        isActive: true,
+      },
+      create: {
+        name: name,
+        vendorId: vendor.id,
+        position: index,
+        isActive: true,
+      },
+    });
+    categoryMap[name] = category.id;
+  }
+  console.log(`✅ ${categories.length} food categories seeded`);
 
   // ============================================
   // 17. CREATE PRODUCTS
@@ -958,9 +963,12 @@ async function main(): Promise<void> {
     { vendorId: vendor.id },
     {
       vendorId: vendor.id,
-      businessLicense: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      healthPermit: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      insuranceProof: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      businessLicense:
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      healthPermit:
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      insuranceProof:
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
       status: 'APPROVED',
       submittedAt: new Date('2024-01-01'),
       reviewedAt: new Date('2024-01-02'),
@@ -1068,109 +1076,226 @@ async function main(): Promise<void> {
   }
 
   // ============================================
-  // 26. CREATE DEMO ORDERS
+  // 26. CREATE DEMO ORDERS WITH ALL STATUSES
   // ============================================
-  console.log('📝 Creating demo orders...');
+  console.log('📝 Creating demo orders with all statuses...');
 
   if (customer && vendor && productIds.length > 0) {
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        customerId: customer.id,
-        vendorId: vendor.id,
-        status: 'COMPLETED',
-        paymentMethod: 'COD',
-        subtotal: 24.97,
-        tax: 2.5,
-        serviceFee: 0.99,
-        totalAmount: 28.46,
-        note: 'Please make it spicy!',
-        estimatedReadyAt: new Date(Date.now() + 30 * 60 * 1000),
-        confirmedAt: new Date(Date.now() - 45 * 60 * 1000),
-        preparingAt: new Date(Date.now() - 35 * 60 * 1000),
-        readyAt: new Date(Date.now() - 20 * 60 * 1000),
-        completedAt: new Date(Date.now() - 10 * 60 * 1000),
-        createdAt: new Date(Date.now() - 60 * 60 * 1000),
-      },
-    });
+    // Helper function to create order with items
+    async function createOrderWithItems(
+      status: OrderStatus,
+      timeOffset: number,
+      customData?: any,
+    ) {
+      const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const orderTime = new Date(Date.now() + timeOffset);
 
-    // Create order items
-    const orderItems = [
-      {
-        productId: productIds[0],
-        quantity: 2,
-        unitPrice: 4.99,
-        lineTotal: 9.98,
-      },
-      {
-        productId: productIds[1],
-        quantity: 1,
-        unitPrice: 7.99,
-        lineTotal: 7.99,
-      },
-      {
-        productId: productIds[3],
-        quantity: 1,
-        unitPrice: 12.99,
-        lineTotal: 12.99,
-      },
-    ];
-
-    for (const itemData of orderItems) {
-      const product = await prisma.product.findUnique({
-        where: { id: itemData.productId },
-        include: {
-          sizeOptions: true,
-          choiceOptions: true,
-          addOns: true,
+      const order = await prisma.order.create({
+        data: {
+          orderNumber,
+          customerId: customer.id,
+          vendorId: vendor.id,
+          status,
+          paymentMethod: customData?.paymentMethod || 'COD',
+          subtotal: customData?.subtotal || 24.97,
+          tax: customData?.tax || 2.5,
+          serviceFee: customData?.serviceFee || 0.99,
+          totalAmount: customData?.totalAmount || 28.46,
+          note: customData?.note || null,
+          estimatedReadyAt:
+            customData?.estimatedReadyAt ||
+            new Date(Date.now() + 30 * 60 * 1000),
+          confirmedAt: customData?.confirmedAt || null,
+          preparingAt: customData?.preparingAt || null,
+          readyAt: customData?.readyAt || null,
+          completedAt: customData?.completedAt || null,
+          cancelledAt: customData?.cancelledAt || null,
+          createdAt: orderTime,
         },
       });
 
-      if (product) {
-        const orderItem = await prisma.orderItem.create({
-          data: {
-            orderId: order.id,
-            productId: itemData.productId,
-            productName: product.name,
-            quantity: itemData.quantity,
-            unitPrice: itemData.unitPrice,
-            lineTotal: itemData.lineTotal,
-            sizeName:
-              product.sizeOptions.length > 0
-                ? product.sizeOptions[0].name
-                : null,
-            sizePrice:
-              product.sizeOptions.length > 0 ? product.sizeOptions[0].price : 0,
+      // Create order items
+      const orderItems = [
+        {
+          productId: productIds[0],
+          quantity: 2,
+          unitPrice: 4.99,
+          lineTotal: 9.98,
+        },
+        {
+          productId: productIds[1],
+          quantity: 1,
+          unitPrice: 7.99,
+          lineTotal: 7.99,
+        },
+        {
+          productId: productIds[3],
+          quantity: 1,
+          unitPrice: 12.99,
+          lineTotal: 12.99,
+        },
+      ];
+
+      for (const itemData of orderItems) {
+        const product = await prisma.product.findUnique({
+          where: { id: itemData.productId },
+          include: {
+            sizeOptions: true,
+            choiceOptions: true,
+            addOns: true,
           },
         });
 
-        // Add choice options
-        if (product.choiceOptions.length > 0) {
-          await prisma.orderItemChoiceOption.createMany({
-            data: product.choiceOptions.slice(0, 1).map((choice) => ({
-              orderItemId: orderItem.id,
-              choiceOptionId: choice.id,
-              name: choice.name,
-              price: choice.price,
-            })),
+        if (product) {
+          const orderItem = await prisma.orderItem.create({
+            data: {
+              orderId: order.id,
+              productId: itemData.productId,
+              productName: product.name,
+              quantity: itemData.quantity,
+              unitPrice: itemData.unitPrice,
+              lineTotal: itemData.lineTotal,
+              sizeName:
+                product.sizeOptions.length > 0
+                  ? product.sizeOptions[0].name
+                  : null,
+              sizePrice:
+                product.sizeOptions.length > 0
+                  ? product.sizeOptions[0].price
+                  : 0,
+            },
           });
-        }
 
-        // Add add-ons
-        if (product.addOns.length > 0) {
-          await prisma.orderItemAddOn.createMany({
-            data: product.addOns.slice(0, 1).map((addon) => ({
-              orderItemId: orderItem.id,
-              addOnId: addon.id,
-              name: addon.name,
-              price: addon.price,
-            })),
-          });
+          // Add choice options
+          if (product.choiceOptions.length > 0) {
+            await prisma.orderItemChoiceOption.createMany({
+              data: product.choiceOptions.slice(0, 1).map((choice) => ({
+                orderItemId: orderItem.id,
+                choiceOptionId: choice.id,
+                name: choice.name,
+                price: choice.price,
+              })),
+            });
+          }
+
+          // Add add-ons
+          if (product.addOns.length > 0) {
+            await prisma.orderItemAddOn.createMany({
+              data: product.addOns.slice(0, 1).map((addon) => ({
+                orderItemId: orderItem.id,
+                addOnId: addon.id,
+                name: addon.name,
+                price: addon.price,
+              })),
+            });
+          }
         }
       }
+
+      return order;
     }
 
-    console.log('✅ Demo order created');
+    // 1. PENDING Order
+    await createOrderWithItems('PENDING', -5 * 60 * 1000, {
+      subtotal: 19.97,
+      tax: 2.0,
+      serviceFee: 0.99,
+      totalAmount: 22.96,
+      note: 'Please make it spicy!',
+      estimatedReadyAt: new Date(Date.now() + 25 * 60 * 1000),
+    });
+    console.log('✅ PENDING order created');
+
+    // 2. CONFIRMED Order
+    await createOrderWithItems('CONFIRMED', -15 * 60 * 1000, {
+      subtotal: 32.97,
+      tax: 3.3,
+      serviceFee: 0.99,
+      totalAmount: 37.26,
+      note: 'Extra cheese on everything',
+      confirmedAt: new Date(Date.now() - 14 * 60 * 1000),
+      estimatedReadyAt: new Date(Date.now() + 20 * 60 * 1000),
+    });
+    console.log('✅ CONFIRMED order created');
+
+    // 3. PREPARING Order
+    await createOrderWithItems('PREPARING', -20 * 60 * 1000, {
+      subtotal: 15.99,
+      tax: 1.6,
+      serviceFee: 0.99,
+      totalAmount: 18.58,
+      note: 'No onions please',
+      confirmedAt: new Date(Date.now() - 19 * 60 * 1000),
+      preparingAt: new Date(Date.now() - 15 * 60 * 1000),
+      estimatedReadyAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+    console.log('✅ PREPARING order created');
+
+    // 4. READY_FOR_PICKUP Order
+    await createOrderWithItems('READY_FOR_PICKUP', -30 * 60 * 1000, {
+      subtotal: 28.97,
+      tax: 2.9,
+      serviceFee: 0.99,
+      totalAmount: 32.86,
+      note: 'Ready for pickup',
+      confirmedAt: new Date(Date.now() - 29 * 60 * 1000),
+      preparingAt: new Date(Date.now() - 25 * 60 * 1000),
+      readyAt: new Date(Date.now() - 5 * 60 * 1000),
+      estimatedReadyAt: new Date(Date.now() - 5 * 60 * 1000),
+    });
+    console.log('✅ READY_FOR_PICKUP order created');
+
+    // 5. COMPLETED Order (already exists from previous code, but adding another one)
+    await createOrderWithItems('COMPLETED', -60 * 60 * 1000, {
+      subtotal: 42.97,
+      tax: 4.3,
+      serviceFee: 0.99,
+      totalAmount: 48.26,
+      note: 'Delicious food!',
+      confirmedAt: new Date(Date.now() - 59 * 60 * 1000),
+      preparingAt: new Date(Date.now() - 55 * 60 * 1000),
+      readyAt: new Date(Date.now() - 40 * 60 * 1000),
+      completedAt: new Date(Date.now() - 30 * 60 * 1000),
+      estimatedReadyAt: new Date(Date.now() - 40 * 60 * 1000),
+    });
+    console.log('✅ COMPLETED order created');
+
+    // 6. CANCELLED Order
+    await createOrderWithItems('CANCELLED', -45 * 60 * 1000, {
+      subtotal: 12.99,
+      tax: 1.3,
+      serviceFee: 0.99,
+      totalAmount: 15.28,
+      note: 'Cancel this order',
+      confirmedAt: new Date(Date.now() - 44 * 60 * 1000),
+      cancelledAt: new Date(Date.now() - 30 * 60 * 1000),
+    });
+    console.log('✅ CANCELLED order created');
+
+    // 7. Another PENDING order with different items
+    await createOrderWithItems('PENDING', -2 * 60 * 1000, {
+      subtotal: 8.99,
+      tax: 0.9,
+      serviceFee: 0.99,
+      totalAmount: 10.88,
+      note: 'Quick order',
+      estimatedReadyAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+    console.log('✅ Another PENDING order created');
+
+    // 8. Another CONFIRMED order with different items
+    await createOrderWithItems('CONFIRMED', -10 * 60 * 1000, {
+      subtotal: 45.97,
+      tax: 4.6,
+      serviceFee: 0.99,
+      totalAmount: 51.56,
+      note: 'Large group order',
+      confirmedAt: new Date(Date.now() - 9 * 60 * 1000),
+      estimatedReadyAt: new Date(Date.now() + 25 * 60 * 1000),
+    });
+    console.log('✅ Another CONFIRMED order created');
+
+    console.log('✅ All orders with different statuses created successfully!');
   }
 
   // ============================================

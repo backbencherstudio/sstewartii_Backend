@@ -111,6 +111,7 @@ model Vendor {
   orders               Order[]
   favoritedBy          FavoriteVendor[]
   carts                Cart[]
+  categories           Category[]
   truckReviews         VendorTruckReview[]
   truckGalleryImages   TruckGalleryImage[]
   orderReports         OrderReport[]
@@ -248,7 +249,6 @@ model Product {
   @@index([isActive])
   @@index([isDeleted])
 }
-
 model SocialLink {
   id        String   @id @default(uuid())
   url       String?
@@ -344,15 +344,19 @@ model VendorVerification {
 
 model Category {
   id        String    @id @default(uuid())
-  name      String    @unique
+  name      String
+  vendorId  String
   isActive  Boolean   @default(true)
   position  Int       @default(0)
 
+  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   products  Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([vendorId, name])
+  @@index([vendorId])
   @@index([isActive])
   @@index([position])
 }

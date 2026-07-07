@@ -1,10 +1,9 @@
 // src/modules/vendor/infrastructure/mapper/vendor-insights.mapper.ts
 
 import { Injectable } from '@nestjs/common';
-import { SubscriptionStatus, OrderStatus } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
 
 import type {
-  VendorInsightsDateRange,
   VendorInsightProfileView,
   VendorInsightOrderView,
   VendorAiProfileView,

@@ -366,3 +366,45 @@ export class VendorMenuDetailResponseDto {
   vendor!: VendorMenuHeaderDto;
   sections!: VendorMenuSectionDto[];
 }
+
+export class ProductBriefDto {
+  id: string;
+  name: string;
+  price: number;
+  isActive: boolean;
+  imageUrl?: string;
+  description?: string;
+  estimateCookTime?: number;
+
+  constructor(partial: Partial<ProductBriefDto>) {
+    this.id = partial.id || '';
+    this.name = partial.name || '';
+    this.price = partial.price || 0;
+    this.isActive = partial.isActive ?? true;
+    this.imageUrl = partial.imageUrl;
+    this.description = partial.description;
+    this.estimateCookTime = partial.estimateCookTime;
+  }
+}
+
+export class VendorCategoryWithProductsResponseDto {
+  id: string;
+  name: string;
+  isActive: boolean;
+  position: number;
+  productCount: number;
+  products: ProductBriefDto[];
+  createdAt: Date;
+  updatedAt: Date;
+
+  constructor(partial: Partial<VendorCategoryWithProductsResponseDto>) {
+    this.id = partial.id || '';
+    this.name = partial.name || '';
+    this.isActive = partial.isActive ?? true;
+    this.position = partial.position ?? 0;
+    this.productCount = partial.productCount ?? 0;
+    this.products = partial.products || [];
+    this.createdAt = partial.createdAt || new Date();
+    this.updatedAt = partial.updatedAt || new Date();
+  }
+}

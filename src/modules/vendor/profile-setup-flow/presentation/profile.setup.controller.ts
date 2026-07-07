@@ -14,7 +14,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 
 import { ProfileSetupFlowService } from '../application/profile.setup.service';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
-import { Public } from 'src/common/decorators/public.decorator';
 import { RoleGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';

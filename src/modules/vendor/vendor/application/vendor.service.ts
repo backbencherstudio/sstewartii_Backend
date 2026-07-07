@@ -14,7 +14,6 @@ import {
 
 import type {
   IVendorRepository,
-  VendorInsightsDateRange,
 } from '../domain/interface/vendor.repository.interface';
 
 import { VendorMapper } from '../infrastructure/mapper/vendor.mapper';
@@ -35,7 +34,6 @@ import {
 } from '../presentation/dto/vendor-insights.query.dto';
 
 import {
-  VendorMenuResponseDto,
   UploadTruckGalleryResponseDto,
   VendorInfoResponseDto,
   TruckGalleryResponseDto,

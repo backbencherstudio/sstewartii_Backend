@@ -17,7 +17,7 @@ import {
   VendorOrderHistoryQueryDto,
   CreateOrderReportDto,
 } from '../dto/order.dto';
-import { CreateOrderDto, CancelOrderDto } from '../dto/create-order.dto';
+import { CreateOrderDto } from '../dto/create-order.dto';
 import {
   OrderSummaryResponseDto,
   OrderTrackResponseDto,

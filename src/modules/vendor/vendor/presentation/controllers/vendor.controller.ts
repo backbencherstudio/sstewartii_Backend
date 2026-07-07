@@ -30,7 +30,6 @@ import {
 } from '../dto/vendor-insights.query.dto';
 
 import {
-  VendorMenuResponseDto,
   VendorInfoResponseDto,
   UploadTruckGalleryResponseDto,
   TruckGalleryResponseDto,
