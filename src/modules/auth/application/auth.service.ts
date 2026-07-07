@@ -26,7 +26,6 @@ import { RegisterDto } from '../presentation/dto/registerDto/register.dto';
 import { LoginDto } from '../presentation/dto/loginDto/login.dto';
 import { MailService } from 'src/common/mail/mail.service';
 import { VerifyOtpDto } from '../presentation/dto/mail/otp.dto';
-import { CurrentUserResponseDto } from '../presentation/dto/userDto/user.response.dto';
 
 @Injectable()
 export class AuthService {
@@ -385,6 +384,7 @@ export class AuthService {
         password: hashedPassword,
         refreshToken: null,
       });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       throw new UnauthorizedException('Reset session expired or invalid');
     }
@@ -394,18 +394,89 @@ export class AuthService {
     await this.userRepository.updateRefreshToken(userId, null);
   }
 
-  async getCurrentUser(userId: string): Promise<CurrentUserResponseDto> {
+  async getCurrentUser(userId: string) {
     const user = await this.userRepository.findLoginUserById(userId);
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    return {
+    const role = user.role?.name;
+
+    // Base user information
+    const baseResponse = {
       id: user.id,
       email: user.email,
-      role: user.role.name,
+      name: user.name,
+      role: role,
       emailVerified: user.isEmailVerified,
+      provider: user.provider,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    // If user is a CUSTOMER
+    if (role === 'USER' && user.customer) {
+      return {
+        ...baseResponse,
+        userType: 'CUSTOMER',
+        phoneNumber: user.customer.phoneNumber || null,
+        location: {
+          latitude: user.customer.latitude || null,
+          longitude: user.customer.longitude || null,
+          hasLocation: !!(user.customer.latitude && user.customer.longitude),
+        },
+        profile: {
+          id: user.customer.id,
+          phoneNumber: user.customer.phoneNumber,
+          dateOfBirth: user.customer.dateOfBirth,
+          address: user.customer.address,
+          avatar: user.customer.avatar,
+          isActive: user.customer.isActive,
+          preferredRadius: user.customer.preferredRadius,
+        },
+      };
+    }
+
+    // If user is a VENDOR
+    if (role === 'VENDOR' && user.vendorStore) {
+      return {
+        ...baseResponse,
+        userType: 'VENDOR',
+        phoneNumber: user.vendorStore.contactNumber || null,
+        location: {
+          latitude: user.vendorStore.serviceArea?.latitude || null,
+          longitude: user.vendorStore.serviceArea?.longitude || null,
+          hasLocation: !!(
+            user.vendorStore.serviceArea?.latitude &&
+            user.vendorStore.serviceArea?.longitude
+          ),
+          address: user.vendorStore.serviceArea?.address || null,
+          radius: user.vendorStore.serviceArea?.radius || null,
+        },
+        profile: {
+          id: user.vendorStore.id,
+          vendorCode: user.vendorStore.vendorCode,
+          businessName: user.vendorStore.businessName,
+          publicEmail: user.vendorStore.publicEmail,
+          contactNumber: user.vendorStore.contactNumber,
+          bio: user.vendorStore.bio,
+          coverImage: user.vendorStore.coverImage,
+          onboardingStep: user.vendorStore.onboardingStep,
+          kycStatus: user.vendorStore.kycStatus,
+          subscriptionStatus: user.vendorStore.subscriptionStatus,
+          status: user.vendorStore.status,
+          adminStatus: user.vendorStore.adminStatus,
+          truckReviewAverage: user.vendorStore.truckReviewAverage,
+          truckReviewCount: user.vendorStore.truckReviewCount,
+        },
+      };
+    }
+
+    // If user is ADMIN or other role
+    return {
+      ...baseResponse,
+      userType: role || 'UNKNOWN',
     };
   }
 }

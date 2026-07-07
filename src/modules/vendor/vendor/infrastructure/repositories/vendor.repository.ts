@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -7,12 +7,10 @@ import {
   VendorLiveStatus,
   VerificationStatus,
   KycStatus,
-  SubscriptionStatus,
 } from '@prisma/client';
 
 import {
   IVendorRepository,
-  VendorInsightsDateRange,
   VendorInsightsDateRangeInput,
   VendorInsightProfileView,
   VendorFavoriteCountView,
@@ -48,8 +46,14 @@ export class VendorRepository implements IVendorRepository {
   }
 
   async findByOwnerId(ownerId: string): Promise<Vendor | null> {
+    if (!ownerId) {
+      throw new BadRequestException('Owner ID is required');
+    }
+
     const vendorRecord = await this.prisma.vendor.findUnique({
-      where: { ownerId },
+      where: {
+        ownerId: ownerId,
+      },
     });
 
     return vendorRecord ? VendorMapper.toDomain(vendorRecord) : null;

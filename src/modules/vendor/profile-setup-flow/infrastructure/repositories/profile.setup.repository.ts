@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -18,7 +17,6 @@ import {
   UpdateServiceAreaDto,
   SetupProfileDto,
 } from '../../presentation/dto/profile-setup-flow.dto';
-import { CuisineResponseDto } from '../../presentation/dto/profile-setup-flow.response.dto';
 
 @Injectable()
 export class ProfileSetupRepository implements IProfileSetupRepository {

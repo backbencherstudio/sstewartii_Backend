@@ -1,7 +1,4 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
-
-import { randomUUID } from 'crypto';
-import { Category } from '../domain/entities/category.entity';
+import { Injectable, Inject } from '@nestjs/common';
 import type { ICategoryRepository } from '../domain/interfaces/category.interface';
 import { CategorySearchQueryDto } from '../presentation/dto/category.dto';
 import { CategoryResponseDto } from '../presentation/dto/category.response.dto';

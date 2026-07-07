@@ -7,9 +7,10 @@ import { MediaModule } from '@/common/media/media.module';
 import { VendorMapper } from './infrastructure/mapper/vendor.mapper';
 import { VendorInsightsMapper } from './infrastructure/mapper/vendor-insights.mapper';
 import { VendorInsightAccessService } from './application/vendor-insight-access.service';
+import { VendorCategoryModule } from '../category/category.module';
 
 @Module({
-  imports: [MediaModule],
+  imports: [MediaModule, VendorCategoryModule],
   controllers: [VendorController],
   providers: [
     VendorService,

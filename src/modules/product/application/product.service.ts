@@ -13,8 +13,6 @@ import type { IStorageService } from '@/common/storage/storage.interface';
 import { CreateProductDto } from '../presentation/dto/product.dto';
 import { ProductResponseDto } from '../presentation/dto/product.response.dto';
 import { ProductMapper } from '../infrastructure/mappers/product.mapper';
-import { SearchProductQueryDto } from '../presentation/dto/searchQuery.dto';
-import { UpdateProductStatusDto } from '../presentation/dto/product.dto';
 import { ProductCart } from '../domain/entities/product.entity';
 import { MediaService } from '@/common/media/media.service';
 
