@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-
 import {
   IUserRepository,
   LoginUserView,
@@ -175,6 +174,125 @@ export class UserRepository implements IUserRepository {
             serviceArea: true,
           },
         },
+      },
+    });
+  }
+
+  async findUserWithPassword(userId: string): Promise<{
+    id: string;
+    password: string | null;
+    isDeleted: boolean;
+    deletionScheduledAt: Date | null;
+  } | null> {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        password: true,
+        isDeleted: true,
+        deletionScheduledAt: true,
+      },
+    });
+  }
+
+  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword, refreshToken: null },
+    });
+  }
+
+  async updateDeletionSchedule(
+    userId: string,
+    scheduledAt: Date,
+    reason?: string,
+  ): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletionScheduledAt: scheduledAt,
+        deletionReason: reason,
+      },
+    });
+  }
+
+  async clearDeletionSchedule(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletionScheduledAt: null,
+        deletionReason: null,
+      },
+    });
+  }
+
+  async permanentlyDeleteUser(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isDeleted: true,
+        email: `deleted_${userId}@removed.com`,
+        password: null,
+        refreshToken: null,
+        name: 'Deleted User',
+        deletionScheduledAt: null,
+      },
+    });
+  }
+
+  // ✅ Updated to include email in the return type
+  async findUsersScheduledForDeletion(
+    beforeDate: Date,
+  ): Promise<{ id: string; email: string }[]> {
+    return this.prisma.user.findMany({
+      where: {
+        deletionScheduledAt: { lte: beforeDate },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+  }
+
+  async findUserByEmailForLogin(email: string): Promise<any> {
+    return this.prisma.user.findUnique({
+      where: { email, isDeleted: false },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+        provider: true,
+        isEmailVerified: true,
+        deletionScheduledAt: true,
+        role: { select: { id: true, name: true } },
+        customer: {
+          select: { latitude: true, longitude: true, address: true },
+        },
+        vendorStore: {
+          select: {
+            id: true,
+            serviceArea: {
+              select: {
+                latitude: true,
+                longitude: true,
+                address: true,
+                radius: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async countPendingOrdersForVendor(vendorId: string): Promise<number> {
+    return this.prisma.order.count({
+      where: {
+        vendorId,
+        status: { in: ['PENDING', 'CONFIRMED', 'PREPARING'] },
       },
     });
   }

@@ -321,7 +321,6 @@ export class CustomerRepository implements ICustomerRepository {
     query: ExploreMapQueryDto,
   ): Promise<any[]> {
     const search = query.search?.trim();
-    const category = query.category?.trim();
 
     const where: Prisma.VendorWhereInput = {
       serviceArea: {
@@ -894,7 +893,6 @@ export class CustomerRepository implements ICustomerRepository {
     query: CustomerAdvancedSearchQueryDto,
   ): Promise<any[]> {
     const search = query.search?.trim();
-    const category = query.category?.trim();
     const cuisine = query.cuisine?.trim();
 
     const where: Prisma.VendorWhereInput = {

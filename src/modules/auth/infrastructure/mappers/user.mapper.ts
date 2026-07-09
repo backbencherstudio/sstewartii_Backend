@@ -17,10 +17,17 @@ export class UserMapper {
       googleId: raw.googleId,
       provider: raw.provider,
 
+      fcm_token: raw.fcm_token ?? null,
+      platform: raw.platform ?? null,
+
       permissions: extractedPermissions,
       refreshToken: raw.refreshToken,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
+
+      isDeleted: raw.isDeleted ?? false,
+      deletionScheduledAt: raw.deletionScheduledAt ?? null,
+      deletionReason: raw.deletionReason ?? null,
     });
   }
 }

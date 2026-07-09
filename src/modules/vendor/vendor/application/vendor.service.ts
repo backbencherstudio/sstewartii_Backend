@@ -12,9 +12,7 @@ import {
   KycStatus,
 } from '@prisma/client';
 
-import type {
-  IVendorRepository,
-} from '../domain/interface/vendor.repository.interface';
+import type { IVendorRepository } from '../domain/interface/vendor.repository.interface';
 
 import { VendorMapper } from '../infrastructure/mapper/vendor.mapper';
 import { VendorInsightsMapper } from '../infrastructure/mapper/vendor-insights.mapper';
@@ -27,6 +25,8 @@ import {
   UpdateVendorMenuItemStatusDto,
   VendorReviewsQueryDtoMe,
   VendorFollowersQueryDto,
+  DeleteTruckGalleryImagesDto,
+  UpdateTruckGalleryImageDto,
 } from '../presentation/dto/vendor.dto';
 import {
   VendorInsightsOverviewQueryDto,
@@ -46,6 +46,8 @@ import {
   VendorReviewsResponseDto,
   VendorFollowersResponseDto,
   VendorMenuDetailResponseDto,
+  DeleteTruckGalleryImagesResponseDto,
+  UpdateTruckGalleryImageResponseDto,
 } from '../presentation/dto/vendor.response.dto';
 import {
   VendorInsightsOverviewResponseDto,
@@ -54,6 +56,7 @@ import {
 
 import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { VendorInsightAccessService } from './vendor-insight-access.service';
+import { MediaService } from '@/common/media/media.service';
 
 @Injectable()
 export class VendorService {
@@ -64,6 +67,7 @@ export class VendorService {
     private readonly vendorMapper: VendorMapper,
     private readonly vendorInsightsMapper: VendorInsightsMapper,
     private readonly vendorInsightAccessService: VendorInsightAccessService,
+    private readonly mediaService: MediaService,
   ) {}
 
   async findByVendorId(vendorId: string) {
@@ -262,27 +266,249 @@ export class VendorService {
       throw new BadRequestException('At least one gallery image is required');
     }
 
+    // If setting primary, reset all existing primary flags
     if (dto.isPrimary) {
       await this.vendorRepository.resetTruckGalleryPrimary(vendor.id);
     }
 
     const folder = `vendor/truck-gallery/${vendor.id}`;
 
-    const uploadedUrls = await Promise.all(
-      files.map((file) => this.storageService.uploadFile(file, folder)),
+    // Upload all files
+    const uploadPromises = files.map((file) =>
+      this.storageService.uploadFile(file, folder),
     );
+    const uploadedUrls = await Promise.all(uploadPromises);
 
+    console.log('📁 Uploaded URLs from storage:', uploadedUrls);
+
+    // Create gallery image records
+    const images = uploadedUrls.map((url, index) => ({
+      url,
+      caption: dto.caption,
+      isPrimary: dto.isPrimary ?? (index === 0 && files.length === 1),
+      position: (dto.position ?? 0) + index,
+    }));
+
+    // ✅ Create the images and get the created records
     await this.vendorRepository.createTruckGalleryImages({
       vendorId: vendor.id,
-      images: uploadedUrls.map((url, index) => ({
-        url,
-        caption: dto.caption,
-        isPrimary: dto.isPrimary ?? false,
-        position: dto.position ?? index,
-      })),
+      images,
     });
 
-    return VendorMapper.toUploadTruckGalleryResponse();
+    // ✅ Fetch the newly created images by getting the latest based on creation
+    const gallery =
+      await this.vendorRepository.findTruckGalleryByOwnerId(userId);
+
+    // ✅ Sort by createdAt descending and take the last N
+    const sortedImages =
+      gallery?.truckGalleryImages?.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ) ?? [];
+
+    const latestImages = sortedImages.slice(0, files.length);
+
+    console.log('🖼️ Latest images from DB:', latestImages);
+
+    // Process images for response
+    const processedImages = latestImages.map((img) => {
+      const url = this.mediaService.getUrl(img.url);
+      console.log('🔍 URL transformation:', {
+        original: img.url,
+        transformed: url,
+      });
+      return {
+        id: img.id,
+        url: url ?? '',
+        caption: img.caption ?? undefined,
+        isPrimary: img.isPrimary,
+        position: img.position,
+      };
+    });
+
+    return {
+      uploaded: files.length,
+      images: processedImages,
+    };
+  }
+
+  async deleteTruckGalleryImages(
+    userId: string,
+    dto: DeleteTruckGalleryImagesDto,
+  ): Promise<DeleteTruckGalleryImagesResponseDto> {
+    const vendor = await this.vendorRepository.findByOwnerId(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    // Verify all images belong to this vendor
+    const imageIds = dto.imageIds;
+    const images = await Promise.all(
+      imageIds.map((id) => this.vendorRepository.findTruckGalleryImageById(id)),
+    );
+
+    const invalidImages = images.filter(
+      (img) => !img || img.vendorId !== vendor.id,
+    );
+
+    if (invalidImages.length > 0) {
+      throw new ForbiddenException(
+        `You don't have permission to delete ${invalidImages.length} of the requested images`,
+      );
+    }
+
+    // ✅ Delete physical files from disk
+    const validImages = images.filter(
+      (img): img is NonNullable<typeof img> => img !== null,
+    );
+    for (const image of validImages) {
+      try {
+        await this.storageService.deleteFile(image.url);
+        console.log(`✅ Deleted file from disk: ${image.url}`);
+      } catch (error) {
+        console.error(
+          `❌ Failed to delete file from disk: ${image.url}`,
+          error,
+        );
+        // Continue with other deletions even if one fails
+      }
+    }
+
+    // Delete the images from database
+    const result =
+      await this.vendorRepository.deleteTruckGalleryImages(imageIds);
+
+    // If a primary image was deleted, set a new primary
+    const deletedPrimary = images.some((img) => img?.isPrimary);
+    if (deletedPrimary) {
+      const remainingGallery =
+        await this.vendorRepository.findTruckGalleryByOwnerId(userId);
+      const remainingImages = remainingGallery?.truckGalleryImages ?? [];
+
+      if (remainingImages.length > 0) {
+        // Set the first remaining image as primary
+        await this.vendorRepository.updateTruckGalleryImage({
+          id: remainingImages[0].id,
+          isPrimary: true,
+        });
+      }
+    }
+
+    return {
+      message: `Successfully deleted ${result.count} image(s).`,
+      deletedCount: result.count,
+      deletedIds: imageIds,
+    };
+  }
+
+  async deleteTruckGalleryImage(
+    userId: string,
+    imageId: string,
+  ): Promise<DeleteTruckGalleryImagesResponseDto> {
+    const vendor = await this.vendorRepository.findByOwnerId(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const image =
+      await this.vendorRepository.findTruckGalleryImageById(imageId);
+
+    if (!image) {
+      throw new NotFoundException('Image not found');
+    }
+
+    if (image.vendorId !== vendor.id) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this image',
+      );
+    }
+
+    // ✅ Delete physical file from disk
+    try {
+      await this.storageService.deleteFile(image.url);
+      console.log(`✅ Deleted file from disk: ${image.url}`);
+    } catch (error) {
+      console.error(`❌ Failed to delete file from disk: ${image.url}`, error);
+      // Continue with database deletion even if file deletion fails
+    }
+
+    // Delete the image from database
+    const result = await this.vendorRepository.deleteTruckGalleryImages([
+      imageId,
+    ]);
+
+    // If a primary image was deleted, set a new primary
+    if (image.isPrimary) {
+      const remainingGallery =
+        await this.vendorRepository.findTruckGalleryByOwnerId(userId);
+      const remainingImages = remainingGallery?.truckGalleryImages ?? [];
+
+      if (remainingImages.length > 0) {
+        await this.vendorRepository.updateTruckGalleryImage({
+          id: remainingImages[0].id,
+          isPrimary: true,
+        });
+      }
+    }
+
+    return {
+      message: 'Successfully deleted image.',
+      deletedCount: result.count,
+      deletedIds: [imageId],
+    };
+  }
+
+  async updateTruckGalleryImage(
+    userId: string,
+    imageId: string,
+    dto: UpdateTruckGalleryImageDto,
+  ): Promise<UpdateTruckGalleryImageResponseDto> {
+    const vendor = await this.vendorRepository.findByOwnerId(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const image =
+      await this.vendorRepository.findTruckGalleryImageById(imageId);
+
+    if (!image) {
+      throw new NotFoundException('Image not found');
+    }
+
+    if (image.vendorId !== vendor.id) {
+      throw new ForbiddenException(
+        'You do not have permission to update this image',
+      );
+    }
+
+    // If setting as primary, reset all existing primary flags
+    if (dto.isPrimary) {
+      await this.vendorRepository.resetTruckGalleryPrimary(vendor.id);
+    }
+
+    const updatedImage = await this.vendorRepository.updateTruckGalleryImage({
+      id: imageId,
+      caption: dto.caption,
+      isPrimary: dto.isPrimary,
+      position: dto.position,
+    });
+
+    const url = this.mediaService.getUrl(updatedImage.url);
+
+    return {
+      message: 'Image updated successfully.',
+      image: {
+        id: updatedImage.id,
+        url: url ?? '',
+        caption: updatedImage.caption ?? undefined,
+        isPrimary: updatedImage.isPrimary,
+        position: updatedImage.position,
+        updatedAt: new Date(),
+      },
+    };
   }
 
   async getVendorHome(ownerId: string): Promise<VendorHomeResponseDto> {
@@ -779,8 +1005,9 @@ export class VendorService {
         vendorId,
         customerId,
       });
-    } catch (error) {
-      console.error('Failed to track vendor profile view', error);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error) {
+      // Silently fail - don't throw error for tracking
     }
   }
 }

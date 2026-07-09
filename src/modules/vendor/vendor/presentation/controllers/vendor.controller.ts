@@ -23,6 +23,8 @@ import {
   UpdateVendorMenuItemStatusDto,
   VendorReviewsQueryDtoMe,
   VendorFollowersQueryDto,
+  DeleteTruckGalleryImagesDto,
+  UpdateTruckGalleryImageDto,
 } from '../dto/vendor.dto';
 import {
   VendorInsightsOverviewQueryDto,
@@ -42,6 +44,8 @@ import {
   VendorReviewsResponseDto,
   VendorFollowersResponseDto,
   VendorMenuDetailResponseDto,
+  DeleteTruckGalleryImagesResponseDto,
+  UpdateTruckGalleryImageResponseDto,
 } from '../dto/vendor.response.dto';
 import {
   VendorInsightsOverviewResponseDto,
@@ -88,6 +92,10 @@ export class VendorController {
     return this.vendorService.getVendorInfo(vendorId);
   }
 
+  /**
+   * Upload multiple truck gallery images
+   * Max 10 images per request
+   */
   @Post('truck-gallery/upload')
   @UseGuards(RoleGuard)
   @Roles(Role.VENDOR)
@@ -99,6 +107,62 @@ export class VendorController {
     @UploadedFiles() files: Express.Multer.File[],
   ): Promise<UploadTruckGalleryResponseDto> {
     return this.vendorService.uploadTruckGalleryImages(user.id, dto, files);
+  }
+
+  /**
+   * Get all truck gallery images for the authenticated vendor
+   */
+  @Get('truck-gallery/me')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  async getMyTruckGallery(
+    @CurrentUser() user: AuthUser,
+  ): Promise<TruckGalleryResponseDto> {
+    return this.vendorService.getMyTruckGallery(user.id);
+  }
+
+  /**
+   * Delete multiple truck gallery images
+   * Max 50 images per request
+   */
+  @Delete('truck-gallery/delete-bulk')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Truck gallery images deleted successfully.')
+  async deleteTruckGalleryImages(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: DeleteTruckGalleryImagesDto,
+  ): Promise<DeleteTruckGalleryImagesResponseDto> {
+    return this.vendorService.deleteTruckGalleryImages(user.id, dto);
+  }
+
+  /**
+   * Delete a single truck gallery image
+   */
+  @Delete('truck-gallery/:imageId')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Truck gallery image deleted successfully.')
+  async deleteTruckGalleryImage(
+    @CurrentUser() user: AuthUser,
+    @Param('imageId') imageId: string,
+  ): Promise<DeleteTruckGalleryImagesResponseDto> {
+    return this.vendorService.deleteTruckGalleryImage(user.id, imageId);
+  }
+
+  /**
+   * Update a truck gallery image (caption, primary flag, position)
+   */
+  @Patch('truck-gallery/:imageId')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Truck gallery image updated successfully.')
+  async updateTruckGalleryImage(
+    @CurrentUser() user: AuthUser,
+    @Param('imageId') imageId: string,
+    @Body() dto: UpdateTruckGalleryImageDto,
+  ): Promise<UpdateTruckGalleryImageResponseDto> {
+    return this.vendorService.updateTruckGalleryImage(user.id, imageId, dto);
   }
 
   @Get('home')
@@ -165,15 +229,6 @@ export class VendorController {
     @Param('productId') productId: string,
   ): Promise<DeleteVendorMenuItemResponseDto> {
     return this.vendorService.deleteVendorMenuItem(user.id, productId);
-  }
-
-  @Get('truck-gallery/me')
-  @UseGuards(RoleGuard)
-  @Roles(Role.VENDOR)
-  async getMyTruckGallery(
-    @CurrentUser() user: AuthUser,
-  ): Promise<TruckGalleryResponseDto> {
-    return this.vendorService.getMyTruckGallery(user.id);
   }
 
   @Get('insights/overview')

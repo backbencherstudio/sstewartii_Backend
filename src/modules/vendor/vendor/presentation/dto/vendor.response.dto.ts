@@ -80,7 +80,15 @@ export class TruckGalleryResponseDto {
 }
 
 export class UploadTruckGalleryResponseDto {
-  message!: string;
+  message?: string;
+  uploaded!: number;
+  images!: {
+    id: string;
+    url: string;
+    caption?: string;
+    isPrimary: boolean;
+    position: number;
+  }[];
 }
 
 export class VendorHomeProfileDto {
@@ -407,4 +415,22 @@ export class VendorCategoryWithProductsResponseDto {
     this.createdAt = partial.createdAt || new Date();
     this.updatedAt = partial.updatedAt || new Date();
   }
+}
+
+export class DeleteTruckGalleryImagesResponseDto {
+  message!: string;
+  deletedCount!: number;
+  deletedIds!: string[];
+}
+
+export class UpdateTruckGalleryImageResponseDto {
+  message!: string;
+  image!: {
+    id: string;
+    url: string;
+    caption?: string;
+    isPrimary: boolean;
+    position: number;
+    updatedAt: Date;
+  };
 }

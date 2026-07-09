@@ -1,7 +1,6 @@
 // src/modules/help-center/application/help-center.service.ts
 
 import {
-  BadRequestException,
   Inject,
   Injectable,
   NotFoundException,

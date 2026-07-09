@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import {
   VendorLiveStatus,
   VerificationStatus,
@@ -343,4 +344,30 @@ export interface IVendorRepository {
   }): Promise<void>;
 
   findCustomerIdByUserId(userId: string): Promise<string | null>;
+
+  findTruckGalleryImageById(imageId: string): Promise<{
+    id: string;
+    vendorId: string;
+    url: string;
+    caption: string | null;
+    isPrimary: boolean;
+    position: number;
+    createdAt: Date;
+  } | null>;
+
+  deleteTruckGalleryImages(imageIds: string[]): Promise<{ count: number }>;
+
+  updateTruckGalleryImage(data: {
+    id: string;
+    caption?: string | null;
+    isPrimary?: boolean;
+    position?: number;
+  }): Promise<{
+    id: string;
+    url: string;
+    caption: string | null;
+    isPrimary: boolean;
+    position: number;
+    createdAt: Date;
+  }>;
 }

@@ -23,6 +23,8 @@ import { MediaModule } from './common/media/media.module';
 import { HelpCenterModule } from './modules/help-center/help-center.module';
 import { BullModule } from '@nestjs/bullmq';
 import { AdminModule } from './modules/admin/admin.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { RevenueCatModule } from './modules/revenuecat/revenuecat.module';
 
 @Module({
   imports: [
@@ -70,6 +72,8 @@ import { AdminModule } from './modules/admin/admin.module';
     MediaModule,
     HelpCenterModule,
     AdminModule,
+    NotificationModule,
+    RevenueCatModule,
   ],
   controllers: [AppController],
   providers: [

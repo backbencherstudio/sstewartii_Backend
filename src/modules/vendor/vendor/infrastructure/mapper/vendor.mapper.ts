@@ -192,7 +192,9 @@ export class VendorMapper {
 
   static toUploadTruckGalleryResponse(): UploadTruckGalleryResponseDto {
     return {
-      message: 'Truck gallery images uploaded successfully',
+      message: 'Truck gallery images uploaded successfully.',
+      uploaded: 0,
+      images: [],
     };
   }
 

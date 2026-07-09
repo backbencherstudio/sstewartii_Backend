@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -20,7 +21,6 @@ import {
   VendorAiOrderView,
   VendorReviewSummaryResult,
   VendorReviewResult,
-  VendorFollowersResult,
   VendorFollowersProfileView,
 } from '../../domain/interface/vendor.repository.interface';
 import { Vendor } from '../../domain/entities/vendor.entity';
@@ -129,11 +129,6 @@ export class VendorRepository implements IVendorRepository {
             cuisine: true,
           },
         },
-        // categories: {
-        //   orderBy: {
-        //     name: 'asc',
-        //   },
-        // },
         products: {
           where: productWhere,
           include: {
@@ -236,6 +231,74 @@ export class VendorRepository implements IVendorRepository {
             createdAt: true,
           },
         },
+      },
+    });
+  }
+
+  async findTruckGalleryImageById(imageId: string): Promise<{
+    id: string;
+    vendorId: string;
+    url: string;
+    caption: string | null;
+    isPrimary: boolean;
+    position: number;
+    createdAt: Date;
+  } | null> {
+    return this.prisma.truckGalleryImage.findUnique({
+      where: { id: imageId },
+      select: {
+        id: true,
+        vendorId: true,
+        url: true,
+        caption: true,
+        isPrimary: true,
+        position: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async deleteTruckGalleryImages(
+    imageIds: string[],
+  ): Promise<{ count: number }> {
+    const result = await this.prisma.truckGalleryImage.deleteMany({
+      where: {
+        id: { in: imageIds },
+      },
+    });
+
+    return { count: result.count };
+  }
+
+  async updateTruckGalleryImage(data: {
+    id: string;
+    caption?: string | null;
+    isPrimary?: boolean;
+    position?: number;
+  }): Promise<{
+    id: string;
+    url: string;
+    caption: string | null;
+    isPrimary: boolean;
+    position: number;
+    createdAt: Date;
+  }> {
+    const { id, ...updateData } = data;
+
+    return this.prisma.truckGalleryImage.update({
+      where: { id },
+      data: {
+        caption: updateData.caption ?? undefined,
+        isPrimary: updateData.isPrimary ?? undefined,
+        position: updateData.position ?? undefined,
+      },
+      select: {
+        id: true,
+        url: true,
+        caption: true,
+        isPrimary: true,
+        position: true,
+        createdAt: true,
       },
     });
   }
@@ -994,7 +1057,24 @@ export class VendorRepository implements IVendorRepository {
     vendorId: string;
     page: number;
     limit: number;
-  }): Promise<VendorFollowersResult> {
+  }): Promise<{
+    total: number;
+    followers: {
+      id: string;
+      createdAt: Date;
+      customer: {
+        id: string;
+        avatar: string | null;
+        user: {
+          name: string | null;
+          email: string;
+        };
+        orders: {
+          id: string;
+        }[];
+      };
+    }[];
+  }> {
     const skip = (data.page - 1) * data.limit;
 
     const [total, followers] = await Promise.all([
