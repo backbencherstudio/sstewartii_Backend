@@ -5,7 +5,6 @@ import {
   ICategoryRepository,
   CategorySearchView,
 } from '../../domain/interfaces/category.interface';
-import { Category } from '../../domain/entities/category.entity';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {

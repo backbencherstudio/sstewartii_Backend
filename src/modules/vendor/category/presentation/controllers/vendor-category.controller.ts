@@ -6,8 +6,6 @@ import {
   Delete,
   Body,
   Param,
-  HttpStatus,
-  HttpCode,
   UseGuards,
   NotFoundException,
 } from '@nestjs/common';
@@ -105,13 +103,13 @@ export class VendorCategoryController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
   @ResponseMessage('Category deleted successfully.')
-  async deleteCategory(
-    @CurrentUser() user: AuthUser,
-    @Param('id') id: string,
-  ): Promise<void> {
+  async deleteCategory(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const vendorId = await this.getVendorId(user.id);
-    return this.categoryService.deleteCategory(vendorId, id);
+    await this.categoryService.deleteCategory(vendorId, id);
+    return {
+      success: true,
+      message: 'Category deleted successfully.',
+    };
   }
 }

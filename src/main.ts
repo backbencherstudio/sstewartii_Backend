@@ -74,9 +74,12 @@ async function bootstrap() {
 
   await app.listen(port, host);
 
-  if (nodeEnv !== 'production') {
-    console.log(`Docs: ${host}:${port}/docs`);
-  }
+  // RevenueCat webhook URL
+  const webhookUrl = `http://${host}:${port}/api/v1/webhooks/revenuecat`;
+
+  console.log(`📚 Docs: ${host}:${port}/api/docs`);
+  console.log(`🔄 RevenueCat Webhook URL: ${webhookUrl}`);
+  console.log(`🚀 Server running on: ${host}:${port}`);
 }
 
 bootstrap();

@@ -7,30 +7,250 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  password     String?
-  name         String? 
+  id       String  @id @default(uuid())
+  email    String  @unique
+  password String?
+  name     String?
 
-  provider     String   @default("local")
-  googleId     String?  @unique
-  appleId      String?  @unique
+  provider String  @default("local")
+  googleId String? @unique
+  appleId  String? @unique
 
-  isEmailVerified   Boolean @default(false)
-  locationRequired  Boolean @default(false)
-  
-  otps         Otp[]
-  
-  roleId       String
-  role         Role     @relation(fields: [roleId], references: [id])
+  isEmailVerified  Boolean @default(false)
+  locationRequired Boolean @default(false)
 
-  vendorStore  Vendor?
-  customer     Customer?
-  helpTickets  HelpCenterTicket[]
+  otps Otp[]
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  vendorStore Vendor?
+  customer    Customer?
+  helpTickets HelpCenterTicket[]
+
+  fcm_token String?
+  platform  DevicePlatform?
 
   refreshToken String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  deletionScheduledAt DateTime?
+  deletionReason      String?   @db.Text
+  isDeleted           Boolean   @default(false)
+
+  // ============================================
+  // NOTIFICATION RELATIONS
+  // ============================================
+
+  // Base notification settings (all users)
+  notificationSettings NotificationSettings?
+
+  // Role-specific notification preferences
+  adminNotificationPreferences    AdminNotificationPreferences?
+  vendorNotificationPreferences   VendorNotificationPreferences?
+  customerNotificationPreferences CustomerNotificationPreferences?
+
+  // Notification logs (all notifications sent to this user)
+  notificationLogs NotificationLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([roleId])
+  @@index([isDeleted])
+}
+
+// ============================================
+// NOTIFICATION SETTINGS MODELS
+// ============================================
+
+// Base notification settings for all users
+model NotificationSettings {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Master toggle for all notifications
+  pushNotificationsEnabled Boolean @default(true)
+
+  // Common notification channels
+  emailNotifications Boolean @default(true)
+  smsAlerts          Boolean @default(false)
+  inAppBanner        Boolean @default(true)
+
+  // Do Not Disturb settings
+  doNotDisturbEnabled Boolean @default(false)
+  doNotDisturbStart   String? // "22:00"
+  doNotDisturbEnd     String? // "07:00"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================
+// ADMIN NOTIFICATION PREFERENCES
+// ============================================
+
+model AdminNotificationPreferences {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // System Alerts
+  systemAlertsEmail Boolean @default(true)
+  systemAlertsSms   Boolean @default(false)
+  systemAlertsInApp Boolean @default(true)
+
+  // Vendor Updates
+  vendorUpdatesEmail Boolean @default(true)
+  vendorUpdatesSms   Boolean @default(false)
+  vendorUpdatesInApp Boolean @default(true)
+
+  // Customer Reports
+  customerReportsEmail Boolean @default(true)
+  customerReportsSms   Boolean @default(false)
+  customerReportsInApp Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================
+// VENDOR NOTIFICATION PREFERENCES
+// ============================================
+
+model VendorNotificationPreferences {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Master toggle for push notifications
+  pushNotificationsEnabled Boolean @default(true)
+
+  // ========== ORDER UPDATES ==========
+  newOrdersEmail Boolean @default(true)
+  newOrdersSms   Boolean @default(true)
+  newOrdersInApp Boolean @default(true)
+
+  cancellationsEmail Boolean @default(true)
+  cancellationsSms   Boolean @default(true)
+  cancellationsInApp Boolean @default(true)
+
+  // ========== CUSTOMER ENGAGEMENT ==========
+  newFollowersEmail Boolean @default(true)
+  newFollowersSms   Boolean @default(false)
+  newFollowersInApp Boolean @default(true)
+
+  newReviewsEmail Boolean @default(true)
+  newReviewsSms   Boolean @default(false)
+  newReviewsInApp Boolean @default(true)
+
+  // ========== EVENT & OPPORTUNITY VISIBILITY ==========
+  upcomingEventsEmail Boolean @default(true)
+  upcomingEventsSms   Boolean @default(false)
+  upcomingEventsInApp Boolean @default(true)
+
+  highTrafficOpportunitiesEmail Boolean @default(true)
+  highTrafficOpportunitiesSms   Boolean @default(false)
+  highTrafficOpportunitiesInApp Boolean @default(true)
+
+  // ========== SYSTEM ALERTS ==========
+  appUpdatesEmail Boolean @default(true)
+  appUpdatesSms   Boolean @default(false)
+  appUpdatesInApp Boolean @default(true)
+
+  subscriptionBillingEmail Boolean @default(true)
+  subscriptionBillingSms   Boolean @default(false)
+  subscriptionBillingInApp Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================
+// CUSTOMER NOTIFICATION PREFERENCES
+// ============================================
+
+model CustomerNotificationPreferences {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Master toggle for push notifications
+  pushNotificationsEnabled Boolean @default(true)
+
+  // ========== ORDER UPDATES ==========
+  orderConfirmedEmail Boolean @default(true)
+  orderConfirmedSms   Boolean @default(true)
+  orderConfirmedInApp Boolean @default(true)
+
+  readyForPickupEmail Boolean @default(true)
+  readyForPickupSms   Boolean @default(true)
+  readyForPickupInApp Boolean @default(true)
+
+  // ========== DISCOVERY ALERTS ==========
+  favoriteTruckLiveEmail Boolean @default(true)
+  favoriteTruckLiveSms   Boolean @default(false)
+  favoriteTruckLiveInApp Boolean @default(true)
+
+  newTrucksNearbyEmail Boolean @default(true)
+  newTrucksNearbySms   Boolean @default(false)
+  newTrucksNearbyInApp Boolean @default(true)
+
+  eventsFestivalsEmail Boolean @default(true)
+  eventsFestivalsSms   Boolean @default(false)
+  eventsFestivalsInApp Boolean @default(true)
+
+  // ========== URGENT ALERTS ==========
+  favoriteTruckLeavingEmail Boolean @default(true)
+  favoriteTruckLeavingSms   Boolean @default(true)
+  favoriteTruckLeavingInApp Boolean @default(true)
+
+  // ========== MARKETING ==========
+  promotionsDiscountsEmail Boolean @default(true)
+  promotionsDiscountsSms   Boolean @default(false)
+  promotionsDiscountsInApp Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================
+// NOTIFICATION LOGS
+// ============================================
+
+model NotificationLog {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  channel NotificationChannel
+  title   String
+  body    String
+  data    Json? // Additional data payload
+
+  status NotificationStatus @default(PENDING)
+  error  String?            @db.Text
+
+  sentAt       DateTime  @default(now())
+  readAt       DateTime?
+  deliveredAt  DateTime?
+  scheduledFor DateTime? // For scheduled notifications
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([sentAt])
+  @@index([scheduledFor])
 }
 
 model Role {
@@ -50,8 +270,8 @@ model RolePermission {
   roleId       String
   permissionId String
 
-  role         Role       @relation(fields: [roleId], references: [id])
-  permission   Permission @relation(fields: [permissionId], references: [id])
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
   @@id([roleId, permissionId])
 }
@@ -59,189 +279,189 @@ model RolePermission {
 model Otp {
   id        String   @id @default(uuid())
   userId    String
-  otp       String   
-  type      String   
+  otp       String
+  type      String
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Vendor {
-  id                   String   @id @default(uuid())
-  vendorCode           String   @unique
-  businessName         String?
-  publicEmail          String?
-  contactNumber        String?
-  bio                  String?       @db.Text
-  coverImage           String?          
-  onboardingStep       Int           @default(1)
+  id             String  @id @default(uuid())
+  vendorCode     String  @unique
+  businessName   String?
+  publicEmail    String?
+  contactNumber  String?
+  bio            String? @db.Text
+  coverImage     String?
+  onboardingStep Int     @default(1)
 
-  ownerId              String    @unique
-  owner                User      @relation(fields:[ownerId], references:[id])
-  kycStatus            KycStatus @default(UNVERIFIED)
-  
-  stripeCustomerId     String?   @unique 
-  stripeSubscriptionId String?   @unique 
+  ownerId   String    @unique
+  owner     User      @relation(fields: [ownerId], references: [id])
+  kycStatus KycStatus @default(UNVERIFIED)
 
-  subscriptionPlanId   String? 
-  subscriptionPlan     SubscriptionPlan? @relation(fields:[subscriptionPlanId], references: [id]) 
-  subscriptionStatus   SubscriptionStatus @default(INACTIVE) 
-  subscriptionExpiry   DateTime?
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
 
-  truckReviewAverage   Float     @default(0) 
-  truckReviewCount     Int       @default(0)
+  subscriptionPlanId String?
+  subscriptionPlan   SubscriptionPlan?  @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  subscriptionExpiry DateTime?
 
-  status               VendorLiveStatus @default(OFFLINE)
-  statusUpdatedAt      DateTime?
+  truckReviewAverage Float @default(0)
+  truckReviewCount   Int   @default(0)
 
-  adminStatus          VendorAdminStatus @default(ACTIVE)
-  statusReason         String?
+  status          VendorLiveStatus @default(OFFLINE)
+  statusUpdatedAt DateTime?
 
-  suspendedAt          DateTime?
-  disabledAt           DateTime?
+  adminStatus  VendorAdminStatus @default(ACTIVE)
+  statusReason String?
 
-  kycProfile           KycProfile? 
-  products             Product[] 
-  socialLinks          SocialLink[] 
-  cuisines             VendorCuisine[] 
-  operationHours       OperationHour[] 
-  serviceArea          ServiceArea? 
-  vendorVerification   VendorVerification?
-  orders               Order[]
-  favoritedBy          FavoriteVendor[]
-  carts                Cart[]
-  categories           Category[]
-  truckReviews         VendorTruckReview[]
-  truckGalleryImages   TruckGalleryImage[]
-  orderReports         OrderReport[]
-  helpTickets          HelpCenterTicket[]
-  profileViews         VendorProfileView[]
-  subscription         VendorSubscription?
-  
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  suspendedAt DateTime?
+  disabledAt  DateTime?
+
+  kycProfile         KycProfile?
+  products           Product[]
+  socialLinks        SocialLink[]
+  cuisines           VendorCuisine[]
+  operationHours     OperationHour[]
+  serviceArea        ServiceArea?
+  vendorVerification VendorVerification?
+  orders             Order[]
+  favoritedBy        FavoriteVendor[]
+  carts              Cart[]
+  categories         Category[]
+  truckReviews       VendorTruckReview[]
+  truckGalleryImages TruckGalleryImage[]
+  orderReports       OrderReport[]
+  helpTickets        HelpCenterTicket[]
+  profileViews       VendorProfileView[]
+  subscription       VendorSubscription?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([vendorCode])
 }
 
 model SubscriptionPlan {
-  id                      String   @id @default(uuid())
-  name                    String   
-  code                    String   @unique
-  price                   Float    
-  durationDays            Int      
-  maxProducts             Int      
-  stripePriceId           String   @unique 
-  currency                String   @default("USD")
+  id                      String  @id @default(uuid())
+  name                    String
+  code                    String  @unique
+  price                   Float
+  durationDays            Int
+  maxProducts             Int
+  stripePriceId           String  @unique
+  currency                String  @default("USD")
   revenueCatEntitlementId String?
   appleProductId          String?
   googleProductId         String?
-  isActive                Boolean  @default(true)
-  position                Int      @default(0)
+  isActive                Boolean @default(true)
+  position                Int     @default(0)
 
-  vendors                 Vendor[]
-  subscriptions           VendorSubscription[]
+  vendors       Vendor[]
+  subscriptions VendorSubscription[]
 
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VendorSubscription {
-  id                  String @id @default(uuid())
-  vendorId            String @unique
-  vendor              Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  vendorId String @unique
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  subscriptionPlanId  String?
-  subscriptionPlan    SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId String?
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
 
-  provider            SubscriptionProvider
-  status              SubscriptionStatus
+  provider SubscriptionProvider
+  status   SubscriptionStatus
 
   revenueCatAppUserId String?
   entitlementId       String?
   productId           String?
   store               SubscriptionStore?
 
-  currentPeriodEnd    DateTime?
-  rawProviderData     Json?
+  currentPeriodEnd DateTime?
+  rawProviderData  Json?
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SubscriptionTransaction {
-  id                    String @id @default(uuid())
+  id String @id @default(uuid())
 
-  vendorId              String
-  vendorSubscriptionId  String?
+  vendorId             String
+  vendorSubscriptionId String?
 
-  provider              SubscriptionProvider
-  store                 SubscriptionStore?
+  provider SubscriptionProvider
+  store    SubscriptionStore?
 
-  productId             String?
-  transactionId         String? @unique
+  productId     String?
+  transactionId String? @unique
 
-  amount                Float
-  currency              String @default("USD")
+  amount   Float
+  currency String @default("USD")
 
-  purchasedAt           DateTime
-  rawProviderData       Json?
+  purchasedAt     DateTime
+  rawProviderData Json?
 
-  createdAt             DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([vendorId])
   @@index([purchasedAt])
 }
 
 model KycProfile {
-  id               String   @id @default(uuid())
-  vendorId         String   @unique
-  vendor           Vendor   @relation(fields:[vendorId], references: [id])
+  id       String @id @default(uuid())
+  vendorId String @unique
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
 
-  documentType     DocumentType
-  documentNumber   String   @unique
-  frontImageUrl    String
-  backImageUrl     String?
-  
-  submittedAt      DateTime @default(now())
-  verifiedAt       DateTime?
+  documentType   DocumentType
+  documentNumber String       @unique
+  frontImageUrl  String
+  backImageUrl   String?
+
+  submittedAt DateTime  @default(now())
+  verifiedAt  DateTime?
 }
 
 model Product {
-  id                String    @id @default(uuid())
-  name              String
-  description       String
-  price             Float    
-  estimateCookTime  Int       @default(10)
-  
-  isActive          Boolean   @default(true)
-  isDeleted         Boolean   @default(false)
-  deletedAt         DateTime?
+  id               String @id @default(uuid())
+  name             String
+  description      String
+  price            Float
+  estimateCookTime Int    @default(10)
 
-  vendorId          String
-  vendor            Vendor    @relation(fields:[vendorId], references: [id])
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
 
-  categoryId        String?
-  category          Category? @relation(fields: [categoryId], references: [id])
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
 
-  cuisineId         String?
-  cuisine           Cuisine?  @relation(fields: [cuisineId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
 
-  foodReviewAverage Float     @default(0)
-  foodReviewCount   Int       @default(0)
+  cuisineId String?
+  cuisine   Cuisine? @relation(fields: [cuisineId], references: [id])
 
-  sizeOptions       SizeOption[]
-  choiceOptions     ChoiceOption[]
-  addOns            AddOn[]
-  images            ProductImage[]
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
-  favoritedBy       FavoriteProduct[]
-  foodReview        FoodReview[]
+  foodReviewAverage Float @default(0)
+  foodReviewCount   Int   @default(0)
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now()) @updatedAt
+  sizeOptions   SizeOption[]
+  choiceOptions ChoiceOption[]
+  addOns        AddOn[]
+  images        ProductImage[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  favoritedBy   FavoriteProduct[]
+  foodReview    FoodReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([vendorId])
   @@index([categoryId])
@@ -249,25 +469,26 @@ model Product {
   @@index([isActive])
   @@index([isDeleted])
 }
+
 model SocialLink {
-  id        String   @id @default(uuid())
-  url       String?
-  vendorId  String
-  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id       String  @id @default(uuid())
+  url      String?
+  vendorId String
+  vendor   Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 }
 
 model Cuisine {
-  id       String           @id @default(uuid())
-  name     String           @unique
+  id       String  @id @default(uuid())
+  name     String  @unique
   imageUrl String?
-  isActive  Boolean         @default(true)
-  position  Int             @default(0)
+  isActive Boolean @default(true)
+  position Int     @default(0)
 
-  vendors   VendorCuisine[]
-  products  Product[]
+  vendors  VendorCuisine[]
+  products Product[]
 
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @default(now()) @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([isActive])
   @@index([position])
@@ -276,39 +497,39 @@ model Cuisine {
 model VendorCuisine {
   vendorId  String
   cuisineId String
-  
-  vendor    Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  cuisine   Cuisine @relation(fields: [cuisineId], references: [id], onDelete: Cascade)
+
+  vendor  Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  cuisine Cuisine @relation(fields: [cuisineId], references: [id], onDelete: Cascade)
 
   @@id([vendorId, cuisineId])
   @@index([cuisineId])
 }
 
 model OperationHour {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  vendorId  String
-  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  dayOfWeek  Int                          // 0 = Sunday, 6 = Saturday
-  openTime   String?                      // "09:00"
-  closeTime  String?                      // "22:00"
+  dayOfWeek  Int // 0 = Sunday, 6 = Saturday
+  openTime   String? // "09:00"
+  closeTime  String? // "22:00"
   isClosed   Boolean   @default(false)
   activeFrom DateTime
-  activeTo   DateTime?    
+  activeTo   DateTime?
 
-  priority   Int       @default(0)
+  priority Int @default(0)
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([vendorId, dayOfWeek, activeFrom, activeTo])
 }
 
 model ServiceArea {
-  id        String   @id @default(uuid())
-  vendorId  String   @unique
-  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  vendorId String @unique
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   latitude  Float
   longitude Float
@@ -320,37 +541,37 @@ model ServiceArea {
 }
 
 model VendorVerification {
-  id                String   @id @default(uuid())
-  vendorId          String   @unique
-  vendor            Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  
-  businessLicense   String
-  healthPermit      String
-  insuranceProof    String
+  id       String @id @default(uuid())
+  vendorId String @unique
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  status            VerificationStatus @default(PENDING)
-  rejectionReason   String?
+  businessLicense String
+  healthPermit    String
+  insuranceProof  String
 
-  submittedAt       DateTime @default(now())
-  reviewedAt        DateTime?
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?
 
-  version           Int      @default(1)
+  submittedAt DateTime  @default(now())
+  reviewedAt  DateTime?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  version Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([vendorId])
 }
 
 model Category {
-  id        String    @id @default(uuid())
-  name      String
-  vendorId  String
-  isActive  Boolean   @default(true)
-  position  Int       @default(0)
+  id       String  @id @default(uuid())
+  name     String
+  vendorId String
+  isActive Boolean @default(true)
+  position Int     @default(0)
 
-  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  products  Product[]
+  vendor   Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  products Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -362,13 +583,13 @@ model Category {
 }
 
 model SizeOption {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  name      String   
-  price     Float
+  name  String
+  price Float
 
   isRequired Boolean @default(false)
 
@@ -378,12 +599,12 @@ model SizeOption {
 }
 
 model ChoiceOption {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  name      String   
-  price     Float
+  name  String
+  price Float
 
   isRequired Boolean @default(false)
 
@@ -393,28 +614,28 @@ model ChoiceOption {
 }
 
 model AddOn {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  name      String   
-  price     Float
+  name  String
+  price Float
 
-  isRequired Boolean @default(false)
+  isRequired Boolean         @default(false)
   cartItems  CartItemAddOn[]
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model ProductImage {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   url       String
-  isPrimary Boolean  @default(false) 
-  position  Int      @default(0)     
+  isPrimary Boolean @default(false)
+  position  Int     @default(0)
 
   createdAt DateTime @default(now())
 
@@ -422,19 +643,19 @@ model ProductImage {
 }
 
 model Customer {
-  id            String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  phoneNumber     String?  
+  phoneNumber     String?
   dateOfBirth     DateTime?
   address         String?
   latitude        Float?
   longitude       Float?
   avatar          String?
-  isActive        Boolean  @default(true)
-  preferredRadius Float? 
+  isActive        Boolean   @default(true)
+  preferredRadius Float?
 
   carts              Cart[]
   orders             Order[]
@@ -446,25 +667,25 @@ model Customer {
   helpTickets        HelpCenterTicket[]
   vendorProfileViews VendorProfileView[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Cart {
-  id          String     @id @default(uuid())
+  id String @id @default(uuid())
 
-  customerId  String     
-  customer    Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  vendorId    String
-  vendor      Vendor     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  items       CartItem[]
+  items CartItem[]
 
-  totalAmount Float      @default(0)
+  totalAmount Float @default(0)
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([customerId, vendorId])
   @@index([customerId])
@@ -472,25 +693,25 @@ model Cart {
 }
 
 model CartItem {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  cartId      String
-  cart        Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  quantity    Int      @default(1)
-  price       Float    
-  note        String?  @db.Text
+  quantity Int     @default(1)
+  price    Float
+  note     String? @db.Text
 
-  sizeOptionId  String?
-  sizeOption    SizeOption? @relation(fields: [sizeOptionId], references: [id])
+  sizeOptionId String?
+  sizeOption   SizeOption? @relation(fields: [sizeOptionId], references: [id])
 
   choiceOptions CartItemChoiceOption[]
   addOns        CartItemAddOn[]
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([cartId])
   @@index([productId])
@@ -500,8 +721,8 @@ model CartItemChoiceOption {
   cartItemId     String
   choiceOptionId String
 
-  cartItem       CartItem     @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
-  choiceOption   ChoiceOption @relation(fields: [choiceOptionId], references: [id], onDelete: Cascade)
+  cartItem     CartItem     @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+  choiceOption ChoiceOption @relation(fields: [choiceOptionId], references: [id], onDelete: Cascade)
 
   @@id([cartItemId, choiceOptionId])
   @@index([choiceOptionId])
@@ -511,32 +732,32 @@ model CartItemAddOn {
   cartItemId String
   addOnId    String
 
-  cartItem   CartItem @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
-  addOn      AddOn    @relation(fields: [addOnId], references: [id], onDelete: Cascade)
+  cartItem CartItem @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+  addOn    AddOn    @relation(fields: [addOnId], references: [id], onDelete: Cascade)
 
   @@id([cartItemId, addOnId])
   @@index([addOnId])
 }
 
 model Order {
-  id              String        @id @default(uuid())
+  id String @id @default(uuid())
 
-  orderNumber     String        @unique
-  
-  customerId      String
-  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orderNumber String @unique
 
-  vendorId        String
-  vendor          Vendor        @relation(fields: [vendorId], references: [id])
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  status          OrderStatus   @default(PENDING)
-  paymentMethod   PaymentMethod @default(COD)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(COD)
 
   subtotal         Float
-  tax              Float         @default(0)
-  serviceFee       Float         @default(0)
+  tax              Float     @default(0)
+  serviceFee       Float     @default(0)
   totalAmount      Float
-  note             String?       @db.Text
+  note             String?   @db.Text
   estimatedReadyAt DateTime?
   confirmedAt      DateTime?
   preparingAt      DateTime?
@@ -544,11 +765,11 @@ model Order {
   completedAt      DateTime?
   cancelledAt      DateTime?
 
-  orderItems       OrderItem[]
-  reports          OrderReport[]
+  orderItems OrderItem[]
+  reports    OrderReport[]
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([customerId])
   @@index([vendorId])
@@ -557,35 +778,35 @@ model Order {
 }
 
 model OrderItem {
-  id              String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  orderId         String
-  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  productId       String
-  product         Product  @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  productName     String
-  quantity        Int
-  unitPrice       Float
-  sizeName        String?
-  sizePrice       Float    @default(0)
-  lineTotal       Float
-  createdAt       DateTime @default(now())
+  productName String
+  quantity    Int
+  unitPrice   Float
+  sizeName    String?
+  sizePrice   Float    @default(0)
+  lineTotal   Float
+  createdAt   DateTime @default(now())
 
-  orderItemChoiceOption  OrderItemChoiceOption[]
-  orderItemAddOn         OrderItemAddOn[]
-  foodReview             FoodReview?
+  orderItemChoiceOption OrderItemChoiceOption[]
+  orderItemAddOn        OrderItemAddOn[]
+  foodReview            FoodReview?
 
   @@index([orderId])
   @@index([productId])
 }
 
 model OrderItemChoiceOption {
-  id             String    @id @default(uuid())
+  id String @id @default(uuid())
 
-  orderItemId    String
-  orderItem      OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
   choiceOptionId String?
   name           String
@@ -595,67 +816,67 @@ model OrderItemChoiceOption {
 }
 
 model OrderItemAddOn {
-  id          String    @id @default(uuid())
+  id String @id @default(uuid())
 
   orderItemId String
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
-  addOnId     String?
-  name        String
-  price       Float
+  addOnId String?
+  name    String
+  price   Float
 
   @@index([orderItemId])
 }
 
 model FavoriteProduct {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  @@unique([customerId, productId]) 
+  @@unique([customerId, productId])
   @@index([customerId])
   @@index([productId])
 }
 
 model FavoriteVendor {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  vendorId    String
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  @@unique([customerId, vendorId]) 
+  @@unique([customerId, vendorId])
   @@index([customerId])
   @@index([vendorId])
 }
 
 model VendorTruckReview {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  vendorId    String
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  rating      Int
-  reviewText  String?  @db.Text
+  rating     Int
+  reviewText String? @db.Text
 
-  images      VendorTruckReviewImage[]
-  tags        VendorTruckReviewTagMap[]
+  images VendorTruckReviewImage[]
+  tags   VendorTruckReviewTagMap[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([vendorId, customerId])
   @@index([vendorId])
@@ -664,73 +885,73 @@ model VendorTruckReview {
 }
 
 model VendorTruckReviewImage {
-  id        String            @id @default(uuid())
+  id String @id @default(uuid())
 
-  reviewId  String
-  review    VendorTruckReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId String
+  review   VendorTruckReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
-  imageUrl  String
-  position  Int               @default(0)
+  imageUrl String
+  position Int    @default(0)
 
-  createdAt DateTime          @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reviewId])
 }
 
 model VendorTruckReviewTag {
-  id       String                    @id @default(uuid())
-  name     String                    @unique
+  id   String @id @default(uuid())
+  name String @unique
 
-  reviews  VendorTruckReviewTagMap[]
+  reviews VendorTruckReviewTagMap[]
 }
 
 model VendorTruckReviewTagMap {
   reviewId String
   tagId    String
 
-  review   VendorTruckReview     @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  tag      VendorTruckReviewTag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  review VendorTruckReview    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  tag    VendorTruckReviewTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([reviewId, tagId])
   @@index([tagId])
 }
 
 model TruckGalleryImage {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  vendorId   String
-  vendor     Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  url        String
-  caption    String?
-  isPrimary  Boolean  @default(false)
-  position   Int      @default(0)
+  url       String
+  caption   String?
+  isPrimary Boolean @default(false)
+  position  Int     @default(0)
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([vendorId])
 }
 
 model FoodReview {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   orderItemId String
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
-  rating      Int
-  reviewText  String?  @db.Text
+  rating     Int
+  reviewText String? @db.Text
 
-  images      FoodReviewImage[]
-  tags        FoodReviewTagMap[]
+  images FoodReviewImage[]
+  tags   FoodReviewTagMap[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([orderItemId])
   @@index([productId])
@@ -739,65 +960,64 @@ model FoodReview {
 }
 
 model FoodReviewImage {
-  id        String     @id @default(uuid())
+  id String @id @default(uuid())
 
-  reviewId  String
-  review    FoodReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId String
+  review   FoodReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
-  imageUrl  String
-  position  Int        @default(0)
+  imageUrl String
+  position Int    @default(0)
 
-  createdAt DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reviewId])
 }
 
 model FoodReviewTag {
-  id       String             @id @default(uuid())
-  name     String             @unique
+  id   String @id @default(uuid())
+  name String @unique
 
-  reviews  FoodReviewTagMap[]
+  reviews FoodReviewTagMap[]
 }
 
 model FoodReviewTagMap {
   reviewId String
   tagId    String
 
-  review   FoodReview    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  tag      FoodReviewTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  review FoodReview    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  tag    FoodReviewTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([reviewId, tagId])
   @@index([tagId])
 }
 
 model OrderReport {
-  id          String            @id @default(uuid())
+  id String @id @default(uuid())
 
-  orderId     String
-  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  vendorId    String
-  vendor      Vendor            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  customerId  String
-  customer    Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   reason      OrderReportReason
   description String?           @db.Text
 
-  status      OrderReportStatus @default(OPEN)
+  status OrderReportStatus @default(OPEN)
 
-  reviewedAt  DateTime?
-  resolvedAt  DateTime?
-  adminNote   String?           @db.Text
+  reviewedAt DateTime?
+  resolvedAt DateTime?
+  adminNote  String?   @db.Text
 
-  images      OrderReportImage[]
+  images OrderReportImage[]
 
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([orderId, vendorId])
-
   @@index([orderId])
   @@index([vendorId])
   @@index([customerId])
@@ -806,46 +1026,46 @@ model OrderReport {
 }
 
 model OrderReportImage {
-  id        String      @id @default(uuid())
+  id String @id @default(uuid())
 
-  reportId  String
-  report    OrderReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId String
+  report   OrderReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-  imageUrl  String
-  position  Int         @default(0)
+  imageUrl String
+  position Int    @default(0)
 
-  createdAt DateTime    @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
 }
 
 model HelpCenterTicket {
-  id             String              @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId         String
-  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  customerId     String?
-  customer       Customer?           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  vendorId       String?
-  vendor         Vendor?             @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
-  userType       HelpTicketUserType
+  userType HelpTicketUserType
 
-  subject        String?
-  message        String              @db.Text
+  subject String?
+  message String  @db.Text
 
-  status         HelpTicketStatus    @default(OPEN)
-  priority       HelpTicketPriority  @default(NORMAL)
+  status   HelpTicketStatus   @default(OPEN)
+  priority HelpTicketPriority @default(NORMAL)
 
-  adminReply     String?             @db.Text
-  repliedAt      DateTime?
-  resolvedAt     DateTime?
-  closedAt       DateTime?
+  adminReply String?   @db.Text
+  repliedAt  DateTime?
+  resolvedAt DateTime?
+  closedAt   DateTime?
 
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([customerId])
@@ -857,15 +1077,15 @@ model HelpCenterTicket {
 }
 
 model VendorProfileView {
-  id         String    @id @default(uuid())
+  id String @id @default(uuid())
 
-  vendorId   String
-  vendor     Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
-  viewedAt   DateTime  @default(now())
+  viewedAt DateTime @default(now())
 
   @@index([vendorId])
   @@index([customerId])
@@ -977,3 +1197,49 @@ enum HelpTicketPriority {
   URGENT
 }
 
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum NotificationType {
+  // Admin types
+  SYSTEM_ALERT
+  VENDOR_UPDATE
+  CUSTOMER_REPORT
+
+  // Vendor types
+  NEW_ORDER
+  ORDER_CANCELLATION
+  NEW_FOLLOWER
+  NEW_REVIEW
+  UPCOMING_EVENT
+  HIGH_TRAFFIC_OPPORTUNITY
+  APP_UPDATE
+  SUBSCRIPTION_BILLING
+
+  // Customer types
+  ORDER_CONFIRMED
+  READY_FOR_PICKUP
+  FAVORITE_TRUCK_LIVE
+  NEW_TRUCK_NEARBY
+  EVENT_FESTIVAL
+  FAVORITE_TRUCK_LEAVING
+  PROMOTION_DISCOUNT
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  IN_APP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}

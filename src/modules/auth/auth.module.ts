@@ -15,6 +15,8 @@ import { AuthOtpQueueService } from './infrastructure/queues/auth-otp-queue.serv
 import { AuthOtpProcessor } from './infrastructure/queues/auth-otp.processor';
 import { BullModule } from '@nestjs/bullmq';
 import { AUTH_QUEUE } from '@/common/queues/queue.constants';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AccountDeletionTask } from './infrastructure/tasks/account-deletion.task';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { AUTH_QUEUE } from '@/common/queues/queue.constants';
     BullModule.registerQueue({
       name: AUTH_QUEUE,
     }),
+
+    ScheduleModule.forRoot(),
   ],
   controllers: [AuthController],
   providers: [
@@ -42,6 +46,7 @@ import { AUTH_QUEUE } from '@/common/queues/queue.constants';
     MailService,
     AuthOtpQueueService,
     AuthOtpProcessor,
+    AccountDeletionTask,
     {
       provide: 'IUserRepository',
       useClass: UserRepository,

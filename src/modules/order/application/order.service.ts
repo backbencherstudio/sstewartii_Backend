@@ -36,6 +36,8 @@ import { CustomerService } from '@/modules/customer/customer/application/custome
 import { CartService } from '@/modules/customer/cart/application/cart.service';
 import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
 import { LocalStorageService } from '@/common/storage/local.storage.service';
+import { NotificationType, NotificationChannel } from '@prisma/client';
+import { NotificationHelperService } from '@/common/shared/notification.service';
 
 @Injectable()
 export class OrderService {
@@ -47,7 +49,12 @@ export class OrderService {
     private readonly vendorService: VendorService,
     private readonly orderMapper: OrderMapper,
     private readonly localStorageService: LocalStorageService,
+    private readonly notificationHelper: NotificationHelperService,
   ) {}
+
+  // ============================================
+  // CREATE ORDER
+  // ============================================
 
   async createOrder(
     userId: string,
@@ -124,6 +131,37 @@ export class OrderService {
       items: orderItems,
     });
 
+    // ✅ Send notification to VENDOR about new order
+    const vendor = await this.vendorService.execute(userId);
+    if (vendor) {
+      await this.notificationHelper.sendToUser(vendor.id, {
+        title: `New Order #${order.orderNumber}`,
+        body: `${orderItems.length} items • $${totalAmount.toFixed(2)}`,
+        type: NotificationType.NEW_ORDER,
+        channel: NotificationChannel.PUSH,
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          customerId: customer.id,
+          totalAmount: totalAmount,
+          itemCount: orderItems.length,
+        },
+      });
+    }
+
+    // ✅ Send notification to CUSTOMER about order confirmation
+    await this.notificationHelper.sendToUser(userId, {
+      title: 'Order Placed Successfully!',
+      body: `Your order #${order.orderNumber} has been placed successfully.`,
+      type: NotificationType.ORDER_CONFIRMED,
+      channel: NotificationChannel.PUSH,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        estimatedReadyAt: estimatedReadyAt,
+      },
+    });
+
     return OrderMapper.toCreateResponse(order);
   }
 
@@ -149,6 +187,10 @@ export class OrderService {
   private generateOrderNumber(): string {
     return `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
   }
+
+  // ============================================
+  // USER ORDER METHODS
+  // ============================================
 
   async getUserOrderSummary(
     userId: string,
@@ -227,12 +269,43 @@ export class OrderService {
       cancelledAt: new Date(),
     });
 
+    // ✅ Send notification to VENDOR about order cancellation
+    const vendor = await this.vendorService.execute(userId);
+    if (vendor) {
+      await this.notificationHelper.sendToUser(vendor.id, {
+        title: `Order #${order.orderNumber} Cancelled`,
+        body: `Customer has cancelled their order.`,
+        type: NotificationType.ORDER_CANCELLATION,
+        channel: NotificationChannel.PUSH,
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+        },
+      });
+    }
+
+    // ✅ Send notification to CUSTOMER about cancellation confirmation
+    await this.notificationHelper.sendToUser(userId, {
+      title: 'Order Cancelled',
+      body: `Your order #${order.orderNumber} has been cancelled successfully.`,
+      type: NotificationType.ORDER_CANCELLATION,
+      channel: NotificationChannel.PUSH,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+      },
+    });
+
     return OrderMapper.toTrackResponse(cancelledOrder);
   }
 
   private canCustomerCancel(status: OrderStatus): boolean {
     return status === OrderStatus.PENDING || status === OrderStatus.CONFIRMED;
   }
+
+  // ============================================
+  // VENDOR ORDER METHODS
+  // ============================================
 
   async getVendorActiveOrders(
     userId: string,
@@ -304,6 +377,18 @@ export class OrderService {
       cancelledAt: new Date(),
     });
 
+    // ✅ Send notification to CUSTOMER about vendor cancellation
+    await this.notificationHelper.sendToUser(order.customerId, {
+      title: `Order #${order.orderNumber} Cancelled by Vendor`,
+      body: `The vendor has cancelled your order.`,
+      type: NotificationType.ORDER_CANCELLATION,
+      channel: NotificationChannel.PUSH,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+      },
+    });
+
     return this.orderMapper.toCancelVendorOrderResponse(cancelledOrder);
   }
 
@@ -342,6 +427,18 @@ export class OrderService {
       confirmedAt: new Date(),
     });
 
+    // ✅ Send notification to CUSTOMER about order acceptance
+    await this.notificationHelper.sendToUser(order.customerId, {
+      title: `Order #${order.orderNumber} Confirmed!`,
+      body: `The vendor has accepted your order.`,
+      type: NotificationType.ORDER_CONFIRMED,
+      channel: NotificationChannel.PUSH,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+      },
+    });
+
     return this.orderMapper.toVendorOrderActionResponse(
       acceptedOrder,
       'Order accepted successfully.',
@@ -370,6 +467,18 @@ export class OrderService {
       },
     );
 
+    // ✅ Send notification to CUSTOMER about order ready for pickup
+    await this.notificationHelper.sendToUser(order.customerId, {
+      title: `Order #${order.orderNumber} Ready for Pickup!`,
+      body: `Your order is ready for pickup. Please collect it soon.`,
+      type: NotificationType.READY_FOR_PICKUP,
+      channel: NotificationChannel.PUSH,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+      },
+    });
+
     return this.orderMapper.toVendorOrderActionResponse(
       readyOrder,
       'Order marked as ready for pickup.',
@@ -391,6 +500,18 @@ export class OrderService {
     const completedOrder = await this.orderRepository.completeVendorOrder({
       orderId: order.id,
       completedAt: new Date(),
+    });
+
+    // ✅ Send notification to CUSTOMER about order completion
+    await this.notificationHelper.sendToUser(order.customerId, {
+      title: `Order #${order.orderNumber} Completed`,
+      body: `Your order has been completed. Thank you for ordering!`,
+      type: NotificationType.ORDER_CONFIRMED,
+      channel: NotificationChannel.PUSH,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+      },
     });
 
     return this.orderMapper.toVendorOrderActionResponse(
@@ -463,6 +584,10 @@ export class OrderService {
     });
   }
 
+  // ============================================
+  // ORDER REPORT METHODS
+  // ============================================
+
   async createVendorOrderReport(
     userId: string,
     orderId: string,
@@ -519,6 +644,21 @@ export class OrderService {
       reason: dto.reason,
       description: dto.description,
       imageUrls,
+    });
+
+    // ✅ Send notification to ADMIN about order report
+    await this.notificationHelper.sendToRole('ADMIN', {
+      title: `Order Report Created #${order.orderNumber}`,
+      body: `A vendor has reported an order. Reason: ${dto.reason}`,
+      type: NotificationType.CUSTOMER_REPORT,
+      channel: NotificationChannel.PUSH,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        vendorId: vendor.id,
+        reportId: report.id,
+        reason: dto.reason,
+      },
     });
 
     return this.orderMapper.toCreateOrderReportResponse(report);

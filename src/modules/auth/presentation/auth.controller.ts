@@ -7,6 +7,7 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
@@ -22,12 +23,20 @@ import { SendOtpDto, VerifyOtpDto, NewPasswordDto } from './dto/mail/otp.dto';
 
 import { CurrentUserResponseDto } from './dto/userDto/user.response.dto';
 
+// Import new DTOs
+import { RequestDeletionDto } from './dto/delete-account/request-deletion.dto';
+import { VerifyDeletionOtpDto } from './dto/delete-account/verify-deletion-otp.dto';
+import { RecoverAccountVerifyDto } from './dto/delete-account/recover-account-verify.dto';
+
 import { AuthService } from '../application/auth.service';
 import { GoogleOAuthGuard } from 'src/common/guards/google-oauth.guard';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from '../decorators/get-user.decorator';
+import { ChangePasswordDto } from './dto/change-password/change-password.dto';
+import { RecoverAccountInitiateDto } from './dto/delete-account/recover-account-initiate.dto';
+import { DeletionStatusDto } from './dto/delete-account/deletion-status.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -70,6 +79,7 @@ export class AuthController {
         accessToken: response.data.accessToken,
         refreshToken: refreshToken,
         user: response.data.user,
+        deletionInfo: response.data.deletionInfo || null,
       },
     };
   }
@@ -174,6 +184,112 @@ export class AuthController {
   ) {
     await this.authService.resetPasswordWithToken(resetToken, dto.newPassword);
     return null;
+  }
+
+  // ---------- CHANGE PASSWORD ----------
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @ResponseMessage('Password changed successfully.')
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid current password' })
+  async changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(
+      user.id,
+      dto.currentPassword as string,
+      dto.newPassword as string,
+      dto.confirmNewPassword as string,
+    );
+    return { message: 'Password changed successfully' };
+  }
+
+  // ---------- DELETE ACCOUNT ----------
+  @UseGuards(JwtAuthGuard)
+  @Post('delete-account/request')
+  @ResponseMessage('OTP sent to your email for deletion confirmation.')
+  @ApiOperation({ summary: 'Request account deletion (requires password)' })
+  async requestDeletion(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: RequestDeletionDto,
+  ) {
+    if (!dto.password) {
+      throw new UnauthorizedException(
+        'Password is required for account deletion',
+      );
+    }
+    const result = await this.authService.requestDeletion(
+      user.id,
+      dto.password,
+      dto.reason,
+    );
+
+    return {
+      message: 'OTP sent to your email.',
+      ...(result?.otp && {
+        otp: result.otp,
+        note: 'Development mode - OTP returned for testing',
+      }),
+    };
+  }
+
+  @Public()
+  @Post('delete-account/verify')
+  @ResponseMessage('Account deletion scheduled. You have 30 days to cancel.')
+  @ApiOperation({ summary: 'Verify OTP to schedule deletion' })
+  async verifyDeletionOtp(@Body() dto: VerifyDeletionOtpDto) {
+    await this.authService.verifyDeletionOtp(dto);
+    return { message: 'Deletion scheduled for 30 days from now.' };
+  }
+
+  // ---------- RECOVER ACCOUNT ----------
+  @Public()
+  @Post('recover-account/initiate')
+  @ResponseMessage('OTP sent to your email for account recovery.')
+  @ApiOperation({ summary: 'Initiate account recovery (requires password)' })
+  async initiateRecovery(@Body() dto: RecoverAccountInitiateDto) {
+    if (!dto.password) {
+      throw new BadRequestException(
+        'Password is required for account recovery',
+      );
+    }
+    const result = await this.authService.initiateRecovery(
+      dto.email as string,
+      dto.password,
+    );
+
+    return {
+      message: 'OTP sent to your email.',
+      ...(result?.otp && {
+        otp: result.otp,
+        note: 'Development mode - OTP returned for testing',
+      }),
+    };
+  }
+
+  @Public()
+  @Post('recover-account/verify')
+  @ResponseMessage('Account recovery successful. Deletion cancelled.')
+  @ApiOperation({ summary: 'Verify OTP to recover account' })
+  async verifyRecoveryOtp(@Body() dto: RecoverAccountVerifyDto) {
+    await this.authService.verifyRecoveryOtp(dto);
+    return { message: 'Account recovered successfully.' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('delete-account/status')
+  @ApiOperation({ summary: 'Get account deletion status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns deletion status',
+    type: DeletionStatusDto,
+  })
+  async getDeletionStatus(
+    @CurrentUser() user: AuthUser,
+  ): Promise<DeletionStatusDto> {
+    return this.authService.getDeletionStatus(user.id);
   }
 
   @UseGuards(JwtAuthGuard)
