@@ -17,6 +17,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { AUTH_QUEUE } from '@/common/queues/queue.constants';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AccountDeletionTask } from './infrastructure/tasks/account-deletion.task';
+import { RevenueCatModule } from '../revenuecat/revenuecat.module';
+import { VendorModule } from '../vendor/vendor/vendor.module';
 
 @Module({
   imports: [
@@ -32,6 +34,9 @@ import { AccountDeletionTask } from './infrastructure/tasks/account-deletion.tas
         },
       }),
     }),
+
+    RevenueCatModule,
+    VendorModule,
 
     BullModule.registerQueue({
       name: AUTH_QUEUE,

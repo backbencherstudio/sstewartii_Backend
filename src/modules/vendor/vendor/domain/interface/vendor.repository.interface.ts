@@ -94,7 +94,7 @@ export interface VendorInsightProfileView {
   id: string;
   truckReviewAverage: number;
   truckReviewCount: number;
-  subscriptionStatus: SubscriptionStatus;
+  subscriptionStatus: SubscriptionStatus | null;
   subscriptionExpiry: Date | null;
   subscriptionPlan: {
     id: string;
@@ -141,7 +141,7 @@ export interface VendorInsightsDateRangeInput {
 export interface VendorAiProfileView {
   id: string;
   businessName: string | null;
-  subscriptionStatus: SubscriptionStatus;
+  subscriptionStatus: SubscriptionStatus | null;
   subscriptionPlan: {
     id: string;
     name: string;
@@ -192,7 +192,7 @@ export interface VendorReviewSummaryResult {
 
 export interface VendorFollowersProfileView {
   id: string;
-  subscriptionStatus: SubscriptionStatus;
+  subscriptionStatus: SubscriptionStatus | null;
   subscriptionPlan: {
     id: string;
     name: string;

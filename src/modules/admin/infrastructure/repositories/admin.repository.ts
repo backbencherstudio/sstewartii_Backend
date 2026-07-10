@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
@@ -29,7 +30,6 @@ import type {
   AdminVendorOverviewFavoriteRow,
   FindAdminVendorAccountOrdersInput,
   AdminVendorAccountOrdersResult,
-  UpdateVendorVerificationData,
 } from '../../domain/interface/admin.repository.interface';
 
 import { AnalyticsSummaryRawData } from '../mapper/admin-analytics.mapper';
@@ -40,8 +40,6 @@ import {
   AdminVendorOrderStatusFilter,
   AdminVendorOrderSort,
 } from '../../presentation/dto/admin.dto';
-
-import { PlatformGrowthQueryDto } from '../../presentation/dto/analytics-summary.response.dto';
 
 export type VendorSubscriptionWithPlan = Prisma.VendorSubscriptionGetPayload<{
   include: { subscriptionPlan: true };
@@ -256,72 +254,51 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
       totalVendors,
       totalCustomers,
       activeTrucksToday,
-
       pendingVerifications,
       rejectedVerifications,
       approvedVerifications,
-
       expiredSubscriptions,
       inactiveVendors,
       pendingOnboarding,
-
       activeSubscriptions,
       todaySubscriptions,
       totalVerificationCount,
     ] = await Promise.all([
       this.prisma.vendor.count(),
-
       this.prisma.customer.count(),
-
       this.prisma.vendor.count({
         where: {
           status: VendorLiveStatus.ONLINE,
         },
       }),
-
       this.prisma.vendorVerification.count({
         where: {
           status: VerificationStatus.PENDING,
         },
       }),
-
       this.prisma.vendorVerification.count({
         where: {
           status: VerificationStatus.REJECTED,
         },
       }),
-
       this.prisma.vendorVerification.count({
         where: {
           status: VerificationStatus.APPROVED,
         },
       }),
-
       this.prisma.vendorSubscription.count({
         where: {
           status: SubscriptionStatus.EXPIRED,
         },
       }),
-
+      // Inactive vendors - those without active subscription
       this.prisma.vendor.count({
         where: {
-          OR: [
-            {
-              status: VendorLiveStatus.OFFLINE,
-            },
-            {
-              subscriptionStatus: {
-                in: [
-                  SubscriptionStatus.INACTIVE,
-                  SubscriptionStatus.EXPIRED,
-                  SubscriptionStatus.CANCELLED,
-                ],
-              },
-            },
-          ],
+          vendorSubscription: {
+            is: null,
+          },
         },
       }),
-
       this.prisma.vendor.count({
         where: {
           OR: [
@@ -338,7 +315,6 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
           ],
         },
       }),
-
       this.prisma.vendorSubscription.findMany({
         where: {
           status: SubscriptionStatus.ACTIVE,
@@ -352,7 +328,6 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
           },
         },
       }),
-
       this.prisma.vendorSubscription.findMany({
         where: {
           status: SubscriptionStatus.ACTIVE,
@@ -370,7 +345,6 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
           },
         },
       }),
-
       this.prisma.vendorVerification.count(),
     ]);
 
@@ -389,31 +363,27 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
 
     const suspended = await this.prisma.vendor.count({
       where: {
-        subscriptionStatus: SubscriptionStatus.CANCELLED,
+        vendorSubscription: {
+          status: SubscriptionStatus.CANCELLED,
+        },
       },
     });
 
     const verified = approvedVerifications;
-
     const pending = pendingVerifications;
-
     const rejected = rejectedVerifications;
-
     const expired = expiredSubscriptions;
 
     return {
       totalVendors,
       totalCustomers,
       activeTrucksToday,
-
       platformRevenue,
       todayRevenue,
       currency,
-
       issuesNeedAttention: pendingVerifications + expiredSubscriptions,
       pendingOnboarding,
       inactiveVendors,
-
       vendorsByStatus: {
         pending,
         verified,
@@ -572,11 +542,11 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
       ...(input.status && {
         kycStatus: input.status,
       }),
-
       ...(input.subscriptionStatus && {
-        subscriptionStatus: input.subscriptionStatus,
+        vendorSubscription: {
+          status: input.subscriptionStatus,
+        },
       }),
-
       ...(search && {
         OR: [
           {
@@ -635,7 +605,6 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
       this.prisma.vendor.count({
         where,
       }),
-
       this.prisma.vendor.findMany({
         where,
         skip,
@@ -648,10 +617,7 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
           publicEmail: true,
           contactNumber: true,
           kycStatus: true,
-          subscriptionStatus: true,
-          subscriptionExpiry: true,
           createdAt: true,
-
           owner: {
             select: {
               id: true,
@@ -659,33 +625,42 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
               email: true,
             },
           },
-
-          subscriptionPlan: {
+          vendorSubscription: {
             select: {
               id: true,
-              name: true,
-              code: true,
-              price: true,
-              currency: true,
-            },
-          },
-
-          subscription: {
-            select: {
-              id: true,
+              status: true,
+              expiresAt: true,
               provider: true,
               store: true,
               productId: true,
               currentPeriodEnd: true,
+              subscriptionPlan: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  price: true,
+                  currency: true,
+                },
+              },
             },
           },
         },
       }),
     ]);
 
+    // Transform items to match expected format
+    const transformedItems = items.map((item) => ({
+      ...item,
+      subscriptionStatus: item.vendorSubscription?.status || null,
+      subscriptionExpiry: item.vendorSubscription?.expiresAt || null,
+      subscriptionPlan: item.vendorSubscription?.subscriptionPlan || null,
+      subscription: item.vendorSubscription,
+    }));
+
     return {
       total,
-      items,
+      items: transformedItems,
     };
   }
 
@@ -712,14 +687,12 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
           },
         }),
 
-        /**
-         * Your schema does not have SUSPENDED vendor status.
-         * For this dashboard, we treat CANCELLED subscription as suspended.
-         * If you add VendorAccountStatus later, change this logic.
-         */
+        // Fix: Use vendorSubscription relation to find cancelled subscriptions
         this.prisma.vendor.count({
           where: {
-            subscriptionStatus: SubscriptionStatus.CANCELLED,
+            vendorSubscription: {
+              status: SubscriptionStatus.CANCELLED,
+            },
           },
         }),
       ]);
@@ -788,12 +761,9 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
         coverImage: true,
         status: true,
         kycStatus: true,
-        subscriptionStatus: true,
-        subscriptionExpiry: true,
         truckReviewAverage: true,
         truckReviewCount: true,
         createdAt: true,
-
         owner: {
           select: {
             id: true,
@@ -801,28 +771,27 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
             email: true,
           },
         },
-
-        subscriptionPlan: {
+        vendorSubscription: {
           select: {
             id: true,
-            name: true,
-            code: true,
-            price: true,
-            currency: true,
-            maxProducts: true,
-          },
-        },
-
-        subscription: {
-          select: {
-            id: true,
+            status: true,
+            expiresAt: true,
             provider: true,
             store: true,
             productId: true,
             currentPeriodEnd: true,
+            subscriptionPlan: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                price: true,
+                currency: true,
+                maxProducts: true,
+              },
+            },
           },
         },
-
         cuisines: {
           include: {
             cuisine: {
@@ -833,14 +802,12 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
             },
           },
         },
-
         socialLinks: {
           select: {
             id: true,
             url: true,
           },
         },
-
         serviceArea: {
           select: {
             address: true,
@@ -1025,7 +992,7 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
     };
 
     if (input.status && input.status !== AdminVendorOrderStatusFilter.ALL) {
-      where.status = input.status as OrderStatus;
+      where.status = input.status;
     }
 
     if (search) {

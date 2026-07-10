@@ -4,8 +4,10 @@ import {
   IsString,
   MinLength,
   IsEnum,
+  IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { DevicePlatform } from '@prisma/client';
 
 export enum AccountType {
   USER = 'USER',
@@ -35,4 +37,14 @@ export class RegisterDto {
   @IsEnum(AccountType, { message: 'accountType must be USER or VENDOR' })
   @ApiProperty({ example: 'VENDOR' })
   accountType!: AccountType;
+
+  @ApiProperty({ required: false, example: 'fcm_token_here' })
+  @IsOptional()
+  @IsString()
+  fcmToken?: string;
+
+  @ApiProperty({ required: false, enum: DevicePlatform, example: 'IOS' })
+  @IsOptional()
+  @IsEnum(DevicePlatform)
+  platform?: DevicePlatform;
 }

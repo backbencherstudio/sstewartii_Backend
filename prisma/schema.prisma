@@ -301,13 +301,9 @@ model Vendor {
   owner     User      @relation(fields: [ownerId], references: [id])
   kycStatus KycStatus @default(UNVERIFIED)
 
-  stripeCustomerId     String? @unique
-  stripeSubscriptionId String? @unique
-
-  subscriptionPlanId String?
-  subscriptionPlan   SubscriptionPlan?  @relation(fields: [subscriptionPlanId], references: [id])
-  subscriptionStatus SubscriptionStatus @default(INACTIVE)
-  subscriptionExpiry DateTime?
+  // Subscription relation - fixed
+  vendorSubscription   VendorSubscription? 
+  vendorSubscriptionId String? @unique
 
   truckReviewAverage Float @default(0)
   truckReviewCount   Int   @default(0)
@@ -337,12 +333,34 @@ model Vendor {
   orderReports       OrderReport[]
   helpTickets        HelpCenterTicket[]
   profileViews       VendorProfileView[]
-  subscription       VendorSubscription?
+  subscriptionTransactions SubscriptionTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([vendorCode])
+}
+
+model RevenueCatWebhookLog {
+  id          String   @id @default(uuid())
+  eventId     String?  @unique
+  eventType   String
+  vendorId    String
+  productId   String?
+  store       String?
+  environment String?
+  
+  rawPayload Json
+  processedAt DateTime @default(now())
+  status      WebhookStatus @default(RECEIVED)
+  error       String?  @db.Text
+  
+  createdAt DateTime @default(now())
+  
+  @@index([eventType])
+  @@index([vendorId])
+  @@index([createdAt])
+  @@index([status])
 }
 
 model SubscriptionPlan {
@@ -360,58 +378,113 @@ model SubscriptionPlan {
   isActive                Boolean @default(true)
   position                Int     @default(0)
 
-  vendors       Vendor[]
-  subscriptions VendorSubscription[]
+  // Fixed: Use vendorSubscriptions instead of vendors
+  vendorSubscriptions VendorSubscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model VendorSubscription {
-  id       String @id @default(uuid())
+  id String @id @default(uuid())
+  
+  // Vendor reference - fixed relation
   vendorId String @unique
   vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-
-  subscriptionPlanId String?
-  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
-
-  provider SubscriptionProvider
-  status   SubscriptionStatus
-
+  
+  // RevenueCat data
   revenueCatAppUserId String?
   entitlementId       String?
   productId           String?
   store               SubscriptionStore?
-
-  currentPeriodEnd DateTime?
-  rawProviderData  Json?
-
+  
+  // Subscription plan - fixed relation
+  subscriptionPlanId String?
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+  
+  // Status
+  status SubscriptionStatus @default(INACTIVE)
+  provider SubscriptionProvider @default(REVENUECAT)
+  
+  // Dates
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  expiresAt          DateTime?
+  lastRenewalDate    DateTime?
+  cancellationDate   DateTime?
+  
+  // Metadata
+  isTrialPeriod Boolean @default(false)
+  isActive      Boolean @default(true)
+  autoRenew     Boolean @default(true)
+  
+  // Raw data from RevenueCat
+  rawProviderData Json?
+  
+  // Subscription history
+  transactions SubscriptionTransaction[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  @@index([vendorId])
+  @@index([status])
+  @@index([expiresAt])
 }
 
 model SubscriptionTransaction {
   id String @id @default(uuid())
-
-  vendorId             String
+  
+  // RevenueCat specific fields
+  revenueCatEventId String?  @unique
+  revenueCatProductId String?
+  store String?
+  environment String?
+  
+  // Vendor reference
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  // Subscription reference
   vendorSubscriptionId String?
-
-  provider SubscriptionProvider
-  store    SubscriptionStore?
-
-  productId     String?
-  transactionId String? @unique
-
-  amount   Float
-  currency String @default("USD")
-
-  purchasedAt     DateTime
-  rawProviderData Json?
-
+  vendorSubscription   VendorSubscription? @relation(fields: [vendorSubscriptionId], references: [id])
+  
+  // Subscription details
+  productId   String
+  transactionId String?  @unique
+  originalTransactionId String?
+  
+  // Amount and currency
+  amount   Float?
+  currency String? @default("USD")
+  price    Float?
+  priceInPurchasedCurrency Float?
+  
+  // Timestamps
+  purchasedAt   DateTime
+  expirationAt  DateTime?
+  eventTimestamp DateTime
+  
+  // Subscription metadata
+  periodType     PeriodType @default(NORMAL)
+  isTrialPeriod  Boolean @default(false)
+  isFamilyShare  Boolean @default(false)
+  renewalNumber  Int?
+  
+  // Status
+  status SubscriptionTransactionStatus @default(COMPLETED)
+  
+  // Raw data
+  rawData Json?
+  
   createdAt DateTime @default(now())
-
+  
   @@index([vendorId])
+  @@index([vendorSubscriptionId])
+  @@index([productId])
+  @@index([transactionId])
   @@index([purchasedAt])
+  @@index([status])
 }
 
 model KycProfile {
@@ -1092,6 +1165,10 @@ model VendorProfileView {
   @@index([viewedAt])
 }
 
+// ============================================
+// ENUMS
+// ============================================
+
 enum VendorAdminStatus {
   ACTIVE
   SUSPENDED
@@ -1242,4 +1319,31 @@ enum NotificationStatus {
   DELIVERED
   READ
   FAILED
+}
+
+// ============================================
+// REVENUECAT ENUMS
+// ============================================
+
+enum WebhookStatus {
+  RECEIVED
+  PROCESSING
+  SUCCESS
+  FAILED
+  IGNORED
+}
+
+enum PeriodType {
+  NORMAL
+  TRIAL
+  INTRO
+}
+
+enum SubscriptionTransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+  EXPIRED
 }

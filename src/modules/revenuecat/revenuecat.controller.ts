@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { RevenueCatService } from './revenuecat.service';
+import { Public } from '@/common/decorators/public.decorator';
 
 @Controller({
   path: 'webhooks/revenuecat',
@@ -29,67 +30,63 @@ export class RevenueCatWebhookController {
     );
   }
 
+  @Public()
   @Post()
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
     @Body() payload: any,
     @Headers('authorization') authHeader: string,
-    @Headers('x-revenuecat-signature') signature: string,
   ) {
-    // Log incoming webhook
-    this.logger.log('📨 Received RevenueCat webhook');
-    this.logger.debug(`Webhook headers:`, { authHeader, signature });
-    this.logger.debug(`Webhook payload:`, JSON.stringify(payload, null, 2));
+    this.logger.debug(`Event type: ${payload?.event?.type}`);
 
-    // Verify webhook signature in production
-    if (this.configService.get('NODE_ENV') === 'production') {
+    if (!payload || Object.keys(payload).length === 0) {
+      this.logger.error('Empty payload received');
+      throw new ForbiddenException('Empty payload');
+    }
+
+    const nodeEnv = this.configService.get('NODE_ENV');
+
+    if (nodeEnv === 'production') {
       if (!this.webhookSecret) {
         this.logger.error('Webhook secret not configured!');
         throw new ForbiddenException('Webhook secret not configured');
       }
-      this.verifyWebhookSignature(payload, signature);
+      this.verifyWebhookAuth(authHeader);
+    } else {
+      this.logger.log('Development mode - skipping auth verification');
     }
 
-    // Process the webhook event
     const result = await this.revenueCatService.processWebhookEvent(payload);
-
-    this.logger.log(
-      `✅ Webhook processed successfully: ${payload.event?.type || 'unknown'}`,
-    );
+    this.logger.log(`Webhook processed: ${payload?.event?.type ?? 'unknown'}`);
 
     return {
       received: true,
-      event: payload.event?.type,
+      event: payload?.event?.type,
       processed: result,
     };
   }
 
-  private verifyWebhookSignature(
-    payload: any,
-    signature: string,
-  ): void {
-    if (!signature) {
-      this.logger.error('Missing webhook signature');
-      throw new ForbiddenException('Missing signature');
+  private verifyWebhookAuth(authHeader: string): void {
+    if (!authHeader) {
+      this.logger.error('Missing Authorization header');
+      throw new ForbiddenException('Missing Authorization header');
     }
 
-    try {
-      // RevenueCat uses HMAC-SHA256 for webhook verification
-      const payloadString = JSON.stringify(payload);
-      const expectedSignature = crypto
-        .createHmac('sha256', this.webhookSecret as string)
-        .update(payloadString)
-        .digest('hex');
+    const provided = authHeader.replace(/^Bearer\s+/i, '');
+    const expected = (this.webhookSecret as string).replace(/^Bearer\s+/i, '');
 
-      if (signature !== expectedSignature) {
-        this.logger.error('Invalid webhook signature');
-        throw new ForbiddenException('Invalid signature');
-      }
+    const providedBuf = Buffer.from(provided);
+    const expectedBuf = Buffer.from(expected);
 
-      this.logger.log('✅ Webhook signature verified successfully');
-    } catch (error: any) {
-      this.logger.error(`Signature verification failed: ${error.message}`);
-      throw new ForbiddenException('Signature verification failed');
+    const isValid =
+      providedBuf.length === expectedBuf.length &&
+      crypto.timingSafeEqual(providedBuf, expectedBuf);
+
+    if (!isValid) {
+      this.logger.error('Invalid webhook Authorization header');
+      throw new ForbiddenException('Invalid Authorization header');
     }
+
+    this.logger.log('Webhook auth verified');
   }
 }
