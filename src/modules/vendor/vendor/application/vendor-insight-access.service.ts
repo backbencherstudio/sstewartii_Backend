@@ -10,7 +10,7 @@ import {
 @Injectable()
 export class VendorInsightAccessService {
   resolveAccess(vendor: {
-    subscriptionStatus: SubscriptionStatus;
+    subscriptionStatus: SubscriptionStatus | null; // Made nullable
     subscriptionPlan: {
       name: string;
     } | null;
@@ -124,12 +124,16 @@ export class VendorInsightAccessService {
   }
 
   private resolvePlan(vendor: {
-    subscriptionStatus: SubscriptionStatus;
+    subscriptionStatus: SubscriptionStatus | null; // Made nullable
     subscriptionPlan: {
       name: string;
     } | null;
   }): VendorInsightPlan {
-    if (vendor.subscriptionStatus !== SubscriptionStatus.ACTIVE) {
+    // If subscriptionStatus is null or not ACTIVE, treat as FREE
+    if (
+      !vendor.subscriptionStatus ||
+      vendor.subscriptionStatus !== SubscriptionStatus.ACTIVE
+    ) {
       return 'FREE';
     }
 

@@ -7,6 +7,7 @@ import {
 import { User } from '../../domain/entities/user.entity';
 import { UserMapper } from '../mappers/user.mapper';
 import { UserWithRelations } from '../../domain/types/user-with-relations.type';
+import { DevicePlatform, SubscriptionStatus } from '@prisma/client';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -80,6 +81,8 @@ export class UserRepository implements IUserRepository {
         provider: updateData.provider ?? undefined,
         refreshToken: updateData.refreshToken ?? undefined,
         isEmailVerified: updateData.isEmailVerified ?? undefined,
+        fcm_token: updateData.fcm_token ?? undefined,
+        platform: (updateData.platform as DevicePlatform) ?? undefined,
       },
 
       include: {
@@ -106,6 +109,8 @@ export class UserRepository implements IUserRepository {
         googleId: user.googleId ?? null,
         appleId: user.appleId ?? null,
         provider: user.provider ?? 'LOCAL',
+        fcm_token: user.fcm_token ?? undefined,
+        platform: (user.platform as DevicePlatform) ?? undefined,
 
         role: {
           connect: { name: roleType },
@@ -240,7 +245,6 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  // ✅ Updated to include email in the return type
   async findUsersScheduledForDeletion(
     beforeDate: Date,
   ): Promise<{ id: string; email: string }[]> {
@@ -295,5 +299,21 @@ export class UserRepository implements IUserRepository {
         status: { in: ['PENDING', 'CONFIRMED', 'PREPARING'] },
       },
     });
+  }
+
+  // ✅ ADD THIS METHOD - Get vendor subscription by vendor ID
+  async getVendorSubscription(vendorId: string): Promise<{
+    status: SubscriptionStatus;
+    expiresAt: Date | null;
+  } | null> {
+    const subscription = await this.prisma.vendorSubscription.findUnique({
+      where: { vendorId },
+      select: {
+        status: true,
+        expiresAt: true,
+      },
+    });
+
+    return subscription;
   }
 }

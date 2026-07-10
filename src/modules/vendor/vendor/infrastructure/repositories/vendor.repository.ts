@@ -429,7 +429,6 @@ export class VendorRepository implements IVendorRepository {
       select: {
         id: true,
         kycStatus: true,
-        subscriptionStatus: true,
         vendorVerification: {
           select: {
             id: true,
@@ -727,7 +726,7 @@ export class VendorRepository implements IVendorRepository {
   async findVendorInsightProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorInsightProfileView | null> {
-    return this.prisma.vendor.findUnique({
+    const vendor = await this.prisma.vendor.findUnique({
       where: {
         ownerId,
       },
@@ -735,16 +734,31 @@ export class VendorRepository implements IVendorRepository {
         id: true,
         truckReviewAverage: true,
         truckReviewCount: true,
-        subscriptionStatus: true,
-        subscriptionExpiry: true,
-        subscriptionPlan: {
+        vendorSubscription: {
           select: {
-            id: true,
-            name: true,
+            status: true,
+            expiresAt: true,
+            subscriptionPlan: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
     });
+
+    if (!vendor) return null;
+
+    return {
+      id: vendor.id,
+      truckReviewAverage: vendor.truckReviewAverage,
+      truckReviewCount: vendor.truckReviewCount,
+      subscriptionStatus: vendor.vendorSubscription?.status || null,
+      subscriptionExpiry: vendor.vendorSubscription?.expiresAt || null,
+      subscriptionPlan: vendor.vendorSubscription?.subscriptionPlan || null,
+    };
   }
 
   async findOrdersForInsights(
@@ -834,18 +848,22 @@ export class VendorRepository implements IVendorRepository {
   async findAiProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorAiProfileView | null> {
-    return this.prisma.vendor.findUnique({
+    const vendor = await this.prisma.vendor.findUnique({
       where: {
         ownerId,
       },
       select: {
         id: true,
         businessName: true,
-        subscriptionStatus: true,
-        subscriptionPlan: {
+        vendorSubscription: {
           select: {
-            id: true,
-            name: true,
+            status: true,
+            subscriptionPlan: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         serviceArea: {
@@ -859,6 +877,17 @@ export class VendorRepository implements IVendorRepository {
         },
       },
     });
+
+    if (!vendor) return null;
+
+    // Map to expected interface
+    return {
+      id: vendor.id,
+      businessName: vendor.businessName,
+      subscriptionStatus: vendor.vendorSubscription?.status || null,
+      subscriptionPlan: vendor.vendorSubscription?.subscriptionPlan || null,
+      serviceArea: vendor.serviceArea,
+    };
   }
 
   async findOrdersForAiGuidance(
@@ -1012,21 +1041,33 @@ export class VendorRepository implements IVendorRepository {
   async findFollowersProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorFollowersProfileView | null> {
-    return this.prisma.vendor.findUnique({
+    const vendor = await this.prisma.vendor.findUnique({
       where: {
         ownerId,
       },
       select: {
         id: true,
-        subscriptionStatus: true,
-        subscriptionPlan: {
+        vendorSubscription: {
           select: {
-            id: true,
-            name: true,
+            status: true,
+            subscriptionPlan: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
     });
+
+    if (!vendor) return null;
+
+    return {
+      id: vendor.id,
+      subscriptionStatus: vendor.vendorSubscription?.status || null,
+      subscriptionPlan: vendor.vendorSubscription?.subscriptionPlan || null,
+    };
   }
 
   async countVendorFollowers(vendorId: string): Promise<number> {

@@ -9,6 +9,7 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 import * as crypto from 'crypto';
@@ -26,10 +27,14 @@ import { VerifyOtpDto } from '../presentation/dto/mail/otp.dto';
 import { RecoverAccountVerifyDto } from '../presentation/dto/delete-account/recover-account-verify.dto';
 import { VerifyDeletionOtpDto } from '../presentation/dto/delete-account/verify-deletion-otp.dto';
 import { DeletionStatusDto } from '../presentation/dto/delete-account/deletion-status.dto';
+import { DevicePlatform } from '@prisma/client';
+import { RevenueCatService } from '@/modules/revenuecat/revenuecat.service';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     @Inject('IUserRepository')
@@ -40,6 +45,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
     private readonly authOtpQueueService: AuthOtpQueueService,
+    private readonly revenueCatService: RevenueCatService,
+    private readonly prisma: PrismaService,
   ) {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('google.clientId'),
@@ -50,7 +57,16 @@ export class AuthService {
 
   // ---------- REGISTER ----------
   async register(registerDto: RegisterDto): Promise<any> {
-    const { email, password, confirmPassword, accountType, name } = registerDto;
+    const {
+      email,
+      password,
+      confirmPassword,
+      accountType,
+      name,
+      fcmToken,
+      platform,
+    } = registerDto;
+
     if (password !== confirmPassword)
       throw new BadRequestException('Passwords do not match');
 
@@ -58,16 +74,72 @@ export class AuthService {
     if (existingUser) throw new ConflictException('Email already exists');
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ Ensure platform is properly formatted
+    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+    let platformValue: DevicePlatform | null = null;
+    if (platform) {
+      const platformString = platform.toString().toUpperCase();
+      if (
+        platformString === 'IOS' ||
+        platformString === 'ANDROID' ||
+        platformString === 'WEB'
+      ) {
+        platformValue = platformString as DevicePlatform;
+      }
+    }
+
     const newUser = new User({
       id: uuidv4(),
       email,
       password: hashedPassword,
       name,
+      platform: platformValue,
+      fcm_token: fcmToken || null,
     });
 
     const roleType = accountType === 'VENDOR' ? 'VENDOR' : 'USER';
     const savedUser = await this.userRepository.create(newUser, roleType);
 
+    // ✅ If user is a vendor, create vendor and register with RevenueCat
+    if (roleType === 'VENDOR') {
+      try {
+        // ✅ Create vendor directly using Prisma
+        const vendor = await this.prisma.vendor.create({
+          data: {
+            ownerId: savedUser.id,
+            vendorCode: `VENDOR_${Date.now()}`,
+            businessName: name || 'My Food Truck',
+            publicEmail: email,
+            contactNumber: '',
+            bio: '',
+            onboardingStep: 1,
+            kycStatus: 'UNVERIFIED',
+            status: 'OFFLINE',
+            adminStatus: 'ACTIVE',
+          },
+        });
+
+        // ✅ Register vendor with RevenueCat
+        const platformType = platformValue === 'ANDROID' ? 'android' : 'ios';
+        await this.revenueCatService.registerVendorWithRevenueCat(
+          vendor.id,
+          savedUser.id,
+          platformType,
+        );
+
+        this.logger.log(
+          `✅ Vendor ${vendor.id} registered with RevenueCat on signup`,
+        );
+      } catch (error: any) {
+        this.logger.error(
+          `Failed to register vendor with RevenueCat: ${error.message}`,
+        );
+        // Don't fail the registration if RevenueCat fails
+      }
+    }
+
+    // Send verification OTP
     await this.authOtpQueueService.addEmailVerificationOtpJob({
       userId: savedUser.id,
       email: savedUser.email,
@@ -104,13 +176,54 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    console.log({ platform });
+
     // ✅ Update FCM token and platform if provided
-    if (fcmToken) {
-      await this.userRepository.update(user.id, {
-        fcm_token: fcmToken,
-        platform: platform || user.platform,
-      });
-      // this.logger?.log(`✅ FCM token updated for user ${user.id}`);
+    if (fcmToken || platform) {
+      const updateData: any = {};
+
+      if (fcmToken) {
+        updateData.fcm_token = fcmToken;
+      }
+
+      if (platform) {
+        // ✅ Ensure platform is in the correct format
+        // If platform is 'IOS' or 'ANDROID' or 'WEB' it should be fine
+        // If it's lowercase, convert to uppercase
+        const platformValue = platform.toUpperCase();
+        updateData.platform = platformValue;
+        console.log(`📱 Updating platform to: ${platformValue}`);
+      }
+
+      await this.userRepository.update(user.id, updateData);
+      this.logger.log(
+        `✅ Updated user ${user.id} with: ${JSON.stringify(updateData)}`,
+      );
+    }
+
+    // ✅ If user is a vendor, sync with RevenueCat
+    if (user.role?.name === 'VENDOR') {
+      try {
+        const vendor = await this.prisma.vendor.findUnique({
+          where: { ownerId: user.id },
+        });
+
+        if (vendor) {
+          const platformType = platform === 'ANDROID' ? 'android' : 'ios';
+          await this.revenueCatService.registerVendorWithRevenueCat(
+            vendor.id,
+            user.id,
+            platformType,
+          );
+          this.logger.log(
+            `✅ Vendor ${vendor.id} synced with RevenueCat on login`,
+          );
+        }
+      } catch (error: any) {
+        this.logger.error(
+          `Failed to sync vendor with RevenueCat on login: ${error.message}`,
+        );
+      }
     }
 
     // Check for scheduled deletion and calculate days left
@@ -618,6 +731,7 @@ export class AuthService {
   async getCurrentUser(userId: string) {
     const user = await this.userRepository.findLoginUserById(userId);
     if (!user) throw new NotFoundException('User not found');
+
     const role = user.role?.name;
     const baseResponse = {
       id: user.id,
@@ -629,6 +743,7 @@ export class AuthService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+
     if (role === 'USER' && user.customer) {
       return {
         ...baseResponse,
@@ -650,7 +765,13 @@ export class AuthService {
         },
       };
     }
+
     if (role === 'VENDOR' && user.vendorStore) {
+      // Get subscription status from vendorSubscription
+      const subscription = await this.userRepository.getVendorSubscription(
+        user.vendorStore.id,
+      );
+
       return {
         ...baseResponse,
         userType: 'VENDOR',
@@ -675,7 +796,8 @@ export class AuthService {
           coverImage: user.vendorStore.coverImage,
           onboardingStep: user.vendorStore.onboardingStep,
           kycStatus: user.vendorStore.kycStatus,
-          subscriptionStatus: user.vendorStore.subscriptionStatus,
+          subscriptionStatus: subscription?.status || null,
+          subscriptionExpiry: subscription?.expiresAt || null,
           status: user.vendorStore.status,
           adminStatus: user.vendorStore.adminStatus,
           truckReviewAverage: user.vendorStore.truckReviewAverage,
@@ -683,6 +805,7 @@ export class AuthService {
         },
       };
     }
+
     return { ...baseResponse, userType: role || 'UNKNOWN' };
   }
 }

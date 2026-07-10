@@ -1,3 +1,4 @@
+// prisma/seed.ts
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -12,26 +13,6 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 
 const prisma = new PrismaClient({ adapter });
-
-// Helper function to create or update records with proper typing
-async function upsertData<T>(
-  model: any,
-  where: any,
-  create: any,
-  update?: any,
-): Promise<T> {
-  try {
-    const result = await model.upsert({
-      where,
-      update: update || create,
-      create,
-    });
-    return result as T;
-  } catch (error) {
-    console.error(`Error upserting data:`, error);
-    throw error;
-  }
-}
 
 // Type definitions
 type RoleName = 'ADMIN' | 'USER' | 'VENDOR';
@@ -68,11 +49,11 @@ async function main(): Promise<void> {
   const roleMap: Record<RoleName, string> = {} as Record<RoleName, string>;
 
   for (const name of roles) {
-    const role = await upsertData<{ id: string }>(
-      prisma.role,
-      { name },
-      { name },
-    );
+    const role = await prisma.role.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
     roleMap[name] = role.id;
     console.log(`✅ Role created/updated: ${name}`);
   }
@@ -109,11 +90,11 @@ async function main(): Promise<void> {
   >;
 
   for (const name of permissions) {
-    const perm = await upsertData<{ id: string }>(
-      prisma.permission,
-      { name },
-      { name },
-    );
+    const perm = await prisma.permission.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
     permissionMap[name] = perm.id;
     console.log(`✅ Permission created/updated: ${name}`);
   }
@@ -150,19 +131,19 @@ async function main(): Promise<void> {
 
   for (const rp of rolePermissions) {
     for (const permName of rp.perms) {
-      await upsertData(
-        prisma.rolePermission,
-        {
+      await prisma.rolePermission.upsert({
+        where: {
           roleId_permissionId: {
             roleId: roleMap[rp.role],
             permissionId: permissionMap[permName],
           },
         },
-        {
+        update: {},
+        create: {
           roleId: roleMap[rp.role],
           permissionId: permissionMap[permName],
         },
-      );
+      });
     }
   }
   console.log('✅ Role-permissions seeded');
@@ -236,11 +217,11 @@ async function main(): Promise<void> {
   >;
 
   for (const plan of subscriptionPlans) {
-    const createdPlan = await upsertData<{ id: string }>(
-      prisma.subscriptionPlan,
-      { code: plan.code },
-      plan,
-    );
+    const createdPlan = await prisma.subscriptionPlan.upsert({
+      where: { code: plan.code },
+      update: plan,
+      create: plan,
+    });
     subscriptionPlanMap[plan.code] = createdPlan.id;
     console.log(`✅ Subscription plan created/updated: ${plan.name}`);
   }
@@ -271,20 +252,20 @@ async function main(): Promise<void> {
   const cuisineMap: Record<string, string> = {};
 
   for (const [index, name] of cuisines.entries()) {
-    const cuisine = await upsertData<{ id: string }>(
-      prisma.cuisine,
-      { name },
-      {
+    const cuisine = await prisma.cuisine.upsert({
+      where: { name },
+      update: {
+        imageUrl: `https://plus.unsplash.com/premium_photo-1675252369719-dd52bc69c3df?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D`,
+        isActive: true,
+        position: index,
+      },
+      create: {
         name,
         imageUrl: `https://plus.unsplash.com/premium_photo-1675252369719-dd52bc69c3df?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D`,
         isActive: true,
         position: index,
       },
-      {
-        isActive: true,
-        position: index,
-      },
-    );
+    });
     cuisineMap[name] = cuisine.id;
   }
   console.log(`✅ ${cuisines.length} cuisines seeded`);
@@ -309,7 +290,11 @@ async function main(): Promise<void> {
   ];
 
   for (const name of vendorReviewTags) {
-    await upsertData(prisma.vendorTruckReviewTag, { name }, { name });
+    await prisma.vendorTruckReviewTag.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
   }
   console.log(`✅ ${vendorReviewTags.length} vendor review tags seeded`);
 
@@ -327,7 +312,11 @@ async function main(): Promise<void> {
   ];
 
   for (const name of foodReviewTags) {
-    await upsertData(prisma.foodReviewTag, { name }, { name });
+    await prisma.foodReviewTag.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
   }
   console.log(`✅ ${foodReviewTags.length} food review tags seeded`);
 
@@ -368,10 +357,15 @@ async function main(): Promise<void> {
   for (const userData of usersData) {
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-    const user = await upsertData<{ id: string }>(
-      prisma.user,
-      { email: userData.email },
-      {
+    const user = await prisma.user.upsert({
+      where: { email: userData.email },
+      update: {
+        name: userData.name,
+        password: hashedPassword,
+        roleId: roleMap[userData.role],
+        isEmailVerified: userData.isEmailVerified,
+      },
+      create: {
         email: userData.email,
         password: hashedPassword,
         name: userData.name,
@@ -379,13 +373,7 @@ async function main(): Promise<void> {
         provider: userData.provider,
         isEmailVerified: userData.isEmailVerified,
       },
-      {
-        name: userData.name,
-        password: hashedPassword,
-        roleId: roleMap[userData.role],
-        isEmailVerified: userData.isEmailVerified,
-      },
-    );
+    });
 
     userIds[userData.email] = user.id;
     console.log(
@@ -398,10 +386,16 @@ async function main(): Promise<void> {
   // ============================================
   console.log('📝 Creating customer...');
 
-  const customer = await upsertData<{ id: string }>(
-    prisma.customer,
-    { userId: userIds['user@gmail.com'] },
-    {
+  const customer = await prisma.customer.upsert({
+    where: { userId: userIds['user@gmail.com'] },
+    update: {
+      phoneNumber: '+1234567890',
+      address: '123 Main Street, New York, NY 10001',
+      latitude: 40.7128,
+      longitude: -74.006,
+      isActive: true,
+    },
+    create: {
       userId: userIds['user@gmail.com'],
       phoneNumber: '+1234567890',
       dateOfBirth: new Date('1995-05-15'),
@@ -412,14 +406,7 @@ async function main(): Promise<void> {
       isActive: true,
       preferredRadius: 10,
     },
-    {
-      phoneNumber: '+1234567890',
-      address: '123 Main Street, New York, NY 10001',
-      latitude: 40.7128,
-      longitude: -74.006,
-      isActive: true,
-    },
-  );
+  });
   console.log('✅ Customer created/updated');
 
   // ============================================
@@ -429,10 +416,21 @@ async function main(): Promise<void> {
 
   const vendorCode = 'VENDOR001';
 
-  const vendor = await upsertData<any>(
-    prisma.vendor,
-    { vendorCode },
-    {
+  const vendor = await prisma.vendor.upsert({
+    where: { vendorCode },
+    update: {
+      businessName: 'Taco Paradise Food Truck',
+      publicEmail: 'tacoparadise@example.com',
+      contactNumber: '+9876543210',
+      bio: 'Authentic Mexican street food made with love and fresh ingredients. Serving the community since 2020.',
+      coverImage:
+        'https://images.unsplash.com/photo-1728577740843-5f29c7586afe?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      onboardingStep: 5,
+      kycStatus: 'APPROVED',
+      status: 'ONLINE',
+      adminStatus: 'ACTIVE',
+    },
+    create: {
       vendorCode,
       businessName: 'Taco Paradise Food Truck',
       publicEmail: 'tacoparadise@example.com',
@@ -443,28 +441,12 @@ async function main(): Promise<void> {
       onboardingStep: 5,
       ownerId: userIds['vendor@gmail.com'],
       kycStatus: 'APPROVED',
-      subscriptionPlanId: subscriptionPlanMap['FREE_TRIAL'],
-      subscriptionStatus: 'ACTIVE',
-      subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       status: 'ONLINE',
       adminStatus: 'ACTIVE',
       truckReviewAverage: 4.5,
       truckReviewCount: 25,
     },
-    {
-      businessName: 'Taco Paradise Food Truck',
-      publicEmail: 'tacoparadise@example.com',
-      contactNumber: '+9876543210',
-      bio: 'Authentic Mexican street food made with love and fresh ingredients. Serving the community since 2020.',
-      coverImage:
-        'https://images.unsplash.com/photo-1728577740843-5f29c7586afe?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      onboardingStep: 5,
-      kycStatus: 'APPROVED',
-      subscriptionStatus: 'ACTIVE',
-      status: 'ONLINE',
-      adminStatus: 'ACTIVE',
-    },
-  );
+  });
   console.log(
     `✅ Vendor created/updated: ${vendor.businessName || vendorCode}`,
   );
@@ -474,23 +456,40 @@ async function main(): Promise<void> {
   // ============================================
   console.log('📝 Creating vendor subscription...');
 
-  await upsertData(
-    prisma.vendorSubscription,
-    { vendorId: vendor.id },
-    {
+  const vendorSubscription = await prisma.vendorSubscription.upsert({
+    where: { vendorId: vendor.id },
+    update: {
+      subscriptionPlanId: subscriptionPlanMap['FREE_TRIAL'],
+      status: 'ACTIVE',
+      isActive: true,
+      autoRenew: true,
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      lastRenewalDate: new Date(),
+    },
+    create: {
       vendorId: vendor.id,
       subscriptionPlanId: subscriptionPlanMap['FREE_TRIAL'],
       provider: 'MANUAL',
       status: 'ACTIVE',
+      isActive: true,
+      autoRenew: true,
+      currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      lastRenewalDate: new Date(),
     },
-    {
-      subscriptionPlanId: subscriptionPlanMap['FREE_TRIAL'],
-      status: 'ACTIVE',
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    },
-  );
+  });
   console.log('✅ Vendor subscription created/updated');
+
+  // Update vendor with subscription ID
+  await prisma.vendor.update({
+    where: { id: vendor.id },
+    data: {
+      vendorSubscriptionId: vendorSubscription.id,
+    },
+  });
+  console.log('✅ Vendor updated with subscription reference');
 
   // ============================================
   // 11. CREATE KYC PROFILE
@@ -499,10 +498,17 @@ async function main(): Promise<void> {
 
   const kycDocumentNumber = 'DOC123456789';
 
-  await upsertData(
-    prisma.kycProfile,
-    { vendorId: vendor.id },
-    {
+  await prisma.kycProfile.upsert({
+    where: { vendorId: vendor.id },
+    update: {
+      documentType: 'NATIONAL_ID',
+      frontImageUrl:
+        'https://plus.unsplash.com/premium_photo-1661313626999-90d230cabf8d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      backImageUrl:
+        'https://plus.unsplash.com/premium_photo-1661313626999-90d230cabf8d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      verifiedAt: new Date(),
+    },
+    create: {
       vendorId: vendor.id,
       documentType: 'NATIONAL_ID',
       documentNumber: kycDocumentNumber,
@@ -513,15 +519,7 @@ async function main(): Promise<void> {
       submittedAt: new Date(),
       verifiedAt: new Date(),
     },
-    {
-      documentType: 'NATIONAL_ID',
-      frontImageUrl:
-        'https://plus.unsplash.com/premium_photo-1661313626999-90d230cabf8d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      backImageUrl:
-        'https://plus.unsplash.com/premium_photo-1661313626999-90d230cabf8d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      verifiedAt: new Date(),
-    },
-  );
+  });
   console.log('✅ KYC profile created/updated');
 
   // ============================================
@@ -529,23 +527,22 @@ async function main(): Promise<void> {
   // ============================================
   console.log('📝 Creating service area...');
 
-  await upsertData(
-    prisma.serviceArea,
-    { vendorId: vendor.id },
-    {
+  await prisma.serviceArea.upsert({
+    where: { vendorId: vendor.id },
+    update: {
+      latitude: 40.7128,
+      longitude: -74.006,
+      address: '5th Avenue & 42nd Street, New York, NY',
+      radius: 10,
+    },
+    create: {
       vendorId: vendor.id,
       latitude: 40.7128,
       longitude: -74.006,
       address: '5th Avenue & 42nd Street, New York, NY',
       radius: 10,
     },
-    {
-      latitude: 40.7128,
-      longitude: -74.006,
-      address: '5th Avenue & 42nd Street, New York, NY',
-      radius: 10,
-    },
-  );
+  });
   console.log('✅ Service area created/updated');
 
   // ============================================
@@ -564,19 +561,15 @@ async function main(): Promise<void> {
   ];
 
   for (const hours of operationHours) {
-    await prisma.operationHour.upsert({
-      where: {
-        id: `${vendor.id}-${hours.dayOfWeek}`,
-      },
-      update: hours,
-      create: {
+    await prisma.operationHour.create({
+      data: {
         ...hours,
         vendorId: vendor.id,
         activeFrom: new Date('2024-01-01'),
       },
     });
   }
-  console.log('✅ Operation hours created/updated');
+  console.log('✅ Operation hours created');
 
   // ============================================
   // 14. CREATE VENDOR CUISINES
@@ -958,10 +951,14 @@ async function main(): Promise<void> {
   // ============================================
   console.log('📝 Creating vendor verification...');
 
-  await upsertData(
-    prisma.vendorVerification,
-    { vendorId: vendor.id },
-    {
+  await prisma.vendorVerification.upsert({
+    where: { vendorId: vendor.id },
+    update: {
+      status: 'APPROVED',
+      reviewedAt: new Date(),
+      version: 1,
+    },
+    create: {
       vendorId: vendor.id,
       businessLicense:
         'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
@@ -974,12 +971,7 @@ async function main(): Promise<void> {
       reviewedAt: new Date('2024-01-02'),
       version: 1,
     },
-    {
-      status: 'APPROVED',
-      reviewedAt: new Date(),
-      version: 1,
-    },
-  );
+  });
   console.log('✅ Vendor verification created/updated');
 
   // ============================================
@@ -988,7 +980,6 @@ async function main(): Promise<void> {
   console.log('📝 Creating favorites...');
 
   if (customer && vendor) {
-    // Favorite the vendor
     await prisma.favoriteVendor.upsert({
       where: {
         customerId_vendorId: {
@@ -1003,7 +994,6 @@ async function main(): Promise<void> {
       },
     });
 
-    // Favorite some products
     for (let i = 0; i < Math.min(3, productIds.length); i++) {
       await prisma.favoriteProduct.upsert({
         where: {
@@ -1081,7 +1071,6 @@ async function main(): Promise<void> {
   console.log('📝 Creating demo orders with all statuses...');
 
   if (customer && vendor && productIds.length > 0) {
-    // Helper function to create order with items
     async function createOrderWithItems(
       status: OrderStatus,
       timeOffset: number,
@@ -1114,7 +1103,6 @@ async function main(): Promise<void> {
         },
       });
 
-      // Create order items
       const orderItems = [
         {
           productId: productIds[0],
@@ -1166,7 +1154,6 @@ async function main(): Promise<void> {
             },
           });
 
-          // Add choice options
           if (product.choiceOptions.length > 0) {
             await prisma.orderItemChoiceOption.createMany({
               data: product.choiceOptions.slice(0, 1).map((choice) => ({
@@ -1178,7 +1165,6 @@ async function main(): Promise<void> {
             });
           }
 
-          // Add add-ons
           if (product.addOns.length > 0) {
             await prisma.orderItemAddOn.createMany({
               data: product.addOns.slice(0, 1).map((addon) => ({
@@ -1195,7 +1181,7 @@ async function main(): Promise<void> {
       return order;
     }
 
-    // 1. PENDING Order
+    // Create orders with different statuses
     await createOrderWithItems('PENDING', -5 * 60 * 1000, {
       subtotal: 19.97,
       tax: 2.0,
@@ -1206,7 +1192,6 @@ async function main(): Promise<void> {
     });
     console.log('✅ PENDING order created');
 
-    // 2. CONFIRMED Order
     await createOrderWithItems('CONFIRMED', -15 * 60 * 1000, {
       subtotal: 32.97,
       tax: 3.3,
@@ -1218,7 +1203,6 @@ async function main(): Promise<void> {
     });
     console.log('✅ CONFIRMED order created');
 
-    // 3. PREPARING Order
     await createOrderWithItems('PREPARING', -20 * 60 * 1000, {
       subtotal: 15.99,
       tax: 1.6,
@@ -1231,7 +1215,6 @@ async function main(): Promise<void> {
     });
     console.log('✅ PREPARING order created');
 
-    // 4. READY_FOR_PICKUP Order
     await createOrderWithItems('READY_FOR_PICKUP', -30 * 60 * 1000, {
       subtotal: 28.97,
       tax: 2.9,
@@ -1245,7 +1228,6 @@ async function main(): Promise<void> {
     });
     console.log('✅ READY_FOR_PICKUP order created');
 
-    // 5. COMPLETED Order (already exists from previous code, but adding another one)
     await createOrderWithItems('COMPLETED', -60 * 60 * 1000, {
       subtotal: 42.97,
       tax: 4.3,
@@ -1260,7 +1242,6 @@ async function main(): Promise<void> {
     });
     console.log('✅ COMPLETED order created');
 
-    // 6. CANCELLED Order
     await createOrderWithItems('CANCELLED', -45 * 60 * 1000, {
       subtotal: 12.99,
       tax: 1.3,
@@ -1272,7 +1253,6 @@ async function main(): Promise<void> {
     });
     console.log('✅ CANCELLED order created');
 
-    // 7. Another PENDING order with different items
     await createOrderWithItems('PENDING', -2 * 60 * 1000, {
       subtotal: 8.99,
       tax: 0.9,
@@ -1283,7 +1263,6 @@ async function main(): Promise<void> {
     });
     console.log('✅ Another PENDING order created');
 
-    // 8. Another CONFIRMED order with different items
     await createOrderWithItems('CONFIRMED', -10 * 60 * 1000, {
       subtotal: 45.97,
       tax: 4.6,
@@ -1450,22 +1429,27 @@ async function main(): Promise<void> {
   // ============================================
   console.log('📝 Creating subscription transactions...');
 
-  if (vendor) {
+  if (vendor && vendorSubscription) {
     await prisma.subscriptionTransaction.create({
       data: {
         vendorId: vendor.id,
-        provider: 'MANUAL',
+        vendorSubscriptionId: vendorSubscription.id,
         productId: 'free_trial',
+        transactionId: `manual_txn_${Date.now()}`,
         amount: 0,
         currency: 'USD',
         purchasedAt: new Date(),
-        rawProviderData: {
+        eventTimestamp: new Date(),
+        periodType: 'NORMAL',
+        status: 'COMPLETED',
+        rawData: {
           type: 'free_trial',
           startDate: new Date().toISOString(),
+          vendorCode: vendor.vendorCode,
         },
       },
     });
-    console.log('✅ Subscription transactions created');
+    console.log('✅ Subscription transaction created');
   }
 
   console.log('🎉 All seeds completed successfully!');
