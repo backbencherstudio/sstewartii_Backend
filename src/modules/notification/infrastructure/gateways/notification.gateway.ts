@@ -1,3 +1,4 @@
+// notification.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -67,10 +68,9 @@ export class NotificationGateway
 
   async handleConnection(client: SocketWithUser) {
     try {
-      // ✅ Check if server is ready
+      // Check if server is ready
       if (!this.isServerReady) {
         this.logger.warn('⚠️ Server not ready, waiting...');
-        // Wait for server to be ready
         await new Promise((resolve) => {
           const checkInterval = setInterval(() => {
             if (this.isServerReady) {
@@ -138,12 +138,14 @@ export class NotificationGateway
         socketId: client.id,
       });
 
-      // ✅ Send unread count after connection is established
-      try {
-        await this.sendUnreadCount(userId);
-      } catch (error: any) {
-        this.logger.error(`Failed to send unread count: ${error.message}`);
-      }
+      // ✅ STEP 1: Send pending notifications (undelivered)
+      await this.sendPendingNotifications(client, userId);
+
+      // ✅ STEP 2: Send unread count
+      await this.sendUnreadCount(userId);
+
+      // ✅ STEP 3: Mark all as delivered (optional)
+      await this.markAllAsDelivered(userId);
     } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -181,6 +183,199 @@ export class NotificationGateway
 
       this.logger.log(`❌ User ${userId} disconnected (${client.id})`);
       this.logger.log(`🔌 Active connections: ${this.socketUsers.size}`);
+    }
+  }
+
+  // ============================================
+  // ✅ NEW: Send Pending Notifications
+  // ============================================
+
+  async sendPendingNotifications(client: SocketWithUser, userId: string) {
+    try {
+      // Get all undelivered notifications for this user
+      const pendingNotifications = await this.prisma.notificationLog.findMany({
+        where: {
+          userId,
+          deliveredAt: null, // Not yet delivered
+          readAt: null, // Unread
+        },
+        orderBy: {
+          createdAt: 'asc', // Oldest first
+        },
+        take: 100, // Limit to 100 to avoid overwhelming
+      });
+
+      if (pendingNotifications.length === 0) {
+        this.logger.log(`📭 No pending notifications for user ${userId}`);
+        client.emit('pending-notifications-empty', {
+          message: 'No pending notifications',
+        });
+        return;
+      }
+
+      this.logger.log(
+        `📤 Sending ${pendingNotifications.length} pending notifications to user ${userId}`,
+      );
+
+      // Send notifications in batches to avoid flooding
+      const batchSize = 10;
+      const batches = this.chunkArray(pendingNotifications, batchSize);
+
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const isLastBatch = i === batches.length - 1;
+
+        // Send batch
+        for (const notification of batch) {
+          client.emit('pending-notification', {
+            notification,
+            total: pendingNotifications.length,
+            currentIndex: i * batchSize + batch.indexOf(notification) + 1,
+          });
+
+          // Small delay between individual notifications
+          await this.sleep(50);
+        }
+
+        // Notify batch progress
+        client.emit('pending-notifications-progress', {
+          sent: Math.min((i + 1) * batchSize, pendingNotifications.length),
+          total: pendingNotifications.length,
+          percentage: Math.min(
+            (((i + 1) * batchSize) / pendingNotifications.length) * 100,
+            100,
+          ),
+        });
+
+        // Delay between batches
+        if (!isLastBatch) {
+          await this.sleep(100);
+        }
+      }
+
+      // Send sync complete event
+      client.emit('pending-notifications-sync-complete', {
+        count: pendingNotifications.length,
+        message: `Synced ${pendingNotifications.length} notifications`,
+      });
+
+      this.logger.log(
+        `✅ Sync complete for user ${userId}: ${pendingNotifications.length} notifications`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to send pending notifications: ${error.message}`,
+      );
+      client.emit('pending-notifications-error', {
+        message: 'Failed to sync pending notifications',
+        error: error.message,
+      });
+    }
+  }
+
+  // ============================================
+  // ✅ NEW: Mark All as Delivered
+  // ============================================
+
+  async markAllAsDelivered(userId: string) {
+    try {
+      const result = await this.prisma.notificationLog.updateMany({
+        where: {
+          userId,
+          deliveredAt: null,
+          readAt: null,
+        },
+        data: {
+          deliveredAt: new Date(),
+          status: 'DELIVERED',
+        },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(
+          `✅ Marked ${result.count} notifications as delivered for user ${userId}`,
+        );
+      }
+
+      return result.count;
+    } catch (error: any) {
+      this.logger.error(`Failed to mark as delivered: ${error.message}`);
+      return 0;
+    }
+  }
+
+  // ============================================
+  // ✅ NEW: Mark Specific Notifications as Delivered
+  // ============================================
+
+  @SubscribeMessage('mark-delivered')
+  async handleMarkDelivered(
+    @ConnectedSocket() client: SocketWithUser,
+    @MessageBody() data: { notificationIds: string[] },
+  ): Promise<void> {
+    const userId = client.data.userId;
+
+    if (!userId) {
+      client.emit('error', { message: 'User not authenticated' });
+      return;
+    }
+
+    try {
+      const result = await this.prisma.notificationLog.updateMany({
+        where: {
+          id: { in: data.notificationIds },
+          userId,
+          deliveredAt: null,
+        },
+        data: {
+          deliveredAt: new Date(),
+          status: 'DELIVERED',
+        },
+      });
+
+      client.emit('mark-delivered-success', {
+        count: result.count,
+        notificationIds: data.notificationIds,
+      });
+
+      this.logger.log(
+        `✅ Marked ${result.count} notifications as delivered for user ${userId}`,
+      );
+    } catch (error: any) {
+      client.emit('error', {
+        message: 'Failed to mark as delivered',
+        error: error.message,
+      });
+    }
+  }
+
+  // ============================================
+  // ✅ NEW: Get Pending Notifications Count
+  // ============================================
+
+  @SubscribeMessage('get-pending-count')
+  async handleGetPendingCount(
+    @ConnectedSocket() client: SocketWithUser,
+  ): Promise<void> {
+    const userId = client.data.userId;
+
+    if (!userId) {
+      client.emit('error', { message: 'User not authenticated' });
+      return;
+    }
+
+    try {
+      const count = await this.prisma.notificationLog.count({
+        where: {
+          userId,
+          deliveredAt: null,
+          readAt: null,
+        },
+      });
+
+      client.emit('pending-count', { count });
+    } catch (error: any) {
+      this.logger.error(`Failed to get pending count: ${error.message}`);
     }
   }
 
@@ -231,7 +426,7 @@ export class NotificationGateway
       });
 
       this.logger.log(`📤 Notification sent by ${adminId} to ${data.userId}`);
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       client.emit('error', {
@@ -290,7 +485,7 @@ export class NotificationGateway
       this.logger.log(
         `📖 User ${userId} marked ${data.notificationIds.length} notifications as read`,
       );
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       client.emit('error', {
@@ -331,7 +526,7 @@ export class NotificationGateway
       await this.sendUnreadCount(userId);
 
       this.logger.log(`📖 User ${userId} marked all notifications as read`);
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       client.emit('error', {
@@ -360,7 +555,7 @@ export class NotificationGateway
   // PUBLIC METHODS (Server → Client)
   // ============================================
 
-  // ✅ FIXED: Safe method with null checks
+  // Send real-time notification to a specific user
   sendToUser(userId: string, notification: any): boolean {
     try {
       if (!this.isServerReady || !this.server) {
@@ -369,7 +564,6 @@ export class NotificationGateway
       }
 
       const room = `user:${userId}`;
-      // ✅ Safe access with optional chaining
       const hasSockets =
         this.server.sockets?.adapter?.rooms?.has(room) ?? false;
 
@@ -408,7 +602,7 @@ export class NotificationGateway
     }
   }
 
-  // ✅ FIXED: Safe method with null checks
+  // Send unread count to a specific user
   async sendUnreadCount(userId: string): Promise<void> {
     try {
       if (!this.isServerReady || !this.server) {
@@ -426,7 +620,6 @@ export class NotificationGateway
       });
 
       const room = `user:${userId}`;
-      // ✅ Safe access with optional chaining
       const hasRoom = this.server.sockets?.adapter?.rooms?.has(room) ?? false;
 
       if (hasRoom) {
@@ -438,17 +631,36 @@ export class NotificationGateway
     }
   }
 
+  // Get connected users
   getConnectedUsers(): string[] {
     return Array.from(this.socketUsers.values());
   }
 
+  // Check if user is online
   isUserOnline(userId: string): boolean {
     return (
       this.userSockets.has(userId) && this.userSockets.get(userId)!.size > 0
     );
   }
 
+  // Get user's socket count
   getUserSocketCount(userId: string): number {
     return this.userSockets.get(userId)?.size || 0;
+  }
+
+  // ============================================
+  // ✅ HELPER METHODS
+  // ============================================
+
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

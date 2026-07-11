@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
   forwardRef,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -167,7 +168,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // PREFERENCE CHECKING
+  // PREFERENCE CHECKING - SIMPLIFIED
   // ============================================
 
   private async shouldSendNotification(
@@ -175,31 +176,27 @@ export class NotificationService {
     type: NotificationType,
     channel: NotificationChannel,
   ): Promise<boolean> {
+    // Only check PUSH notifications (the main channel)
+    if (channel !== NotificationChannel.PUSH) {
+      return true; // Allow non-push notifications
+    }
+
     const settings = await this.prisma.notificationSettings.findUnique({
       where: { userId },
     });
 
     if (!settings) return true;
 
-    // Master & channel toggles
-    if (
-      !settings.pushNotificationsEnabled &&
-      channel === NotificationChannel.PUSH
-    )
-      return false;
-    if (channel === NotificationChannel.EMAIL && !settings.emailNotifications)
-      return false;
-    if (channel === NotificationChannel.SMS && !settings.smsAlerts)
-      return false;
-    if (channel === NotificationChannel.IN_APP && !settings.inAppBanner)
-      return false;
+    // Master toggle off
+    if (!settings.pushNotificationsEnabled) return false;
 
     // Do Not Disturb
-    if (settings.doNotDisturbEnabled && this.isInDoNotDisturb(settings))
+    if (settings.doNotDisturbEnabled && this.isInDoNotDisturb(settings)) {
       return false;
+    }
 
     // Role-specific preferences
-    return this.checkRolePreferences(userId, type, channel);
+    return this.checkRolePreference(userId, type);
   }
 
   private isInDoNotDisturb(settings: any): boolean {
@@ -225,10 +222,9 @@ export class NotificationService {
     return currentMin >= startMin || currentMin <= endMin;
   }
 
-  private async checkRolePreferences(
+  private async checkRolePreference(
     userId: string,
     type: NotificationType,
-    channel: NotificationChannel,
   ): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -239,175 +235,98 @@ export class NotificationService {
 
     const roleName = user.role?.name;
 
-    if (roleName === 'ADMIN')
-      return this.checkAdminPrefs(userId, type, channel);
-    if (roleName === 'VENDOR')
-      return this.checkVendorPrefs(userId, type, channel);
-    if (roleName === 'USER')
-      return this.checkCustomerPrefs(userId, type, channel);
+    if (roleName === 'ADMIN') return this.checkAdminPreference(userId, type);
+    if (roleName === 'VENDOR') return this.checkVendorPreference(userId, type);
+    if (roleName === 'USER') return this.checkCustomerPreference(userId, type);
 
     return true;
   }
 
-  private async checkAdminPrefs(
+  // ============================================
+  // ADMIN PREFERENCE CHECK - SIMPLIFIED
+  // ============================================
+
+  private async checkAdminPreference(
     userId: string,
     type: NotificationType,
-    channel: NotificationChannel,
   ): Promise<boolean> {
     const prefs = await this.prisma.adminNotificationPreferences.findUnique({
       where: { userId },
     });
+
     if (!prefs) return true;
 
-    const checks: Record<string, any> = {
-      SYSTEM_ALERT: {
-        email: prefs.systemAlertsEmail,
-        sms: prefs.systemAlertsSms,
-        inApp: prefs.systemAlertsInApp,
-      },
-      VENDOR_UPDATE: {
-        email: prefs.vendorUpdatesEmail,
-        sms: prefs.vendorUpdatesSms,
-        inApp: prefs.vendorUpdatesInApp,
-      },
-      CUSTOMER_REPORT: {
-        email: prefs.customerReportsEmail,
-        sms: prefs.customerReportsSms,
-        inApp: prefs.customerReportsInApp,
-      },
+    const typeMap: Record<string, string> = {
+      SYSTEM_ALERT: 'systemAlertsEnabled',
+      VENDOR_UPDATE: 'vendorUpdatesEnabled',
+      CUSTOMER_REPORT: 'customerReportsEnabled',
     };
 
-    const check = checks[type];
-    if (!check) return true;
+    const field = typeMap[type];
+    if (!field) return true;
 
-    return (
-      (channel === 'EMAIL' && check.email) ||
-      (channel === 'SMS' && check.sms) ||
-      (channel === 'IN_APP' && check.inApp)
-    );
+    return (prefs as any)[field] as boolean;
   }
 
-  private async checkVendorPrefs(
+  // ============================================
+  // VENDOR PREFERENCE CHECK - SIMPLIFIED
+  // ============================================
+
+  private async checkVendorPreference(
     userId: string,
     type: NotificationType,
-    channel: NotificationChannel,
   ): Promise<boolean> {
     const prefs = await this.prisma.vendorNotificationPreferences.findUnique({
       where: { userId },
     });
-    if (!prefs) return true;
-    if (!prefs.pushNotificationsEnabled && channel === 'PUSH') return false;
 
-    const checks: Record<string, any> = {
-      NEW_ORDER: {
-        email: prefs.newOrdersEmail,
-        sms: prefs.newOrdersSms,
-        inApp: prefs.newOrdersInApp,
-      },
-      ORDER_CANCELLATION: {
-        email: prefs.cancellationsEmail,
-        sms: prefs.cancellationsSms,
-        inApp: prefs.cancellationsInApp,
-      },
-      NEW_FOLLOWER: {
-        email: prefs.newFollowersEmail,
-        sms: prefs.newFollowersSms,
-        inApp: prefs.newFollowersInApp,
-      },
-      NEW_REVIEW: {
-        email: prefs.newReviewsEmail,
-        sms: prefs.newReviewsSms,
-        inApp: prefs.newReviewsInApp,
-      },
-      UPCOMING_EVENT: {
-        email: prefs.upcomingEventsEmail,
-        sms: prefs.upcomingEventsSms,
-        inApp: prefs.upcomingEventsInApp,
-      },
-      HIGH_TRAFFIC_OPPORTUNITY: {
-        email: prefs.highTrafficOpportunitiesEmail,
-        sms: prefs.highTrafficOpportunitiesSms,
-        inApp: prefs.highTrafficOpportunitiesInApp,
-      },
-      APP_UPDATE: {
-        email: prefs.appUpdatesEmail,
-        sms: prefs.appUpdatesSms,
-        inApp: prefs.appUpdatesInApp,
-      },
-      SUBSCRIPTION_BILLING: {
-        email: prefs.subscriptionBillingEmail,
-        sms: prefs.subscriptionBillingSms,
-        inApp: prefs.subscriptionBillingInApp,
-      },
+    if (!prefs) return true;
+
+    const typeMap: Record<string, string> = {
+      NEW_ORDER: 'newOrdersEnabled',
+      ORDER_CANCELLATION: 'cancellationsEnabled',
+      NEW_FOLLOWER: 'newFollowersEnabled',
+      NEW_REVIEW: 'newReviewsEnabled',
+      UPCOMING_EVENT: 'upcomingEventsEnabled',
+      HIGH_TRAFFIC_OPPORTUNITY: 'highTrafficOpportunitiesEnabled',
+      APP_UPDATE: 'appUpdatesEnabled',
+      SUBSCRIPTION_BILLING: 'subscriptionBillingEnabled',
     };
 
-    const check = checks[type];
-    if (!check) return true;
+    const field = typeMap[type];
+    if (!field) return true;
 
-    return (
-      (channel === 'EMAIL' && check.email) ||
-      (channel === 'SMS' && check.sms) ||
-      (channel === 'IN_APP' && check.inApp)
-    );
+    return (prefs as any)[field] as boolean;
   }
 
-  private async checkCustomerPrefs(
+  // ============================================
+  // CUSTOMER PREFERENCE CHECK - SIMPLIFIED
+  // ============================================
+
+  private async checkCustomerPreference(
     userId: string,
     type: NotificationType,
-    channel: NotificationChannel,
   ): Promise<boolean> {
     const prefs = await this.prisma.customerNotificationPreferences.findUnique({
       where: { userId },
     });
-    if (!prefs) return true;
-    if (!prefs.pushNotificationsEnabled && channel === 'PUSH') return false;
 
-    const checks: Record<string, any> = {
-      ORDER_CONFIRMED: {
-        email: prefs.orderConfirmedEmail,
-        sms: prefs.orderConfirmedSms,
-        inApp: prefs.orderConfirmedInApp,
-      },
-      READY_FOR_PICKUP: {
-        email: prefs.readyForPickupEmail,
-        sms: prefs.readyForPickupSms,
-        inApp: prefs.readyForPickupInApp,
-      },
-      FAVORITE_TRUCK_LIVE: {
-        email: prefs.favoriteTruckLiveEmail,
-        sms: prefs.favoriteTruckLiveSms,
-        inApp: prefs.favoriteTruckLiveInApp,
-      },
-      NEW_TRUCK_NEARBY: {
-        email: prefs.newTrucksNearbyEmail,
-        sms: prefs.newTrucksNearbySms,
-        inApp: prefs.newTrucksNearbyInApp,
-      },
-      EVENT_FESTIVAL: {
-        email: prefs.eventsFestivalsEmail,
-        sms: prefs.eventsFestivalsSms,
-        inApp: prefs.eventsFestivalsInApp,
-      },
-      FAVORITE_TRUCK_LEAVING: {
-        email: prefs.favoriteTruckLeavingEmail,
-        sms: prefs.favoriteTruckLeavingSms,
-        inApp: prefs.favoriteTruckLeavingInApp,
-      },
-      PROMOTION_DISCOUNT: {
-        email: prefs.promotionsDiscountsEmail,
-        sms: prefs.promotionsDiscountsSms,
-        inApp: prefs.promotionsDiscountsInApp,
-      },
+    if (!prefs) return true;
+
+    const typeMap: Record<string, string> = {
+      ORDER_CONFIRMED: 'orderConfirmedEnabled',
+      READY_FOR_PICKUP: 'readyForPickupEnabled',
+      FAVORITE_TRUCK_LIVE: 'favoriteTruckLiveEnabled',
+      NEW_TRUCK_NEARBY: 'newTrucksNearbyEnabled',
+      EVENT_FESTIVAL: 'eventsFestivalsEnabled',
+      FAVORITE_TRUCK_LEAVING: 'favoriteTruckLeavingEnabled',
+      PROMOTION_DISCOUNT: 'promotionsDiscountsEnabled',
     };
 
-    const check = checks[type];
-    if (!check) return true;
+    const field = typeMap[type];
+    if (!field) return true;
 
-    return (
-      (channel === 'EMAIL' && check.email) ||
-      (channel === 'SMS' && check.sms) ||
-      (channel === 'IN_APP' && check.inApp)
-    );
+    return (prefs as any)[field] as boolean;
   }
 
   // ============================================
@@ -460,7 +379,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // DEVICE MANAGEMENT (UPDATED FOR USER MODEL)
+  // DEVICE MANAGEMENT
   // ============================================
 
   async registerDevice(
@@ -496,99 +415,225 @@ export class NotificationService {
   }
 
   // ============================================
-  // SETTINGS MANAGEMENT
+  // SETTINGS MANAGEMENT - SIMPLIFIED
   // ============================================
 
   async getSettings(userId: string) {
-    const settings = await this.prisma.notificationSettings.findUnique({
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Get or create base settings
+    let baseSettings = await this.prisma.notificationSettings.findUnique({
       where: { userId },
     });
-    if (!settings) {
-      return await this.prisma.notificationSettings.create({
+
+    if (!baseSettings) {
+      baseSettings = await this.prisma.notificationSettings.create({
         data: { userId },
       });
     }
-    return settings;
+
+    // Get role-specific preferences
+    const roleName = user.role?.name;
+    let rolePreferences: any = null;
+
+    switch (roleName) {
+      case 'ADMIN':
+        rolePreferences =
+          await this.prisma.adminNotificationPreferences.findUnique({
+            where: { userId },
+          });
+        if (!rolePreferences) {
+          rolePreferences =
+            await this.prisma.adminNotificationPreferences.create({
+              data: { userId },
+            });
+        }
+        break;
+
+      case 'VENDOR':
+        rolePreferences =
+          await this.prisma.vendorNotificationPreferences.findUnique({
+            where: { userId },
+          });
+        if (!rolePreferences) {
+          rolePreferences =
+            await this.prisma.vendorNotificationPreferences.create({
+              data: { userId },
+            });
+        }
+        break;
+
+      case 'USER':
+        rolePreferences =
+          await this.prisma.customerNotificationPreferences.findUnique({
+            where: { userId },
+          });
+        if (!rolePreferences) {
+          rolePreferences =
+            await this.prisma.customerNotificationPreferences.create({
+              data: { userId },
+            });
+        }
+        break;
+
+      default:
+        rolePreferences = null;
+    }
+
+    return this.formatSettingsResponse(roleName, baseSettings, rolePreferences);
   }
+
+  // ============================================
+  // FORMAT SETTINGS RESPONSE - SIMPLIFIED
+  // ============================================
+
+  private formatSettingsResponse(
+    roleName: string,
+    baseSettings: any,
+    rolePreferences: any,
+  ) {
+    const base = {
+      id: baseSettings.id,
+      pushNotificationsEnabled: baseSettings.pushNotificationsEnabled,
+      doNotDisturbEnabled: baseSettings.doNotDisturbEnabled,
+      doNotDisturbStart: baseSettings.doNotDisturbStart,
+      doNotDisturbEnd: baseSettings.doNotDisturbEnd,
+    };
+
+    switch (roleName) {
+      case 'ADMIN':
+        return {
+          role: 'ADMIN',
+          base,
+          preferences: {
+            systemAlertsEnabled: rolePreferences.systemAlertsEnabled,
+            vendorUpdatesEnabled: rolePreferences.vendorUpdatesEnabled,
+            customerReportsEnabled: rolePreferences.customerReportsEnabled,
+          },
+        };
+
+      case 'VENDOR':
+        return {
+          role: 'VENDOR',
+          base,
+          preferences: {
+            orderUpdates: {
+              newOrdersEnabled: rolePreferences.newOrdersEnabled,
+              cancellationsEnabled: rolePreferences.cancellationsEnabled,
+            },
+            customerEngagement: {
+              newFollowersEnabled: rolePreferences.newFollowersEnabled,
+              newReviewsEnabled: rolePreferences.newReviewsEnabled,
+            },
+            eventOpportunity: {
+              upcomingEventsEnabled: rolePreferences.upcomingEventsEnabled,
+              highTrafficOpportunitiesEnabled:
+                rolePreferences.highTrafficOpportunitiesEnabled,
+            },
+            systemAlerts: {
+              appUpdatesEnabled: rolePreferences.appUpdatesEnabled,
+              subscriptionBillingEnabled:
+                rolePreferences.subscriptionBillingEnabled,
+            },
+          },
+        };
+
+      case 'USER':
+        return {
+          role: 'USER',
+          base,
+          preferences: {
+            orderUpdates: {
+              orderConfirmedEnabled: rolePreferences.orderConfirmedEnabled,
+              readyForPickupEnabled: rolePreferences.readyForPickupEnabled,
+            },
+            discoveryAlerts: {
+              favoriteTruckLiveEnabled:
+                rolePreferences.favoriteTruckLiveEnabled,
+              newTrucksNearbyEnabled: rolePreferences.newTrucksNearbyEnabled,
+              eventsFestivalsEnabled: rolePreferences.eventsFestivalsEnabled,
+            },
+            urgentAlerts: {
+              favoriteTruckLeavingEnabled:
+                rolePreferences.favoriteTruckLeavingEnabled,
+            },
+            marketing: {
+              promotionsDiscountsEnabled:
+                rolePreferences.promotionsDiscountsEnabled,
+            },
+          },
+        };
+
+      default:
+        return {
+          role: roleName || 'UNKNOWN',
+          base,
+          preferences: null,
+        };
+    }
+  }
+
+  // ============================================
+  // UPDATE SETTINGS - SIMPLIFIED
+  // ============================================
 
   async updateSettings(
     userId: string,
     dto: UpdateNotificationSettingsDto,
   ): Promise<any> {
-    return await this.prisma.notificationSettings.upsert({
+    await this.prisma.notificationSettings.upsert({
       where: { userId },
       update: dto,
       create: { userId, ...dto },
     });
-  }
 
-  async getAdminPrefs(userId: string) {
-    const prefs = await this.prisma.adminNotificationPreferences.findUnique({
-      where: { userId },
-    });
-    if (!prefs) {
-      return await this.prisma.adminNotificationPreferences.create({
-        data: { userId },
-      });
-    }
-    return prefs;
+    return this.getSettings(userId);
   }
 
   async updateAdminPrefs(
     userId: string,
     dto: UpdateAdminNotificationPreferencesDto,
   ): Promise<any> {
-    return await this.prisma.adminNotificationPreferences.upsert({
+    await this.prisma.adminNotificationPreferences.upsert({
       where: { userId },
       update: dto,
       create: { userId, ...dto },
     });
-  }
 
-  async getVendorPrefs(userId: string) {
-    const prefs = await this.prisma.vendorNotificationPreferences.findUnique({
-      where: { userId },
-    });
-    if (!prefs) {
-      return await this.prisma.vendorNotificationPreferences.create({
-        data: { userId },
-      });
-    }
-    return prefs;
+    return this.getSettings(userId);
   }
 
   async updateVendorPrefs(
     userId: string,
     dto: UpdateVendorNotificationPreferencesDto,
   ): Promise<any> {
-    return await this.prisma.vendorNotificationPreferences.upsert({
+    await this.prisma.vendorNotificationPreferences.upsert({
       where: { userId },
       update: dto,
       create: { userId, ...dto },
     });
-  }
 
-  async getCustomerPrefs(userId: string) {
-    const prefs = await this.prisma.customerNotificationPreferences.findUnique({
-      where: { userId },
-    });
-    if (!prefs) {
-      return await this.prisma.customerNotificationPreferences.create({
-        data: { userId },
-      });
-    }
-    return prefs;
+    return this.getSettings(userId);
   }
 
   async updateCustomerPrefs(
     userId: string,
     dto: UpdateCustomerNotificationPreferencesDto,
   ): Promise<any> {
-    return await this.prisma.customerNotificationPreferences.upsert({
+    await this.prisma.customerNotificationPreferences.upsert({
       where: { userId },
       update: dto,
       create: { userId, ...dto },
     });
+
+    return this.getSettings(userId);
   }
 
   // ============================================
