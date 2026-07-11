@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
@@ -40,7 +41,7 @@ interface SocketWithUser extends Socket {
 })
 @Injectable()
 export class NotificationGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
   server!: Server;
@@ -48,6 +49,7 @@ export class NotificationGateway
   private readonly logger = new Logger(NotificationGateway.name);
   private userSockets: Map<string, Set<string>> = new Map();
   private socketUsers: Map<string, string> = new Map();
+  private isServerReady: boolean = false;
 
   constructor(
     private readonly jwtService: JwtService,
@@ -57,36 +59,64 @@ export class NotificationGateway
     private readonly notificationService: NotificationService,
   ) {}
 
-  // ============================================
-  // CONNECTION / DISCONNECTION
-  // ============================================
+  afterInit(server: Server) {
+    this.server = server;
+    this.isServerReady = true;
+    this.logger.log('✅ WebSocket Server initialized and ready');
+  }
 
   async handleConnection(client: SocketWithUser) {
     try {
+      // ✅ Check if server is ready
+      if (!this.isServerReady) {
+        this.logger.warn('⚠️ Server not ready, waiting...');
+        // Wait for server to be ready
+        await new Promise((resolve) => {
+          const checkInterval = setInterval(() => {
+            if (this.isServerReady) {
+              clearInterval(checkInterval);
+              resolve(true);
+            }
+          }, 50);
+        });
+      }
+
       const token = client.handshake.auth.token || client.handshake.query.token;
 
       if (!token) {
         this.logger.warn(
           `❌ Connection rejected: No token provided for ${client.id}`,
         );
+        client.emit('error', { message: 'Authentication token required' });
         client.disconnect();
         return;
       }
 
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('jwt.secret'),
-      });
+      // Verify token
+      let payload: any;
+      try {
+        payload = this.jwtService.verify(token, {
+          secret: this.configService.get<string>('jwt.secret'),
+        });
+      } catch (error: any) {
+        this.logger.warn(`❌ Invalid token for ${client.id}: ${error.message}`);
+        client.emit('error', { message: 'Invalid authentication token' });
+        client.disconnect();
+        return;
+      }
 
       const userId = payload.sub || payload.id;
 
       if (!userId) {
         this.logger.warn(
-          `❌ Connection rejected: Invalid token payload for ${client.id}`,
+          `❌ Connection rejected: No userId in token for ${client.id}`,
         );
+        client.emit('error', { message: 'Invalid token payload' });
         client.disconnect();
         return;
       }
 
+      // Store user data
       client.data.userId = userId;
       this.socketUsers.set(client.id, userId);
 
@@ -95,6 +125,7 @@ export class NotificationGateway
       }
       this.userSockets.get(userId)!.add(client.id);
 
+      // Join user room
       await client.join(`user:${userId}`);
 
       this.logger.log(`✅ User ${userId} connected (${client.id})`);
@@ -107,18 +138,29 @@ export class NotificationGateway
         socketId: client.id,
       });
 
-      // Send initial unread count
-      await this.sendUnreadCount(userId);
-    } catch (error) {
+      // ✅ Send unread count after connection is established
+      try {
+        await this.sendUnreadCount(userId);
+      } catch (error: any) {
+        this.logger.error(`Failed to send unread count: ${error.message}`);
+      }
+    } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
         `❌ Connection error for ${client.id}: ${errorMessage}`,
       );
-      client.emit('error', {
-        message: 'Authentication failed',
-        error: errorMessage,
-      });
+
+      try {
+        client.emit('error', {
+          message: 'Connection failed',
+          error: errorMessage,
+        });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (emitError: any) {
+        // Ignore emit errors
+      }
+
       client.disconnect();
     }
   }
@@ -146,7 +188,6 @@ export class NotificationGateway
   // WEBSOCKET EVENTS (Client → Server)
   // ============================================
 
-  // 1. SEND NOTIFICATION
   @SubscribeMessage('send-notification')
   async handleSendNotification(
     @ConnectedSocket() client: SocketWithUser,
@@ -160,7 +201,6 @@ export class NotificationGateway
     }
 
     try {
-      // Check if user has permission (admin only)
       const user = await this.prisma.user.findUnique({
         where: { id: adminId },
         include: { role: true },
@@ -171,13 +211,11 @@ export class NotificationGateway
         return;
       }
 
-      // Validate required fields
       if (!data.userId) {
         client.emit('error', { message: 'userId is required' });
         return;
       }
 
-      // Send notification
       const notification = await this.notificationService.send(data.userId, {
         title: data.title,
         body: data.body,
@@ -187,7 +225,6 @@ export class NotificationGateway
         scheduledFor: data.scheduledFor,
       });
 
-      // Acknowledge to sender
       client.emit('notification-sent', {
         success: true,
         notification,
@@ -204,7 +241,6 @@ export class NotificationGateway
     }
   }
 
-  // 2. MARK NOTIFICATIONS AS READ
   @SubscribeMessage('mark-read')
   async handleMarkRead(
     @ConnectedSocket() client: SocketWithUser,
@@ -218,7 +254,6 @@ export class NotificationGateway
     }
 
     try {
-      // Verify notifications belong to user
       const notifications = await this.prisma.notificationLog.findMany({
         where: {
           id: { in: data.notificationIds },
@@ -234,7 +269,6 @@ export class NotificationGateway
         return;
       }
 
-      // Mark as read
       await this.prisma.notificationLog.updateMany({
         where: {
           id: { in: data.notificationIds },
@@ -246,13 +280,11 @@ export class NotificationGateway
         },
       });
 
-      // ✅ Send success to the user who requested
       client.emit('mark-read-success', {
         notificationIds: data.notificationIds,
         status: 'READ',
       });
 
-      // ✅ Send updated unread count to the same user
       await this.sendUnreadCount(userId);
 
       this.logger.log(
@@ -268,7 +300,6 @@ export class NotificationGateway
     }
   }
 
-  // 3. MARK ALL AS READ
   @SubscribeMessage('mark-all-read')
   async handleMarkAllRead(
     @ConnectedSocket() client: SocketWithUser,
@@ -292,13 +323,11 @@ export class NotificationGateway
         },
       });
 
-      // ✅ Send success to the user
       client.emit('mark-all-read-success', {
         count: result.count,
         status: 'all_read',
       });
 
-      // ✅ Send updated unread count to the same user
       await this.sendUnreadCount(userId);
 
       this.logger.log(`📖 User ${userId} marked all notifications as read`);
@@ -312,7 +341,6 @@ export class NotificationGateway
     }
   }
 
-  // 4. GET UNREAD COUNT
   @SubscribeMessage('get-unread-count')
   async handleGetUnreadCount(
     @ConnectedSocket() client: SocketWithUser,
@@ -323,7 +351,6 @@ export class NotificationGateway
     }
   }
 
-  // 5. PING (Keep-alive)
   @SubscribeMessage('ping')
   handlePing(@ConnectedSocket() client: Socket): void {
     client.emit('pong', { timestamp: new Date().toISOString() });
@@ -333,62 +360,94 @@ export class NotificationGateway
   // PUBLIC METHODS (Server → Client)
   // ============================================
 
-  // Send notification to a specific user
+  // ✅ FIXED: Safe method with null checks
   sendToUser(userId: string, notification: any): boolean {
-    const room = `user:${userId}`;
-    const hasSockets = this.server.sockets.adapter.rooms.has(room);
+    try {
+      if (!this.isServerReady || !this.server) {
+        this.logger.warn(`⚠️ Server not ready, cannot send to ${userId}`);
+        return false;
+      }
 
-    if (hasSockets) {
-      this.server.to(room).emit('new-notification', notification);
-      this.logger.log(`📤 Real-time notification sent to user ${userId}`);
-      return true;
+      const room = `user:${userId}`;
+      // ✅ Safe access with optional chaining
+      const hasSockets =
+        this.server.sockets?.adapter?.rooms?.has(room) ?? false;
+
+      if (hasSockets) {
+        this.server.to(room).emit('new-notification', notification);
+        this.logger.log(`📤 Real-time notification sent to user ${userId}`);
+        return true;
+      }
+
+      this.logger.warn(
+        `⚠️ User ${userId} is offline, notification saved in DB`,
+      );
+      return false;
+    } catch (error) {
+      this.logger.error(`Failed to send notification to ${userId}:`, error);
+      return false;
     }
-
-    this.logger.warn(`⚠️ User ${userId} is offline, notification saved in DB`);
-    return false;
   }
 
-  // Send notification to multiple users
   sendToUsers(userIds: string[], notification: any): void {
     for (const userId of userIds) {
       this.sendToUser(userId, notification);
     }
   }
 
-  // Broadcast to all connected users
   broadcastToAll(notification: any): void {
-    this.server.emit('new-notification', notification);
-    this.logger.log(`📤 Broadcast notification to all users`);
-  }
-
-  // Send unread count to a specific user
-  async sendUnreadCount(userId: string): Promise<void> {
-    const count = await this.prisma.notificationLog.count({
-      where: {
-        userId,
-        readAt: null,
-      },
-    });
-
-    const room = `user:${userId}`;
-    if (this.server.sockets.adapter.rooms.has(room)) {
-      this.server.to(room).emit('unread-count', { count });
+    try {
+      if (!this.isServerReady || !this.server) {
+        this.logger.warn(`⚠️ Server not ready, cannot broadcast`);
+        return;
+      }
+      this.server.emit('new-notification', notification);
+      this.logger.log(`📤 Broadcast notification to all users`);
+    } catch (error) {
+      this.logger.error(`Failed to broadcast notification:`, error);
     }
   }
 
-  // Get connected users
+  // ✅ FIXED: Safe method with null checks
+  async sendUnreadCount(userId: string): Promise<void> {
+    try {
+      if (!this.isServerReady || !this.server) {
+        this.logger.warn(
+          `⚠️ Server not ready, skipping unread count for ${userId}`,
+        );
+        return;
+      }
+
+      const count = await this.prisma.notificationLog.count({
+        where: {
+          userId,
+          readAt: null,
+        },
+      });
+
+      const room = `user:${userId}`;
+      // ✅ Safe access with optional chaining
+      const hasRoom = this.server.sockets?.adapter?.rooms?.has(room) ?? false;
+
+      if (hasRoom) {
+        this.server.to(room).emit('unread-count', { count });
+        this.logger.log(`📊 Unread count sent to ${userId}: ${count}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send unread count to ${userId}:`, error);
+    }
+  }
+
   getConnectedUsers(): string[] {
     return Array.from(this.socketUsers.values());
   }
 
-  // Check if user is online
   isUserOnline(userId: string): boolean {
     return (
       this.userSockets.has(userId) && this.userSockets.get(userId)!.size > 0
     );
   }
 
-  // Get user's socket count
   getUserSocketCount(userId: string): number {
     return this.userSockets.get(userId)?.size || 0;
   }

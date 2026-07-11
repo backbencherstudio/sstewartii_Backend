@@ -176,8 +176,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    console.log({ platform });
-
     // ✅ Update FCM token and platform if provided
     if (fcmToken || platform) {
       const updateData: any = {};
