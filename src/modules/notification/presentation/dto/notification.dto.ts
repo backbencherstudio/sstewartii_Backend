@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { DevicePlatform, NotificationChannel, NotificationType } from '@prisma/client';
+import {
+  DevicePlatform,
+  NotificationChannel,
+  NotificationType,
+} from '@prisma/client';
 import {
   IsString,
   IsUUID,
@@ -10,39 +14,6 @@ import {
   IsArray,
   IsObject,
 } from 'class-validator';
-
-// export enum NotificationType {
-//   // Admin types
-//   SYSTEM_ALERT = 'SYSTEM_ALERT',
-//   VENDOR_UPDATE = 'VENDOR_UPDATE',
-//   CUSTOMER_REPORT = 'CUSTOMER_REPORT',
-
-//   // Vendor types
-//   NEW_ORDER = 'NEW_ORDER',
-//   ORDER_CANCELLATION = 'ORDER_CANCELLATION',
-//   NEW_FOLLOWER = 'NEW_FOLLOWER',
-//   NEW_REVIEW = 'NEW_REVIEW',
-//   UPCOMING_EVENT = 'UPCOMING_EVENT',
-//   HIGH_TRAFFIC_OPPORTUNITY = 'HIGH_TRAFFIC_OPPORTUNITY',
-//   APP_UPDATE = 'APP_UPDATE',
-//   SUBSCRIPTION_BILLING = 'SUBSCRIPTION_BILLING',
-
-//   // Customer types
-//   ORDER_CONFIRMED = 'ORDER_CONFIRMED',
-//   READY_FOR_PICKUP = 'READY_FOR_PICKUP',
-//   FAVORITE_TRUCK_LIVE = 'FAVORITE_TRUCK_LIVE',
-//   NEW_TRUCK_NEARBY = 'NEW_TRUCK_NEARBY',
-//   EVENT_FESTIVAL = 'EVENT_FESTIVAL',
-//   FAVORITE_TRUCK_LEAVING = 'FAVORITE_TRUCK_LEAVING',
-//   PROMOTION_DISCOUNT = 'PROMOTION_DISCOUNT',
-// }
-
-// export enum NotificationChannel {
-//   EMAIL = 'EMAIL',
-//   SMS = 'SMS',
-//   IN_APP = 'IN_APP',
-//   PUSH = 'PUSH',
-// }
 
 export enum NotificationStatus {
   PENDING = 'PENDING',
@@ -153,343 +124,217 @@ export class UnreadCountResponseDto {
 }
 
 // ============================================
-// NOTIFICATION SETTINGS DTOs
+// NOTIFICATION SETTINGS DTOs - SIMPLIFIED
 // ============================================
 
-// Base Settings
+// ============================================
+// BASE SETTINGS
+// ============================================
+
 export class UpdateNotificationSettingsDto {
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Master toggle for all push notifications',
+  })
   @IsOptional()
   @IsBoolean()
   pushNotificationsEnabled?: boolean;
 
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  emailNotifications?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  smsAlerts?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  inAppBanner?: boolean;
-
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'Enable Do Not Disturb mode' })
   @IsOptional()
   @IsBoolean()
   doNotDisturbEnabled?: boolean;
 
-  @ApiProperty({ required: false, example: '22:00' })
+  @ApiProperty({
+    required: false,
+    example: '22:00',
+    description: 'Do Not Disturb start time (24h format)',
+  })
   @IsOptional()
   @IsString()
   doNotDisturbStart?: string;
 
-  @ApiProperty({ required: false, example: '07:00' })
+  @ApiProperty({
+    required: false,
+    example: '07:00',
+    description: 'Do Not Disturb end time (24h format)',
+  })
   @IsOptional()
   @IsString()
   doNotDisturbEnd?: string;
 }
 
-// Admin Settings
+// ============================================
+// ADMIN PREFERENCES
+// ============================================
+
 export class UpdateAdminNotificationPreferencesDto {
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'System alerts (critical system notifications)',
+  })
   @IsOptional()
   @IsBoolean()
-  systemAlertsEmail?: boolean;
+  systemAlertsEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'Vendor updates' })
   @IsOptional()
   @IsBoolean()
-  systemAlertsSms?: boolean;
+  vendorUpdatesEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, description: 'Customer reports' })
   @IsOptional()
   @IsBoolean()
-  systemAlertsInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  vendorUpdatesEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  vendorUpdatesSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  vendorUpdatesInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  customerReportsEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  customerReportsSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  customerReportsInApp?: boolean;
+  customerReportsEnabled?: boolean;
 }
 
-// Vendor Settings
+// ============================================
+// VENDOR PREFERENCES
+// ============================================
+
 export class UpdateVendorNotificationPreferencesDto {
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  pushNotificationsEnabled?: boolean;
-
   // Order Updates
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'New orders - instant alerts for new customer orders',
+  })
   @IsOptional()
   @IsBoolean()
-  newOrdersEmail?: boolean;
+  newOrdersEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Cancellations - notifications for retracted orders',
+  })
   @IsOptional()
   @IsBoolean()
-  newOrdersSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  newOrdersInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  cancellationsEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  cancellationsSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  cancellationsInApp?: boolean;
+  cancellationsEnabled?: boolean;
 
   // Customer Engagement
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description:
+      'New followers - get notified when someone favorites your truck',
+  })
   @IsOptional()
   @IsBoolean()
-  newFollowersEmail?: boolean;
+  newFollowersEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'New reviews - alerts for new reviews from customers',
+  })
   @IsOptional()
   @IsBoolean()
-  newFollowersSms?: boolean;
+  newReviewsEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  // Event & Opportunity
+  @ApiProperty({
+    required: false,
+    description:
+      'Upcoming city events - alerts for festivals, concerts, and major gatherings',
+  })
   @IsOptional()
   @IsBoolean()
-  newFollowersInApp?: boolean;
+  upcomingEventsEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description:
+      'High-traffic opportunities - predicted high-demand zones nearby',
+  })
   @IsOptional()
   @IsBoolean()
-  newReviewsEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  newReviewsSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  newReviewsInApp?: boolean;
-
-  // Events & Opportunities
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  upcomingEventsEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  upcomingEventsSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  upcomingEventsInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  highTrafficOpportunitiesEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  highTrafficOpportunitiesSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  highTrafficOpportunitiesInApp?: boolean;
+  highTrafficOpportunitiesEnabled?: boolean;
 
   // System Alerts
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'App updates - get notified when system updates',
+  })
   @IsOptional()
   @IsBoolean()
-  appUpdatesEmail?: boolean;
+  appUpdatesEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description:
+      'Subscription billing - notification after subscription payout',
+  })
   @IsOptional()
   @IsBoolean()
-  appUpdatesSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  appUpdatesInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  subscriptionBillingEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  subscriptionBillingSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  subscriptionBillingInApp?: boolean;
+  subscriptionBillingEnabled?: boolean;
 }
 
-// Customer Settings
+// ============================================
+// CUSTOMER PREFERENCES
+// ============================================
+
 export class UpdateCustomerNotificationPreferencesDto {
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  pushNotificationsEnabled?: boolean;
-
   // Order Updates
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Order confirmed - order placed successfully',
+  })
   @IsOptional()
   @IsBoolean()
-  orderConfirmedEmail?: boolean;
+  orderConfirmedEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Ready for pickup - order is ready for collection',
+  })
   @IsOptional()
   @IsBoolean()
-  orderConfirmedSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  orderConfirmedInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  readyForPickupEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  readyForPickupSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  readyForPickupInApp?: boolean;
+  readyForPickupEnabled?: boolean;
 
   // Discovery Alerts
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Favorite truck live - your favorite truck is now live',
+  })
   @IsOptional()
   @IsBoolean()
-  favoriteTruckLiveEmail?: boolean;
+  favoriteTruckLiveEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'New trucks nearby - new food trucks in your area',
+  })
   @IsOptional()
   @IsBoolean()
-  favoriteTruckLiveSms?: boolean;
+  newTrucksNearbyEnabled?: boolean;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Events & festivals - alerts for upcoming events',
+  })
   @IsOptional()
   @IsBoolean()
-  favoriteTruckLiveInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  newTrucksNearbyEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  newTrucksNearbySms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  newTrucksNearbyInApp?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  eventsFestivalsEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  eventsFestivalsSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  eventsFestivalsInApp?: boolean;
+  eventsFestivalsEnabled?: boolean;
 
   // Urgent Alerts
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Favorite truck leaving - your favorite truck is leaving soon',
+  })
   @IsOptional()
   @IsBoolean()
-  favoriteTruckLeavingEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  favoriteTruckLeavingSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  favoriteTruckLeavingInApp?: boolean;
+  favoriteTruckLeavingEnabled?: boolean;
 
   // Marketing
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    description: 'Promotions & discounts - special offers and discounts',
+  })
   @IsOptional()
   @IsBoolean()
-  promotionsDiscountsEmail?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  promotionsDiscountsSms?: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsBoolean()
-  promotionsDiscountsInApp?: boolean;
+  promotionsDiscountsEnabled?: boolean;
 }
+
+// ============================================
+// DEVICE REGISTRATION
+// ============================================
 
 export class RegisterDeviceDto {
   @ApiProperty({ description: 'FCM token for push notifications' })
@@ -499,4 +344,150 @@ export class RegisterDeviceDto {
   @ApiProperty({ enum: DevicePlatform, description: 'Device platform' })
   @IsEnum(DevicePlatform)
   platform!: DevicePlatform;
+}
+
+// ============================================
+// SETTINGS RESPONSE DTOs
+// ============================================
+
+export class BaseSettingsResponseDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ description: 'Master toggle for all push notifications' })
+  pushNotificationsEnabled!: boolean;
+
+  @ApiProperty({ description: 'Enable Do Not Disturb mode' })
+  doNotDisturbEnabled!: boolean;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Do Not Disturb start time (24h format)',
+  })
+  doNotDisturbStart!: string | null;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Do Not Disturb end time (24h format)',
+  })
+  doNotDisturbEnd!: string | null;
+}
+
+export class AdminPreferencesResponseDto {
+  @ApiProperty({ description: 'System alerts (critical system notifications)' })
+  systemAlertsEnabled!: boolean;
+
+  @ApiProperty({ description: 'Vendor updates' })
+  vendorUpdatesEnabled!: boolean;
+
+  @ApiProperty({ description: 'Customer reports' })
+  customerReportsEnabled!: boolean;
+}
+
+export class VendorPreferencesResponseDto {
+  // Order Updates
+  @ApiProperty({
+    description: 'New orders - instant alerts for new customer orders',
+  })
+  newOrdersEnabled!: boolean;
+
+  @ApiProperty({
+    description: 'Cancellations - notifications for retracted orders',
+  })
+  cancellationsEnabled!: boolean;
+
+  // Customer Engagement
+  @ApiProperty({
+    description:
+      'New followers - get notified when someone favorites your truck',
+  })
+  newFollowersEnabled!: boolean;
+
+  @ApiProperty({
+    description: 'New reviews - alerts for new reviews from customers',
+  })
+  newReviewsEnabled!: boolean;
+
+  // Event & Opportunity
+  @ApiProperty({
+    description:
+      'Upcoming city events - alerts for festivals, concerts, and major gatherings',
+  })
+  upcomingEventsEnabled!: boolean;
+
+  @ApiProperty({
+    description:
+      'High-traffic opportunities - predicted high-demand zones nearby',
+  })
+  highTrafficOpportunitiesEnabled!: boolean;
+
+  // System Alerts
+  @ApiProperty({
+    description: 'App updates - get notified when system updates',
+  })
+  appUpdatesEnabled!: boolean;
+
+  @ApiProperty({
+    description:
+      'Subscription billing - notification after subscription payout',
+  })
+  subscriptionBillingEnabled!: boolean;
+}
+
+export class CustomerPreferencesResponseDto {
+  // Order Updates
+  @ApiProperty({ description: 'Order confirmed - order placed successfully' })
+  orderConfirmedEnabled!: boolean;
+
+  @ApiProperty({
+    description: 'Ready for pickup - order is ready for collection',
+  })
+  readyForPickupEnabled!: boolean;
+
+  // Discovery Alerts
+  @ApiProperty({
+    description: 'Favorite truck live - your favorite truck is now live',
+  })
+  favoriteTruckLiveEnabled!: boolean;
+
+  @ApiProperty({
+    description: 'New trucks nearby - new food trucks in your area',
+  })
+  newTrucksNearbyEnabled!: boolean;
+
+  @ApiProperty({
+    description: 'Events & festivals - alerts for upcoming events',
+  })
+  eventsFestivalsEnabled!: boolean;
+
+  // Urgent Alerts
+  @ApiProperty({
+    description: 'Favorite truck leaving - your favorite truck is leaving soon',
+  })
+  favoriteTruckLeavingEnabled!: boolean;
+
+  // Marketing
+  @ApiProperty({
+    description: 'Promotions & discounts - special offers and discounts',
+  })
+  promotionsDiscountsEnabled!: boolean;
+}
+
+// ============================================
+// SETTINGS RESPONSE WRAPPER - FIXED
+// ============================================
+
+export class NotificationSettingsResponseDto {
+  @ApiProperty({ enum: ['ADMIN', 'VENDOR', 'USER'] })
+  role!: string;
+
+  @ApiProperty({ type: BaseSettingsResponseDto })
+  base!: BaseSettingsResponseDto;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Role-specific preferences',
+  })
+  preferences!: any;
 }

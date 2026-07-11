@@ -73,11 +73,6 @@ model NotificationSettings {
   // Master toggle for all notifications
   pushNotificationsEnabled Boolean @default(true)
 
-  // Common notification channels
-  emailNotifications Boolean @default(true)
-  smsAlerts          Boolean @default(false)
-  inAppBanner        Boolean @default(true)
-
   // Do Not Disturb settings
   doNotDisturbEnabled Boolean @default(false)
   doNotDisturbStart   String? // "22:00"
@@ -99,26 +94,19 @@ model AdminNotificationPreferences {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // System Alerts
-  systemAlertsEmail Boolean @default(true)
-  systemAlertsSms   Boolean @default(false)
-  systemAlertsInApp Boolean @default(true)
+  systemAlertsEnabled Boolean @default(true)
 
   // Vendor Updates
-  vendorUpdatesEmail Boolean @default(true)
-  vendorUpdatesSms   Boolean @default(false)
-  vendorUpdatesInApp Boolean @default(true)
+  vendorUpdatesEnabled Boolean @default(true)
 
   // Customer Reports
-  customerReportsEmail Boolean @default(true)
-  customerReportsSms   Boolean @default(false)
-  customerReportsInApp Boolean @default(true)
+  customerReportsEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
 }
-
 // ============================================
 // VENDOR NOTIFICATION PREFERENCES
 // ============================================
@@ -128,44 +116,21 @@ model VendorNotificationPreferences {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Master toggle for push notifications
-  pushNotificationsEnabled Boolean @default(true)
-
   // ========== ORDER UPDATES ==========
-  newOrdersEmail Boolean @default(true)
-  newOrdersSms   Boolean @default(true)
-  newOrdersInApp Boolean @default(true)
-
-  cancellationsEmail Boolean @default(true)
-  cancellationsSms   Boolean @default(true)
-  cancellationsInApp Boolean @default(true)
+  newOrdersEnabled       Boolean @default(true)
+  cancellationsEnabled   Boolean @default(true)
 
   // ========== CUSTOMER ENGAGEMENT ==========
-  newFollowersEmail Boolean @default(true)
-  newFollowersSms   Boolean @default(false)
-  newFollowersInApp Boolean @default(true)
+  newFollowersEnabled    Boolean @default(true)
+  newReviewsEnabled      Boolean @default(true)
 
-  newReviewsEmail Boolean @default(true)
-  newReviewsSms   Boolean @default(false)
-  newReviewsInApp Boolean @default(true)
-
-  // ========== EVENT & OPPORTUNITY VISIBILITY ==========
-  upcomingEventsEmail Boolean @default(true)
-  upcomingEventsSms   Boolean @default(false)
-  upcomingEventsInApp Boolean @default(true)
-
-  highTrafficOpportunitiesEmail Boolean @default(true)
-  highTrafficOpportunitiesSms   Boolean @default(false)
-  highTrafficOpportunitiesInApp Boolean @default(true)
+  // ========== EVENT & OPPORTUNITY ==========
+  upcomingEventsEnabled           Boolean @default(true)
+  highTrafficOpportunitiesEnabled Boolean @default(true)
 
   // ========== SYSTEM ALERTS ==========
-  appUpdatesEmail Boolean @default(true)
-  appUpdatesSms   Boolean @default(false)
-  appUpdatesInApp Boolean @default(true)
-
-  subscriptionBillingEmail Boolean @default(true)
-  subscriptionBillingSms   Boolean @default(false)
-  subscriptionBillingInApp Boolean @default(true)
+  appUpdatesEnabled          Boolean @default(true)
+  subscriptionBillingEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -182,40 +147,20 @@ model CustomerNotificationPreferences {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Master toggle for push notifications
-  pushNotificationsEnabled Boolean @default(true)
-
   // ========== ORDER UPDATES ==========
-  orderConfirmedEmail Boolean @default(true)
-  orderConfirmedSms   Boolean @default(true)
-  orderConfirmedInApp Boolean @default(true)
-
-  readyForPickupEmail Boolean @default(true)
-  readyForPickupSms   Boolean @default(true)
-  readyForPickupInApp Boolean @default(true)
+  orderConfirmedEnabled Boolean @default(true)
+  readyForPickupEnabled Boolean @default(true)
 
   // ========== DISCOVERY ALERTS ==========
-  favoriteTruckLiveEmail Boolean @default(true)
-  favoriteTruckLiveSms   Boolean @default(false)
-  favoriteTruckLiveInApp Boolean @default(true)
-
-  newTrucksNearbyEmail Boolean @default(true)
-  newTrucksNearbySms   Boolean @default(false)
-  newTrucksNearbyInApp Boolean @default(true)
-
-  eventsFestivalsEmail Boolean @default(true)
-  eventsFestivalsSms   Boolean @default(false)
-  eventsFestivalsInApp Boolean @default(true)
+  favoriteTruckLiveEnabled Boolean @default(true)
+  newTrucksNearbyEnabled   Boolean @default(true)
+  eventsFestivalsEnabled   Boolean @default(true)
 
   // ========== URGENT ALERTS ==========
-  favoriteTruckLeavingEmail Boolean @default(true)
-  favoriteTruckLeavingSms   Boolean @default(true)
-  favoriteTruckLeavingInApp Boolean @default(true)
+  favoriteTruckLeavingEnabled Boolean @default(true)
 
   // ========== MARKETING ==========
-  promotionsDiscountsEmail Boolean @default(true)
-  promotionsDiscountsSms   Boolean @default(false)
-  promotionsDiscountsInApp Boolean @default(true)
+  promotionsDiscountsEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -245,6 +190,8 @@ model NotificationLog {
   readAt       DateTime?
   deliveredAt  DateTime?
   scheduledFor DateTime? // For scheduled notifications
+
+  createdAt   DateTime  @default(now())
 
   @@index([userId])
   @@index([type])

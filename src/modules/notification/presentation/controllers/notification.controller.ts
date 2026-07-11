@@ -116,7 +116,7 @@ export class NotificationController {
   // ============================================
 
   @Get('settings')
-  @ApiOperation({ summary: 'Get notification settings' })
+  @ApiOperation({ summary: 'Get notification settings (role-based)' })
   async getSettings(@CurrentUser() user: AuthUser) {
     return this.notificationService.getSettings(user.id);
   }
@@ -131,14 +131,9 @@ export class NotificationController {
     return this.notificationService.updateSettings(user.id, dto);
   }
 
-  // Admin Settings
-  @Get('settings/admin')
-  @UseGuards(RoleGuard)
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Get admin notification preferences' })
-  async getAdminPrefs(@CurrentUser() user: AuthUser) {
-    return this.notificationService.getAdminPrefs(user.id);
-  }
+  // ============================================
+  // ADMIN SETTINGS
+  // ============================================
 
   @Patch('settings/admin')
   @UseGuards(RoleGuard)
@@ -152,14 +147,9 @@ export class NotificationController {
     return this.notificationService.updateAdminPrefs(user.id, dto);
   }
 
-  // Vendor Settings
-  @Get('settings/vendor')
-  @UseGuards(RoleGuard)
-  @Roles(Role.VENDOR)
-  @ApiOperation({ summary: 'Get vendor notification preferences' })
-  async getVendorPrefs(@CurrentUser() user: AuthUser) {
-    return this.notificationService.getVendorPrefs(user.id);
-  }
+  // ============================================
+  // VENDOR SETTINGS
+  // ============================================
 
   @Patch('settings/vendor')
   @UseGuards(RoleGuard)
@@ -173,12 +163,9 @@ export class NotificationController {
     return this.notificationService.updateVendorPrefs(user.id, dto);
   }
 
-  // Customer Settings
-  @Get('settings/customer')
-  @ApiOperation({ summary: 'Get customer notification preferences' })
-  async getCustomerPrefs(@CurrentUser() user: AuthUser) {
-    return this.notificationService.getCustomerPrefs(user.id);
-  }
+  // ============================================
+  // CUSTOMER SETTINGS
+  // ============================================
 
   @Patch('settings/customer')
   @ApiOperation({ summary: 'Update customer notification preferences' })
@@ -203,10 +190,7 @@ export class NotificationController {
     @CurrentUser() adminUser: AuthUser,
     @Body() dto: CreateNotificationDto,
   ): Promise<NotificationResponseDto | null> {
-    // Get userId from DTO or use admin's ID
-    const targetUserId = adminUser.id;
-
-    return this.notificationService.send(targetUserId, {
+    return this.notificationService.send(adminUser.id, {
       title: dto.title,
       body: dto.body,
       type: dto.type,
