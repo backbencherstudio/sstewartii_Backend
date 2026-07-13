@@ -1,8 +1,11 @@
-// src/modules/auth/domain/interfaces/user.repository.interface.ts
 
 import { User } from '../entities/user.entity';
 import { UserWithRelations } from '../types/user-with-relations.type';
-import { SubscriptionStatus } from '@prisma/client';
+import {
+  SubscriptionStatus,
+  SubscriptionStore,
+  SubscriptionProvider,
+} from '@prisma/client';
 
 export interface LoginUserView {
   id: string;
@@ -31,6 +34,38 @@ export interface LoginUserView {
       radius: number | null;
     } | null;
   } | null;
+}
+
+// ✅ Define the subscription plan type
+export interface SubscriptionPlanView {
+  id: string;
+  name: string;
+  code: string;
+  durationDays: number;
+  maxProducts: number;
+  price: number;
+  currency: string;
+  revenueCatEntitlementId: string | null;
+}
+
+// ✅ Define the full subscription type with plan
+export interface VendorSubscriptionView {
+  id: string;
+  status: SubscriptionStatus;
+  isActive: boolean;
+  isTrialPeriod: boolean;
+  autoRenew: boolean;
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+  expiresAt: Date | null;
+  lastRenewalDate: Date | null;
+  cancellationDate: Date | null;
+  revenueCatAppUserId: string | null;
+  entitlementId: string | null;
+  productId: string | null;
+  store: SubscriptionStore | null;
+  provider: SubscriptionProvider;
+  subscriptionPlan: SubscriptionPlanView | null;
 }
 
 export interface IUserRepository {
@@ -65,23 +100,8 @@ export interface IUserRepository {
   findUserByEmailForLogin(email: string): Promise<any>;
   countPendingOrdersForVendor(vendorId: string): Promise<number>;
 
-  // ✅ NEW: Get vendor subscription
-  getVendorSubscription(vendorId: string): Promise<{
-    status: SubscriptionStatus;
-    expiresAt: Date | null;
-  } | null>;
-
-  // Optional: Get vendor subscription with plan details
-  getVendorSubscriptionWithPlan?(vendorId: string): Promise<{
-    id: string;
-    status: SubscriptionStatus;
-    expiresAt: Date | null;
-    subscriptionPlan: {
-      id: string;
-      name: string;
-      code: string;
-      price: number;
-      currency: string;
-    } | null;
-  } | null>;
+  // ✅ UPDATED: Get vendor subscription with full details and plan
+  getVendorSubscription(
+    vendorId: string,
+  ): Promise<VendorSubscriptionView | null>;
 }

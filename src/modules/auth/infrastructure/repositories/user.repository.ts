@@ -7,7 +7,7 @@ import {
 import { User } from '../../domain/entities/user.entity';
 import { UserMapper } from '../mappers/user.mapper';
 import { UserWithRelations } from '../../domain/types/user-with-relations.type';
-import { DevicePlatform, SubscriptionStatus } from '@prisma/client';
+import { DevicePlatform } from '@prisma/client';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -301,19 +301,54 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  // ✅ ADD THIS METHOD - Get vendor subscription by vendor ID
-  async getVendorSubscription(vendorId: string): Promise<{
-    status: SubscriptionStatus;
-    expiresAt: Date | null;
-  } | null> {
+  async getVendorSubscription(vendorId: string) {
     const subscription = await this.prisma.vendorSubscription.findUnique({
       where: { vendorId },
-      select: {
-        status: true,
-        expiresAt: true,
+      include: {
+        subscriptionPlan: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            durationDays: true,
+            maxProducts: true,
+            price: true,
+            currency: true,
+            revenueCatEntitlementId: true,
+          },
+        },
       },
     });
 
-    return subscription;
+    if (!subscription) return null;
+
+    // Map to the interface type
+    return {
+      id: subscription.id,
+      status: subscription.status,
+      isActive: subscription.isActive,
+      isTrialPeriod: subscription.isTrialPeriod,
+      autoRenew: subscription.autoRenew,
+      currentPeriodStart: subscription.currentPeriodStart,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      expiresAt: subscription.expiresAt,
+      lastRenewalDate: subscription.lastRenewalDate,
+      cancellationDate: subscription.cancellationDate,
+      revenueCatAppUserId: subscription.revenueCatAppUserId,
+      entitlementId: subscription.entitlementId,
+      productId: subscription.productId,
+      store: subscription.store,
+      provider: subscription.provider,
+      subscriptionPlan: subscription.subscriptionPlan ? {
+        id: subscription.subscriptionPlan.id,
+        name: subscription.subscriptionPlan.name,
+        code: subscription.subscriptionPlan.code,
+        durationDays: subscription.subscriptionPlan.durationDays,
+        maxProducts: subscription.subscriptionPlan.maxProducts,
+        price: subscription.subscriptionPlan.price,
+        currency: subscription.subscriptionPlan.currency,
+        revenueCatEntitlementId: subscription.subscriptionPlan.revenueCatEntitlementId,
+      } : null,
+    };
   }
 }

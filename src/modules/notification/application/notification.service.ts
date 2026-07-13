@@ -168,7 +168,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // PREFERENCE CHECKING - SIMPLIFIED
+  // PREFERENCE CHECKING - FIXED
   // ============================================
 
   private async shouldSendNotification(
@@ -176,26 +176,70 @@ export class NotificationService {
     type: NotificationType,
     channel: NotificationChannel,
   ): Promise<boolean> {
-    // Only check PUSH notifications (the main channel)
+    // Only check PUSH notifications
     if (channel !== NotificationChannel.PUSH) {
-      return true; // Allow non-push notifications
+      return true;
     }
 
+    // 1. Check role-specific master toggle (pushNotificationsEnabled)
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+
+    if (!user) return false;
+
+    const roleName = user.role?.name;
+    let pushEnabled = true;
+
+    switch (roleName) {
+      case 'ADMIN': {
+        const prefs = await this.prisma.adminNotificationPreferences.findUnique(
+          {
+            where: { userId },
+          },
+        );
+        pushEnabled = prefs?.pushNotificationsEnabled ?? true;
+        break;
+      }
+      case 'VENDOR': {
+        const prefs =
+          await this.prisma.vendorNotificationPreferences.findUnique({
+            where: { userId },
+          });
+        pushEnabled = prefs?.pushNotificationsEnabled ?? true;
+        break;
+      }
+      case 'USER': {
+        const prefs =
+          await this.prisma.customerNotificationPreferences.findUnique({
+            where: { userId },
+          });
+        pushEnabled = prefs?.pushNotificationsEnabled ?? true;
+        break;
+      }
+      default: {
+        pushEnabled = true;
+      }
+    }
+
+    // If master toggle is off, don't send any notifications
+    if (!pushEnabled) {
+      this.logger.log(`⏭️ Push notifications disabled for user ${userId}`);
+      return false;
+    }
+
+    // 2. Check Do Not Disturb
     const settings = await this.prisma.notificationSettings.findUnique({
       where: { userId },
     });
 
-    if (!settings) return true;
-
-    // Master toggle off
-    if (!settings.pushNotificationsEnabled) return false;
-
-    // Do Not Disturb
-    if (settings.doNotDisturbEnabled && this.isInDoNotDisturb(settings)) {
+    if (settings?.doNotDisturbEnabled && this.isInDoNotDisturb(settings)) {
+      this.logger.log(`⏭️ Do Not Disturb active for user ${userId}`);
       return false;
     }
 
-    // Role-specific preferences
+    // 3. Check specific notification type preference
     return this.checkRolePreference(userId, type);
   }
 
@@ -243,7 +287,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // ADMIN PREFERENCE CHECK - SIMPLIFIED
+  // ADMIN PREFERENCE CHECK
   // ============================================
 
   private async checkAdminPreference(
@@ -269,7 +313,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // VENDOR PREFERENCE CHECK - SIMPLIFIED
+  // VENDOR PREFERENCE CHECK
   // ============================================
 
   private async checkVendorPreference(
@@ -300,7 +344,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // CUSTOMER PREFERENCE CHECK - SIMPLIFIED
+  // CUSTOMER PREFERENCE CHECK
   // ============================================
 
   private async checkCustomerPreference(
@@ -415,7 +459,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // SETTINGS MANAGEMENT - SIMPLIFIED
+  // SETTINGS MANAGEMENT - FIXED
   // ============================================
 
   async getSettings(userId: string) {
@@ -428,7 +472,7 @@ export class NotificationService {
       throw new NotFoundException('User not found');
     }
 
-    // Get or create base settings
+    // Get or create base settings (DND only)
     let baseSettings = await this.prisma.notificationSettings.findUnique({
       where: { userId },
     });
@@ -491,7 +535,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // FORMAT SETTINGS RESPONSE - SIMPLIFIED
+  // FORMAT SETTINGS RESPONSE - FIXED
   // ============================================
 
   private formatSettingsResponse(
@@ -499,9 +543,9 @@ export class NotificationService {
     baseSettings: any,
     rolePreferences: any,
   ) {
+    // Base settings only contains DND settings
     const base = {
       id: baseSettings.id,
-      pushNotificationsEnabled: baseSettings.pushNotificationsEnabled,
       doNotDisturbEnabled: baseSettings.doNotDisturbEnabled,
       doNotDisturbStart: baseSettings.doNotDisturbStart,
       doNotDisturbEnd: baseSettings.doNotDisturbEnd,
@@ -513,9 +557,12 @@ export class NotificationService {
           role: 'ADMIN',
           base,
           preferences: {
-            systemAlertsEnabled: rolePreferences.systemAlertsEnabled,
-            vendorUpdatesEnabled: rolePreferences.vendorUpdatesEnabled,
-            customerReportsEnabled: rolePreferences.customerReportsEnabled,
+            pushNotificationsEnabled:
+              rolePreferences.pushNotificationsEnabled ?? true,
+            systemAlertsEnabled: rolePreferences.systemAlertsEnabled ?? true,
+            vendorUpdatesEnabled: rolePreferences.vendorUpdatesEnabled ?? true,
+            customerReportsEnabled:
+              rolePreferences.customerReportsEnabled ?? true,
           },
         };
 
@@ -524,23 +571,27 @@ export class NotificationService {
           role: 'VENDOR',
           base,
           preferences: {
+            pushNotificationsEnabled:
+              rolePreferences.pushNotificationsEnabled ?? true,
             orderUpdates: {
-              newOrdersEnabled: rolePreferences.newOrdersEnabled,
-              cancellationsEnabled: rolePreferences.cancellationsEnabled,
+              newOrdersEnabled: rolePreferences.newOrdersEnabled ?? true,
+              cancellationsEnabled:
+                rolePreferences.cancellationsEnabled ?? true,
             },
             customerEngagement: {
-              newFollowersEnabled: rolePreferences.newFollowersEnabled,
-              newReviewsEnabled: rolePreferences.newReviewsEnabled,
+              newFollowersEnabled: rolePreferences.newFollowersEnabled ?? true,
+              newReviewsEnabled: rolePreferences.newReviewsEnabled ?? true,
             },
             eventOpportunity: {
-              upcomingEventsEnabled: rolePreferences.upcomingEventsEnabled,
+              upcomingEventsEnabled:
+                rolePreferences.upcomingEventsEnabled ?? true,
               highTrafficOpportunitiesEnabled:
-                rolePreferences.highTrafficOpportunitiesEnabled,
+                rolePreferences.highTrafficOpportunitiesEnabled ?? true,
             },
             systemAlerts: {
-              appUpdatesEnabled: rolePreferences.appUpdatesEnabled,
+              appUpdatesEnabled: rolePreferences.appUpdatesEnabled ?? true,
               subscriptionBillingEnabled:
-                rolePreferences.subscriptionBillingEnabled,
+                rolePreferences.subscriptionBillingEnabled ?? true,
             },
           },
         };
@@ -550,23 +601,29 @@ export class NotificationService {
           role: 'USER',
           base,
           preferences: {
+            pushNotificationsEnabled:
+              rolePreferences.pushNotificationsEnabled ?? true,
             orderUpdates: {
-              orderConfirmedEnabled: rolePreferences.orderConfirmedEnabled,
-              readyForPickupEnabled: rolePreferences.readyForPickupEnabled,
+              orderConfirmedEnabled:
+                rolePreferences.orderConfirmedEnabled ?? true,
+              readyForPickupEnabled:
+                rolePreferences.readyForPickupEnabled ?? true,
             },
             discoveryAlerts: {
               favoriteTruckLiveEnabled:
-                rolePreferences.favoriteTruckLiveEnabled,
-              newTrucksNearbyEnabled: rolePreferences.newTrucksNearbyEnabled,
-              eventsFestivalsEnabled: rolePreferences.eventsFestivalsEnabled,
+                rolePreferences.favoriteTruckLiveEnabled ?? true,
+              newTrucksNearbyEnabled:
+                rolePreferences.newTrucksNearbyEnabled ?? true,
+              eventsFestivalsEnabled:
+                rolePreferences.eventsFestivalsEnabled ?? true,
             },
             urgentAlerts: {
               favoriteTruckLeavingEnabled:
-                rolePreferences.favoriteTruckLeavingEnabled,
+                rolePreferences.favoriteTruckLeavingEnabled ?? true,
             },
             marketing: {
               promotionsDiscountsEnabled:
-                rolePreferences.promotionsDiscountsEnabled,
+                rolePreferences.promotionsDiscountsEnabled ?? true,
             },
           },
         };
@@ -581,7 +638,7 @@ export class NotificationService {
   }
 
   // ============================================
-  // UPDATE SETTINGS - SIMPLIFIED
+  // UPDATE SETTINGS
   // ============================================
 
   async updateSettings(

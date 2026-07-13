@@ -27,9 +27,14 @@ import { VerifyOtpDto } from '../presentation/dto/mail/otp.dto';
 import { RecoverAccountVerifyDto } from '../presentation/dto/delete-account/recover-account-verify.dto';
 import { VerifyDeletionOtpDto } from '../presentation/dto/delete-account/verify-deletion-otp.dto';
 import { DeletionStatusDto } from '../presentation/dto/delete-account/deletion-status.dto';
-import { DevicePlatform } from '@prisma/client';
+import {
+  DevicePlatform,
+  NotificationChannel,
+  NotificationType,
+} from '@prisma/client';
 import { RevenueCatService } from '@/modules/revenuecat/revenuecat.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { NotificationHelperService } from '@/common/shared/notification.service';
 
 @Injectable()
 export class AuthService {
@@ -47,6 +52,7 @@ export class AuthService {
     private readonly authOtpQueueService: AuthOtpQueueService,
     private readonly revenueCatService: RevenueCatService,
     private readonly prisma: PrismaService,
+    private readonly notificationHelperService: NotificationHelperService,
   ) {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('google.clientId'),
@@ -76,7 +82,6 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // ✅ Ensure platform is properly formatted
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
     let platformValue: DevicePlatform | null = null;
     if (platform) {
       const platformString = platform.toString().toUpperCase();
@@ -85,7 +90,7 @@ export class AuthService {
         platformString === 'ANDROID' ||
         platformString === 'WEB'
       ) {
-        platformValue = platformString as DevicePlatform;
+        platformValue = platformString;
       }
     }
 
@@ -264,6 +269,29 @@ export class AuthService {
     await this.updateRefreshTokenHash(user.id, token.refreshToken);
 
     const locationState = this.buildLocationState(user);
+
+    try {
+      await this.notificationHelperService.sendToUser(user.id, {
+        title: 'Welcome Back! 🎉',
+        body: `Hello ${user.email}, you've successfully logged in. WebSocket is working!`,
+        type: NotificationType.NEW_ORDER,
+        channel: NotificationChannel.PUSH,
+        data: {
+          screen: 'home',
+          action: 'login_success',
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      this.logger.log(
+        `✅ Welcome notification sent to user ${user.id} via WebSocket`,
+      );
+    } catch (error: any) {
+      // Don't block login if notification fails
+      this.logger.error(
+        `Failed to send welcome notification: ${error.message}`,
+      );
+    }
 
     return {
       success: true,
@@ -765,7 +793,6 @@ export class AuthService {
     }
 
     if (role === 'VENDOR' && user.vendorStore) {
-      // Get subscription status from vendorSubscription
       const subscription = await this.userRepository.getVendorSubscription(
         user.vendorStore.id,
       );
@@ -794,13 +821,43 @@ export class AuthService {
           coverImage: user.vendorStore.coverImage,
           onboardingStep: user.vendorStore.onboardingStep,
           kycStatus: user.vendorStore.kycStatus,
-          subscriptionStatus: subscription?.status || null,
-          subscriptionExpiry: subscription?.expiresAt || null,
           status: user.vendorStore.status,
           adminStatus: user.vendorStore.adminStatus,
           truckReviewAverage: user.vendorStore.truckReviewAverage,
           truckReviewCount: user.vendorStore.truckReviewCount,
         },
+        subscription: subscription
+          ? {
+              id: subscription.id,
+              status: subscription.status,
+              isActive: subscription.isActive,
+              isTrialPeriod: subscription.isTrialPeriod,
+              autoRenew: subscription.autoRenew,
+              currentPeriodStart: subscription.currentPeriodStart,
+              currentPeriodEnd: subscription.currentPeriodEnd,
+              expiresAt: subscription.expiresAt,
+              lastRenewalDate: subscription.lastRenewalDate,
+              cancellationDate: subscription.cancellationDate,
+              revenueCatAppUserId: subscription.revenueCatAppUserId,
+              entitlementId: subscription.entitlementId,
+              productId: subscription.productId,
+              store: subscription.store,
+              provider: subscription.provider,
+              plan: subscription.subscriptionPlan
+                ? {
+                    id: subscription.subscriptionPlan.id,
+                    name: subscription.subscriptionPlan.name,
+                    code: subscription.subscriptionPlan.code,
+                    durationDays: subscription.subscriptionPlan.durationDays,
+                    maxProducts: subscription.subscriptionPlan.maxProducts,
+                    price: subscription.subscriptionPlan.price,
+                    currency: subscription.subscriptionPlan.currency,
+                    revenueCatEntitlementId:
+                      subscription.subscriptionPlan.revenueCatEntitlementId,
+                  }
+                : null,
+            }
+          : null,
       };
     }
 

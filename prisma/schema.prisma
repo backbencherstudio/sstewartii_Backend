@@ -70,10 +70,7 @@ model NotificationSettings {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Master toggle for all notifications
-  pushNotificationsEnabled Boolean @default(true)
-
-  // Do Not Disturb settings
+  // Do Not Disturb settings only
   doNotDisturbEnabled Boolean @default(false)
   doNotDisturbStart   String? // "22:00"
   doNotDisturbEnd     String? // "07:00"
@@ -92,6 +89,9 @@ model AdminNotificationPreferences {
   id     String @id @default(uuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Master toggle for push notifications
+  pushNotificationsEnabled Boolean @default(true)
 
   // System Alerts
   systemAlertsEnabled Boolean @default(true)
@@ -116,19 +116,22 @@ model VendorNotificationPreferences {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // ========== ORDER UPDATES ==========
-  newOrdersEnabled       Boolean @default(true)
-  cancellationsEnabled   Boolean @default(true)
+  // Master toggle for push notifications
+  pushNotificationsEnabled Boolean @default(true)
 
-  // ========== CUSTOMER ENGAGEMENT ==========
-  newFollowersEnabled    Boolean @default(true)
-  newReviewsEnabled      Boolean @default(true)
+  // Order Updates
+  newOrdersEnabled     Boolean @default(true)
+  cancellationsEnabled Boolean @default(true)
 
-  // ========== EVENT & OPPORTUNITY ==========
+  // Customer Engagement
+  newFollowersEnabled Boolean @default(true)
+  newReviewsEnabled   Boolean @default(true)
+
+  // Event & Opportunity
   upcomingEventsEnabled           Boolean @default(true)
   highTrafficOpportunitiesEnabled Boolean @default(true)
 
-  // ========== SYSTEM ALERTS ==========
+  // System Alerts
   appUpdatesEnabled          Boolean @default(true)
   subscriptionBillingEnabled Boolean @default(true)
 
@@ -147,19 +150,22 @@ model CustomerNotificationPreferences {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // ========== ORDER UPDATES ==========
+  // Master toggle for push notifications
+  pushNotificationsEnabled Boolean @default(true)
+
+  // Order Updates
   orderConfirmedEnabled Boolean @default(true)
   readyForPickupEnabled Boolean @default(true)
 
-  // ========== DISCOVERY ALERTS ==========
+  // Discovery Alerts
   favoriteTruckLiveEnabled Boolean @default(true)
   newTrucksNearbyEnabled   Boolean @default(true)
   eventsFestivalsEnabled   Boolean @default(true)
 
-  // ========== URGENT ALERTS ==========
+  // Urgent Alerts
   favoriteTruckLeavingEnabled Boolean @default(true)
 
-  // ========== MARKETING ==========
+  // Marketing
   promotionsDiscountsEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())

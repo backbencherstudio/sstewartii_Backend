@@ -21,8 +21,6 @@ import { RegisterDto } from './dto/registerDto/register.dto';
 import { LoginDto } from './dto/loginDto/login.dto';
 import { SendOtpDto, VerifyOtpDto, NewPasswordDto } from './dto/mail/otp.dto';
 
-import { CurrentUserResponseDto } from './dto/userDto/user.response.dto';
-
 // Import new DTOs
 import { RequestDeletionDto } from './dto/delete-account/request-deletion.dto';
 import { VerifyDeletionOtpDto } from './dto/delete-account/verify-deletion-otp.dto';
@@ -114,7 +112,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async me(@CurrentUser() user: AuthUser): Promise<CurrentUserResponseDto> {
+  async me(@CurrentUser() user: AuthUser) {
     return this.authService.getCurrentUser(user.id);
   }
 
