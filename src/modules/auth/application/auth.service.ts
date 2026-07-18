@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { IUserRepository } from '../domain/interfaces/user.repository.interface';
 import type { IOtpRepository } from '../domain/interfaces/otp.repository.interface';
-import { User } from '../domain/entities/user.entity';
+import { User, UserProps } from '../domain/entities/user.entity';
 import { AuthOtpQueueService } from '../infrastructure/queues/auth-otp-queue.service';
 import { RegisterDto } from '../presentation/dto/registerDto/register.dto';
 import { LoginDto } from '../presentation/dto/loginDto/login.dto';
@@ -61,7 +61,117 @@ export class AuthService {
     );
   }
 
-  // ---------- REGISTER ----------
+  // ============ FIREBASE SOCIAL AUTH METHODS ============
+
+  /**
+   * Find user by email (for Firebase auth)
+   */
+  async findUserByEmail(email: string): Promise<any> {
+    return this.userRepository.findByEmail(email);
+  }
+
+  /**
+   * Find user by Firebase UID
+   */
+  async findUserByFirebaseUid(firebaseUid: string): Promise<any> {
+    return this.userRepository.findByFirebaseUid(firebaseUid);
+  }
+
+  /**
+   * Create a new user from social provider (Google/Apple via Firebase)
+   */
+  async createSocialUser(data: {
+    email: string;
+    name: string;
+    firebaseUid: string;
+    provider: 'google' | 'apple' | 'facebook' | 'twitter';
+    emailVerified: boolean;
+    avatar?: string | null;
+  }): Promise<any> {
+    // Generate a random password for social users
+    const randomPassword = await bcrypt.hash(
+      Math.random().toString(36) + Date.now().toString(),
+      10,
+    );
+
+    const userProps: UserProps = {
+      id: uuidv4(),
+      email: data.email,
+      name: data.name,
+      password: randomPassword,
+      provider: data.provider.toUpperCase(),
+      isEmailVerified: data.emailVerified,
+      fcm_token: null,
+      platform: null,
+      googleId: data.provider === 'google' ? data.firebaseUid : null,
+      appleId: data.provider === 'apple' ? data.firebaseUid : null,
+      isDeleted: false,
+      deletionScheduledAt: null,
+      deletionReason: null,
+      refreshToken: null,
+      permissions: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const newUser = new User(userProps);
+    const savedUser = await this.userRepository.create(newUser, 'USER');
+
+    this.logger.log(
+      `✅ Social user created: ${savedUser.email} via ${data.provider}`,
+    );
+
+    return savedUser;
+  }
+
+  /**
+   * Update Firebase UID for existing user
+   * Note: Since your User entity doesn't have a firebaseUid field,
+   * we'll use googleId or appleId to store the Firebase UID
+   */
+  async updateFirebaseUid(userId: string, firebaseUid: string): Promise<void> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Store Firebase UID in the appropriate field based on provider
+    // If you want to add a dedicated firebaseUid field, you can add it to the User entity
+    // For now, we'll use googleId or appleId
+    const updateData: any = {};
+
+    if (user.provider === 'GOOGLE') {
+      updateData.googleId = firebaseUid;
+    } else if (user.provider === 'APPLE') {
+      updateData.appleId = firebaseUid;
+    } else {
+      // If user was LOCAL but now using social login, update provider
+      updateData.provider = user.provider || 'GOOGLE';
+      if (user.provider === 'GOOGLE' || !user.provider) {
+        updateData.googleId = firebaseUid;
+      } else if (user.provider === 'APPLE') {
+        updateData.appleId = firebaseUid;
+      }
+    }
+
+    await this.userRepository.update(userId, updateData);
+    this.logger.log(`✅ Firebase UID updated for user: ${userId}`);
+  }
+
+  /**
+   * Update email verification status
+   */
+  async updateEmailVerification(
+    userId: string,
+    verified: boolean,
+  ): Promise<void> {
+    await this.userRepository.update(userId, { isEmailVerified: verified });
+    this.logger.log(
+      `✅ Email verification updated for user: ${userId} -> ${verified}`,
+    );
+  }
+
+  // ============ REGISTER ============
   async register(registerDto: RegisterDto): Promise<any> {
     const {
       email,
@@ -94,15 +204,27 @@ export class AuthService {
       }
     }
 
-    const newUser = new User({
+    const userProps: UserProps = {
       id: uuidv4(),
       email,
       password: hashedPassword,
       name,
       platform: platformValue,
       fcm_token: fcmToken || null,
-    });
+      provider: 'LOCAL',
+      isEmailVerified: false,
+      isDeleted: false,
+      deletionScheduledAt: null,
+      deletionReason: null,
+      refreshToken: null,
+      permissions: [],
+      googleId: null,
+      appleId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
+    const newUser = new User(userProps);
     const roleType = accountType === 'VENDOR' ? 'VENDOR' : 'USER';
     const savedUser = await this.userRepository.create(newUser, roleType);
 
@@ -191,8 +313,6 @@ export class AuthService {
 
       if (platform) {
         // ✅ Ensure platform is in the correct format
-        // If platform is 'IOS' or 'ANDROID' or 'WEB' it should be fine
-        // If it's lowercase, convert to uppercase
         const platformValue = platform.toUpperCase();
         updateData.platform = platformValue;
         console.log(`📱 Updating platform to: ${platformValue}`);
@@ -682,15 +802,25 @@ export class AuthService {
         });
       }
     } else {
-      const newUser = new User({
+      const userProps: UserProps = {
         id: uuidv4(),
         email,
         name,
         password: null,
         googleId,
         provider: 'GOOGLE',
-      });
-
+        isEmailVerified: false,
+        isDeleted: false,
+        deletionScheduledAt: null,
+        deletionReason: null,
+        refreshToken: null,
+        permissions: [],
+        fcm_token: null,
+        platform: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const newUser = new User(userProps);
       user = await this.userRepository.create(newUser, 'USER');
     }
 
@@ -735,7 +865,7 @@ export class AuthService {
       (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     );
 
-    // Calculate days elapsed since scheduling - FIX: handle undefined createdAt
+    // Calculate days elapsed since scheduling
     const startDate = user.updatedAt || user.createdAt || now;
     const daysElapsed = Math.ceil(
       (now.getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24),
@@ -761,55 +891,6 @@ export class AuthService {
       message: `Account is in grace period. You have ${daysRemaining} days to recover.`,
     };
   }
-
-  // async validateAppleLogin(data: {
-  //   identityToken: string;
-  //   givenName?: string;
-  //   familyName?: string;
-  // }) {
-  //   // Verify Apple identityToken
-
-  //   const payload = decodedToken;
-
-  //   const appleId = payload.sub;
-  //   const email = payload.email;
-
-  //   const name = `${data.givenName ?? ''} ${data.familyName ?? ''}`.trim();
-
-  //   let user = await this.userRepository.findByEmail(email);
-
-  //   if (user) {
-  //     if (!user.appleId) {
-  //       await this.userRepository.update(user.id, {
-  //         appleId,
-  //         provider: 'APPLE',
-  //       });
-  //     }
-  //   } else {
-  //     user = await this.userRepository.create(
-  //       new User({
-  //         id: uuidv4(),
-  //         email,
-  //         name,
-  //         password: null,
-  //         appleId,
-  //         provider: 'APPLE',
-  //       }),
-  //       'USER',
-  //     );
-  //   }
-
-  //   const tokens = await this.getTokens(user.id, user.email, user.role.name);
-
-  //   await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
-
-  //   return {
-  //     user,
-  //     tokens,
-  //   };
-  // }
-
-  
 
   // ---------- CURRENT USER ----------
   async getCurrentUser(userId: string) {

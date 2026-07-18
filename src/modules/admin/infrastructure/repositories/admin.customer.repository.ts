@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
-import { Customer, OrderReportReason } from '@prisma/client';
+import { OrderReportReason } from '@prisma/client';
 
 import type {
   IAdminCustomerRepository,
   FindAllCustomersParams,
 } from '../../domain/interface/admin.customer.repository.interface';
 
-import { VendorVerificationSort } from '../../presentation/dto/admin.dto';
 import {
   CustomerOrderHistoryQueryDto,
   CustomerReportQueueQueryDto,
@@ -162,7 +161,7 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
 
     return {
       customer: customer!,
-      orderStats: orderStats as any,
+      orderStats: orderStats,
       orders,
       orderCount,
       lastOrderedAt: lastOrder?.createdAt ?? null,
@@ -192,10 +191,6 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
         }
       : {};
 
-    const orderBy =
-      sortBy === 'oldest'
-        ? { createdAt: 'asc' as const }
-        : { createdAt: 'desc' as const };
 
     const grouped = await this.prisma.orderReport.groupBy({
       by: ['customerId'],

@@ -2,11 +2,8 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-
-import { VerificationStatus } from '@prisma/client';
 
 import type {
   IAdminCustomerRepository,

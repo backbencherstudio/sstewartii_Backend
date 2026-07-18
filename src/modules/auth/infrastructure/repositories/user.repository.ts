@@ -24,6 +24,25 @@ export class UserRepository implements IUserRepository {
     return UserMapper.toDomain(user);
   }
 
+  async findByFirebaseUid(firebaseUid: string): Promise<any> {
+    if (!firebaseUid) return null;
+
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [{ googleId: firebaseUid }, { appleId: firebaseUid }],
+      },
+      include: {
+        role: true,
+        customer: true,
+        vendorStore: {
+          include: {
+            serviceArea: true,
+          },
+        },
+      },
+    });
+  }
+
   async findLoginUserByEmail(email: string): Promise<LoginUserView | null> {
     return this.prisma.user.findUnique({
       where: { email },
@@ -339,16 +358,19 @@ export class UserRepository implements IUserRepository {
       productId: subscription.productId,
       store: subscription.store,
       provider: subscription.provider,
-      subscriptionPlan: subscription.subscriptionPlan ? {
-        id: subscription.subscriptionPlan.id,
-        name: subscription.subscriptionPlan.name,
-        code: subscription.subscriptionPlan.code,
-        durationDays: subscription.subscriptionPlan.durationDays,
-        maxProducts: subscription.subscriptionPlan.maxProducts,
-        price: subscription.subscriptionPlan.price,
-        currency: subscription.subscriptionPlan.currency,
-        revenueCatEntitlementId: subscription.subscriptionPlan.revenueCatEntitlementId,
-      } : null,
+      subscriptionPlan: subscription.subscriptionPlan
+        ? {
+            id: subscription.subscriptionPlan.id,
+            name: subscription.subscriptionPlan.name,
+            code: subscription.subscriptionPlan.code,
+            durationDays: subscription.subscriptionPlan.durationDays,
+            maxProducts: subscription.subscriptionPlan.maxProducts,
+            price: subscription.subscriptionPlan.price,
+            currency: subscription.subscriptionPlan.currency,
+            revenueCatEntitlementId:
+              subscription.subscriptionPlan.revenueCatEntitlementId,
+          }
+        : null,
     };
   }
 }

@@ -1,6 +1,12 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getMessaging, Messaging, Message } from 'firebase-admin/messaging';
+import { getAuth, Auth } from 'firebase-admin/auth';
 import { initializeFirebase } from '@/config/firebase.config';
 
 export interface PushNotificationPayload {
@@ -18,10 +24,21 @@ export interface PushNotificationResult {
   error?: string;
 }
 
+export interface FirebaseUser {
+  uid: string;
+  email: string;
+  name?: string;
+  picture?: string;
+  emailVerified: boolean;
+  provider: 'google' | 'apple' | 'facebook' | 'twitter';
+  providerId?: string;
+}
+
 @Injectable()
 export class FirebaseService implements OnModuleInit {
   private readonly logger = new Logger(FirebaseService.name);
   private messaging: Messaging | null = null;
+  private auth: Auth | null = null;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -29,6 +46,7 @@ export class FirebaseService implements OnModuleInit {
     try {
       const app = initializeFirebase(this.configService);
       this.messaging = getMessaging(app);
+      this.auth = getAuth(app);
       this.logger.log('✅ Firebase initialized successfully');
     } catch (error) {
       const errorMessage =
@@ -36,6 +54,147 @@ export class FirebaseService implements OnModuleInit {
       this.logger.error(`❌ Failed to initialize Firebase: ${errorMessage}`);
     }
   }
+
+  // ============ AUTHENTICATION METHODS ============
+
+  /**
+   * Verify Firebase ID token
+   */
+  async verifyIdToken(idToken: string): Promise<FirebaseUser> {
+    try {
+      if (!this.auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
+
+      const decodedToken = await this.auth.verifyIdToken(idToken);
+
+      // Extract user info
+      const firebaseUser: FirebaseUser = {
+        uid: decodedToken.uid,
+        email: decodedToken.email || '',
+        name: decodedToken.name || '',
+        picture: decodedToken.picture || '',
+        emailVerified: decodedToken.email_verified || false,
+        provider: this.getProviderFromToken(decodedToken),
+        providerId:
+          decodedToken.firebase?.identities?.['google.com']?.[0] ||
+          decodedToken.firebase?.identities?.['apple.com']?.[0] ||
+          undefined,
+      };
+
+      return firebaseUser;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Token verification failed: ${errorMessage}`);
+      throw new UnauthorizedException('Invalid Firebase token');
+    }
+  }
+
+  /**
+   * Get user by Firebase UID
+   */
+  async getUserByUid(uid: string): Promise<FirebaseUser | null> {
+    try {
+      if (!this.auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
+
+      const userRecord = await this.auth.getUser(uid);
+
+      return {
+        uid: userRecord.uid,
+        email: userRecord.email || '',
+        name: userRecord.displayName || '',
+        picture: userRecord.photoURL || '',
+        emailVerified: userRecord.emailVerified || false,
+        provider: this.getProviderFromUser(userRecord),
+        providerId: userRecord.providerData?.[0]?.uid || undefined,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Failed to get user: ${errorMessage}`);
+      return null;
+    }
+  }
+
+  /**
+   * Create custom token for Firebase authentication
+   */
+  async createCustomToken(
+    uid: string,
+    claims?: Record<string, any>,
+  ): Promise<string> {
+    try {
+      if (!this.auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
+
+      const customToken = await this.auth.createCustomToken(uid, claims);
+      return customToken;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Failed to create custom token: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Set custom user claims
+   */
+  async setCustomUserClaims(
+    uid: string,
+    claims: Record<string, any>,
+  ): Promise<void> {
+    try {
+      if (!this.auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
+
+      await this.auth.setCustomUserClaims(uid, claims);
+      this.logger.log(`✅ Custom claims set for user: ${uid}`);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Failed to set custom claims: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate a Firebase login URL for Google (for web)
+   */
+  getGoogleAuthUrl(): string {
+    const clientId = this.configService.get<string>(
+      'FIREBASE_GOOGLE_CLIENT_ID',
+    );
+    const redirectUri = this.configService.get<string>(
+      'FIREBASE_GOOGLE_REDIRECT_URI',
+    );
+    const scope = 'email profile';
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline`;
+  }
+
+  /**
+   * Generate a Firebase login URL for Apple (for web)
+   */
+  getAppleAuthUrl(): string {
+    const clientId = this.configService.get<string>('FIREBASE_APPLE_CLIENT_ID');
+    const redirectUri = this.configService.get<string>(
+      'FIREBASE_APPLE_REDIRECT_URI',
+    );
+    const scope = 'name email';
+    const responseType = 'code';
+    const responseMode = 'form_post';
+    const state = 'APPLE_AUTH';
+
+    return `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}&state=${state}&response_mode=${responseMode}`;
+  }
+
+  // ============ PUSH NOTIFICATION METHODS ============
 
   async sendToDevice(
     fcmToken: string,
@@ -231,11 +390,44 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
+  // ============ PRIVATE HELPERS ============
+
   private stringifyData(data: Record<string, any>): Record<string, string> {
     const result: Record<string, string> = {};
     for (const [key, value] of Object.entries(data)) {
       result[key] = typeof value === 'string' ? value : JSON.stringify(value);
     }
     return result;
+  }
+
+  private getProviderFromToken(
+    decodedToken: any,
+  ): 'google' | 'apple' | 'facebook' | 'twitter' {
+    if (decodedToken.firebase?.identities?.['google.com']) {
+      return 'google';
+    }
+    if (decodedToken.firebase?.identities?.['apple.com']) {
+      return 'apple';
+    }
+    if (decodedToken.firebase?.identities?.['facebook.com']) {
+      return 'facebook';
+    }
+    if (decodedToken.firebase?.identities?.['twitter.com']) {
+      return 'twitter';
+    }
+    return 'google'; // default fallback
+  }
+
+  private getProviderFromUser(
+    userRecord: any,
+  ): 'google' | 'apple' | 'facebook' | 'twitter' {
+    const providerId = userRecord.providerData?.[0]?.providerId || '';
+
+    if (providerId.includes('google')) return 'google';
+    if (providerId.includes('apple')) return 'apple';
+    if (providerId.includes('facebook')) return 'facebook';
+    if (providerId.includes('twitter')) return 'twitter';
+
+    return 'google'; // default fallback
   }
 }

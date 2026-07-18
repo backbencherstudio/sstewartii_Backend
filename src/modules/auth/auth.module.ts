@@ -2,6 +2,7 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './presentation/auth.controller';
 import { AuthService } from './application/auth.service';
+import { FirebaseAuthService } from './application/firebase-auth.service';
 import { UserRepository } from './infrastructure/repositories/user.repository';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AccountDeletionTask } from './infrastructure/tasks/account-deletion.task';
 import { RevenueCatModule } from '../revenuecat/revenuecat.module';
 import { VendorModule } from '../vendor/vendor/vendor.module';
+import { FirebaseService } from '@/common/firebase/firebase.service';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { VendorModule } from '../vendor/vendor/vendor.module';
   controllers: [AuthController],
   providers: [
     AuthService,
+    FirebaseAuthService,
+    FirebaseService,
     PrismaService,
     MailService,
     AuthOtpQueueService,
@@ -63,7 +67,13 @@ import { VendorModule } from '../vendor/vendor/vendor.module';
     JwtStrategy,
     GoogleStrategy,
   ],
-  exports: [JwtModule, PassportModule],
+  exports: [
+    JwtModule,
+    PassportModule,
+    AuthService,
+    FirebaseAuthService,
+    FirebaseService,
+  ],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

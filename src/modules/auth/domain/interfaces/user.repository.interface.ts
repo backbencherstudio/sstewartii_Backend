@@ -70,6 +70,7 @@ export interface VendorSubscriptionView {
 
 export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;
+  findByFirebaseUid(firebaseUid: string): Promise<any>;
   findLoginUserByEmail(email: string): Promise<LoginUserView | null>;
   update(userId: string, updateData: Partial<User>): Promise<User>;
   create(user: User, roleType: 'USER' | 'VENDOR'): Promise<User>;
