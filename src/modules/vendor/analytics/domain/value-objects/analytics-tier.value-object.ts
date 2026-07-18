@@ -2,7 +2,7 @@ export enum SubscriptionTier {
   FREE_USER = 'free_user',
   FREE_TRIAL_USER = 'free_trial_user',
   STARTER_USER = 'atliss_app_starter',
-  PRO_USER = 'Atliss Pro',
+  PRO_USER = 'atliss_app_pro',
   ELITE_USER = 'atliss_app_elite',
 }
 

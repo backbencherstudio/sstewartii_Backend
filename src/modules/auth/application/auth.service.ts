@@ -665,16 +665,18 @@ export class AuthService {
     return this.googleClient.generateAuthUrl({
       access_type: 'offline',
       scope: ['email', 'profile'],
-      prompt: 'consent',
+      prompt: 'select_account',
     });
   }
 
-  async validateGoogleLogin(profile: any): Promise<any> {
+  async validateGoogleLogin(profile: any) {
     const { email, name, googleId } = profile;
+
     let user = await this.userRepository.findByEmail(email);
+
     if (user) {
       if (!user.googleId) {
-        await this.userRepository.update(user.id, {
+        user = await this.userRepository.update(user.id, {
           googleId,
           provider: 'GOOGLE',
         });
@@ -688,11 +690,18 @@ export class AuthService {
         googleId,
         provider: 'GOOGLE',
       });
+
       user = await this.userRepository.create(newUser, 'USER');
     }
+
     const tokens = await this.getTokens(user.id, user.email, user.role.name);
+
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
-    return { user, tokens };
+
+    return {
+      user,
+      tokens,
+    };
   }
 
   async getDeletionStatus(userId: string): Promise<DeletionStatusDto> {
@@ -752,6 +761,55 @@ export class AuthService {
       message: `Account is in grace period. You have ${daysRemaining} days to recover.`,
     };
   }
+
+  // async validateAppleLogin(data: {
+  //   identityToken: string;
+  //   givenName?: string;
+  //   familyName?: string;
+  // }) {
+  //   // Verify Apple identityToken
+
+  //   const payload = decodedToken;
+
+  //   const appleId = payload.sub;
+  //   const email = payload.email;
+
+  //   const name = `${data.givenName ?? ''} ${data.familyName ?? ''}`.trim();
+
+  //   let user = await this.userRepository.findByEmail(email);
+
+  //   if (user) {
+  //     if (!user.appleId) {
+  //       await this.userRepository.update(user.id, {
+  //         appleId,
+  //         provider: 'APPLE',
+  //       });
+  //     }
+  //   } else {
+  //     user = await this.userRepository.create(
+  //       new User({
+  //         id: uuidv4(),
+  //         email,
+  //         name,
+  //         password: null,
+  //         appleId,
+  //         provider: 'APPLE',
+  //       }),
+  //       'USER',
+  //     );
+  //   }
+
+  //   const tokens = await this.getTokens(user.id, user.email, user.role.name);
+
+  //   await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
+
+  //   return {
+  //     user,
+  //     tokens,
+  //   };
+  // }
+
+  
 
   // ---------- CURRENT USER ----------
   async getCurrentUser(userId: string) {

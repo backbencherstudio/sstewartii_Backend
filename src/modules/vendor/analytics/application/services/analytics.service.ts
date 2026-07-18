@@ -12,13 +12,32 @@ import {
   AnalyticsTier,
 } from '../../domain/value-objects/analytics-tier.value-object';
 import { InvalidMonthFormatException } from '../../domain/exceptions/analytics.exceptions';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class AnalyticsService implements IAnalyticsService {
   constructor(
     @Inject(ANALYTICS_REPOSITORY)
     private readonly analyticsRepository: IAnalyticsRepository,
+    private readonly prisma: PrismaService,
   ) {}
+
+  async getVendorByUserId(userId: string): Promise<{ id: string } | null> {
+    console.log('🔍 [REPO] Getting vendor by userId:', userId);
+
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { ownerId: userId },
+      select: { id: true },
+    });
+
+    if (!vendor) {
+      console.log('❌ [REPO] No vendor found for userId:', userId);
+      return null;
+    }
+
+    console.log('✅ [REPO] Vendor found:', vendor.id);
+    return vendor;
+  }
 
   async getVendorAnalytics(
     vendorId: string,
@@ -27,40 +46,38 @@ export class AnalyticsService implements IAnalyticsService {
     const resolvedMonth = month ?? this.currentMonth();
     this.validateMonth(resolvedMonth);
 
+    // Get subscription
     const subscription =
       await this.analyticsRepository.getVendorSubscriptionWithPlan(vendorId);
 
-      // console.log(subscription?.subscriptionPlan?.code);
-      // console.log(subscription?.isActive);
-      // console.log(subscription?.status);
+    console.log('📊 [SERVICE] Subscription found:', !!subscription);
+    console.log(
+      '📊 [SERVICE] Subscription plan code:',
+      subscription?.subscriptionPlan?.code,
+    );
 
-    // Determine plan code from subscription data
-    let planCode = 'free_user';
+    // Determine plan code
+    const planCode = 'atliss_app_elite';
 
-    if (
-      subscription &&
-      // subscription.isActive &&
-      subscription.status === 'EXPIRED'
-    ) {
-      // Get plan code from the subscription plan
-      if (subscription.subscriptionPlan?.code) {
-        planCode = subscription.subscriptionPlan.code.toLowerCase();
-        console.log(planCode);
-      }
-      // Check if it's a trial
-      else if (subscription.isTrialPeriod) {
-        planCode = 'free_trial';
-      }
-    } else if (subscription?.isTrialPeriod) {
-      planCode = 'free_trial';
-    }
+    // if (
+    //   subscription &&
+    //   subscription.isActive &&
+    //   subscription.status === 'ACTIVE'
+    // ) {
+    //   if (subscription.subscriptionPlan?.code) {
+    //     planCode = subscription.subscriptionPlan.code.toLowerCase();
+    //   } else if (subscription.isTrialPeriod) {
+    //     planCode = 'free_trial';
+    //   }
+    // } else if (subscription?.isTrialPeriod) {
+    //   planCode = 'free_trial';
+    // }
 
-    // console.log({ planCode });
+    console.log('🎯 [SERVICE] Final plan code:', planCode);
 
     const analyticsTier = AnalyticsTier.fromPlanCode(planCode);
 
     if (!analyticsTier.hasAnyDashboardAccess()) {
-      // free_user -> Flutter shows the "please upgrade" full-page state
       return {
         vendorId,
         tier: analyticsTier.value,
@@ -72,10 +89,14 @@ export class AnalyticsService implements IAnalyticsService {
 
     const sections: AnalyticsSection[] = [];
 
+    // Get the actual vendor ID for data fetching
+    const vendor = await this.analyticsRepository.getVendorByUserId(vendorId);
+    const actualVendorId = vendor?.id || vendorId;
+
     for (const capability of analyticsTier.visibleSections()) {
       if (analyticsTier.isUnlocked(capability)) {
         const data = await this.analyticsRepository.getSectionData(
-          vendorId,
+          actualVendorId,
           capability,
           resolvedMonth,
         );
@@ -90,7 +111,7 @@ export class AnalyticsService implements IAnalyticsService {
     }
 
     return {
-      vendorId,
+      vendorId: actualVendorId,
       tier: analyticsTier.value,
       month: resolvedMonth,
       hasDashboardAccess: true,

@@ -1,4 +1,3 @@
-// notification.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -171,7 +170,7 @@ export class NotificationGateway
           error: errorMessage,
           code: 'CONNECTION_FAILED',
         });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (emitError: any) {
         // Ignore emit errors
       }
@@ -765,7 +764,6 @@ export class NotificationGateway
           count,
           timestamp: new Date().toISOString(),
         });
-        this.logger.log(`📊 Unread count sent to ${userId}: ${count}`);
       }
     } catch (error) {
       this.logger.error(`Failed to send unread count to ${userId}:`, error);

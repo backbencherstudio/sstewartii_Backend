@@ -32,8 +32,9 @@ export interface VendorSubscriptionWithPlan {
 }
 
 export interface IAnalyticsRepository {
+  getVendorByUserId(userId: string): Promise<{ id: string } | null>;
   getVendorSubscriptionWithPlan(
-    vendorId: string,
+    userId: string,
   ): Promise<VendorSubscriptionWithPlan | null>;
   getSectionData(
     vendorId: string,

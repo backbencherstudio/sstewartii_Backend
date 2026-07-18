@@ -1058,7 +1058,7 @@ export class AdminVendorVerificationService {
       throw new NotFoundException('Vendor not found');
     }
 
-    let data: UpdateVendorStatusData = {
+    const data: UpdateVendorStatusData = {
       adminStatus: status,
       statusReason: reason || null,
     };

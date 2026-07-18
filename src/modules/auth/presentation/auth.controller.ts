@@ -93,17 +93,17 @@ export class AuthController {
   @Get('google/callback')
   @Public()
   @UseGuards(GoogleOAuthGuard)
-  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+  async googleCallback(@Req() req, @Res() res: Response) {
     const { tokens } = await this.authService.validateGoogleLogin(req.user);
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    const frontendUrl = this.configService.get<string>(
+    const frontendUrl = this.configService.getOrThrow<string>(
       'redirect_url.frontEndRedirect',
     );
 
