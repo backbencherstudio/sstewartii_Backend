@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { FirebaseService } from '@/common/firebase/firebase.service';
+import { DevicePlatform } from '@prisma/client';
 
 @Injectable()
 export class FirebaseAuthService {
@@ -20,20 +21,22 @@ export class FirebaseAuthService {
   /**
    * Handle Firebase login with ID token
    */
-  async handleFirebaseLogin(idToken: string, provider: 'google' | 'apple') {
+  async handleFirebaseLogin(
+    idToken: string,
+    provider: 'google' | 'apple',
+    options?: { fcmToken?: string; platform?: DevicePlatform; role?: string },
+  ) {
     try {
-      // 1. Verify Firebase token
       const firebaseUser = await this.firebaseService.verifyIdToken(idToken);
 
       if (!firebaseUser.email) {
         throw new UnauthorizedException('Email not provided by provider');
       }
 
-      // 2. Check if user exists in your database
       let user = await this.authService.findUserByEmail(firebaseUser.email);
 
       if (!user) {
-        // 3. Create new user
+        // Create new user with the provided extra fields
         user = await this.authService.createSocialUser({
           email: firebaseUser.email,
           name: firebaseUser.name || firebaseUser.email.split('@')[0],
@@ -41,32 +44,48 @@ export class FirebaseAuthService {
           provider,
           emailVerified: firebaseUser.emailVerified,
           avatar: firebaseUser.picture || null,
+          fcmToken: options?.fcmToken,
+          platform: options?.platform,
+          role: options?.role, // will be validated inside createSocialUser
         });
 
-        // 4. Set custom claims in Firebase (optional)
+        // Set custom claims in Firebase
         await this.firebaseService.setCustomUserClaims(firebaseUser.uid, {
           userId: user.id,
-          role: user.role || 'user',
+          role: user.role || 'USER',
         });
       } else {
-        // 5. Update existing user with Firebase UID if not set
+        // Update existing user's Firebase UID if not set
         if (!user.firebaseUid) {
           await this.authService.updateFirebaseUid(user.id, firebaseUser.uid);
         }
 
-        // 6. Update email verification status if needed
+        // Update email verification status if needed
         if (firebaseUser.emailVerified && !user.emailVerified) {
           await this.authService.updateEmailVerification(user.id, true);
         }
+
+        // Update device info (FCM token & platform) if provided
+        if (options?.fcmToken || options?.platform) {
+          await this.authService.updateUserDevice(user.id, {
+            fcmToken: options.fcmToken,
+            platform: options.platform,
+          });
+        }
+
+        // Optionally update role if provided and user is new?
+        // For existing users, you might not want to allow role changes via login,
+        // but if you do, add a separate method with validation.
       }
 
-      // 7. Generate JWT tokens for your application
+      // Generate JWT tokens
       const accessToken = this.jwtService.sign(
         {
           sub: user.id,
           email: user.email,
           provider,
           firebaseUid: firebaseUser.uid,
+          role: user.role, // from DB
         },
         {
           secret: this.configService.get('JWT_ACCESS_SECRET'),
@@ -80,6 +99,7 @@ export class FirebaseAuthService {
           email: user.email,
           provider,
           firebaseUid: firebaseUser.uid,
+          role: user.role,
         },
         {
           secret: this.configService.get('JWT_REFRESH_SECRET'),

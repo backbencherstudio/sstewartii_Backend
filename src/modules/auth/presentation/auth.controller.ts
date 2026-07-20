@@ -42,18 +42,8 @@ import { CurrentUser } from '../decorators/get-user.decorator';
 import { ChangePasswordDto } from './dto/change-password/change-password.dto';
 import { RecoverAccountInitiateDto } from './dto/delete-account/recover-account-initiate.dto';
 import { DeletionStatusDto } from './dto/delete-account/deletion-status.dto';
+import { FirebaseLoginDto } from './dto/loginDto/firebase-login.dto';
 
-// DTOs for Firebase auth
-export class FirebaseLoginDto {
-  @ApiProperty({ description: 'Firebase ID token' })
-  idToken: string | undefined;
-
-  constructor(partial?: Partial<FirebaseLoginDto>) {
-    if (partial) {
-      Object.assign(this, partial);
-    }
-  }
-}
 
 export class FirebaseCodeLoginDto {
   @ApiProperty({ description: 'Authorization code from OAuth provider' })
@@ -159,27 +149,24 @@ export class AuthController {
     summary: 'Login with Google using Firebase ID token (Mobile)',
   })
   @ApiBody({ type: FirebaseLoginDto })
-  @ApiResponse({ status: 200, description: 'Google login successful' })
-  @ApiResponse({ status: 401, description: 'Invalid Firebase token' })
   async googleFirebaseLogin(
-    @Body('idToken') idToken: string,
+    @Body() firebaseLoginDto: FirebaseLoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (!idToken) {
-      throw new BadRequestException('ID token is required');
-    }
+    const { idToken, fcmToken, platform, role } = firebaseLoginDto;
 
     const result = await this.firebaseAuthService.handleFirebaseLogin(
       idToken,
       'google',
+      { fcmToken, platform, role },
     );
 
-    // Set refresh token as HTTP-only cookie
+    // Set refresh token cookie
     res.cookie('refreshToken', result.tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return {
@@ -191,7 +178,7 @@ export class AuthController {
           id: result.user.id,
           email: result.user.email,
           name: result.user.name,
-          role: result.user.role?.name,
+          role: result.user.role,
           isVerified: result.user.isEmailVerified,
           provider: result.user.provider,
         },
@@ -213,9 +200,11 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Apple login successful' })
   @ApiResponse({ status: 401, description: 'Invalid Firebase token' })
   async appleFirebaseLogin(
-    @Body('idToken') idToken: string,
+    @Body() firebaseLoginDto: FirebaseLoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const { idToken, fcmToken, platform, role } = firebaseLoginDto;
+
     if (!idToken) {
       throw new BadRequestException('ID token is required');
     }
@@ -223,6 +212,7 @@ export class AuthController {
     const result = await this.firebaseAuthService.handleFirebaseLogin(
       idToken,
       'apple',
+      { fcmToken, platform, role },
     );
 
     // Set refresh token as HTTP-only cookie
@@ -230,7 +220,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return {
@@ -242,7 +232,7 @@ export class AuthController {
           id: result.user.id,
           email: result.user.email,
           name: result.user.name,
-          role: result.user.role?.name,
+          role: result.user.role,
           isVerified: result.user.isEmailVerified,
           provider: result.user.provider,
         },

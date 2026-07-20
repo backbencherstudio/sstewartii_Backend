@@ -77,9 +77,20 @@ export class AuthService {
     return this.userRepository.findByFirebaseUid(firebaseUid);
   }
 
+  async updateUserDevice(
+    userId: string,
+    data: { fcmToken?: string; platform?: DevicePlatform },
+  ) {
+    return this.userRepository.update(userId, {
+      fcm_token: data.fcmToken,
+      platform: data.platform,
+    });
+  }
+
   /**
    * Create a new user from social provider (Google/Apple via Firebase)
    */
+  // auth.service.ts (or similar)
   async createSocialUser(data: {
     email: string;
     name: string;
@@ -87,8 +98,18 @@ export class AuthService {
     provider: 'google' | 'apple' | 'facebook' | 'twitter';
     emailVerified: boolean;
     avatar?: string | null;
+    fcmToken?: string | null;
+    platform?: DevicePlatform | null;
+    role?: string; // client‑supplied role, will be validated
   }): Promise<any> {
-    // Generate a random password for social users
+    // Validate role if provided – only allow non‑admin roles
+    const allowedRoles = ['USER', 'VENDOR'] as const; // adjust as needed
+    let assignedRole: 'USER' | 'VENDOR' = 'USER'; // default
+    if (data.role && allowedRoles.includes(data.role.toUpperCase() as any)) {
+      assignedRole = data.role.toUpperCase() as 'USER' | 'VENDOR';
+    }
+
+    // Generate random password
     const randomPassword = await bcrypt.hash(
       Math.random().toString(36) + Date.now().toString(),
       10,
@@ -101,8 +122,8 @@ export class AuthService {
       password: randomPassword,
       provider: data.provider.toUpperCase(),
       isEmailVerified: data.emailVerified,
-      fcm_token: null,
-      platform: null,
+      fcm_token: data.fcmToken || null,
+      platform: data.platform || null,
       googleId: data.provider === 'google' ? data.firebaseUid : null,
       appleId: data.provider === 'apple' ? data.firebaseUid : null,
       isDeleted: false,
@@ -112,13 +133,14 @@ export class AuthService {
       permissions: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      role: assignedRole, // store role – ensure your User entity has a role field
     };
 
     const newUser = new User(userProps);
-    const savedUser = await this.userRepository.create(newUser, 'USER');
+    const savedUser = await this.userRepository.create(newUser, assignedRole);
 
     this.logger.log(
-      `✅ Social user created: ${savedUser.email} via ${data.provider}`,
+      `✅ Social user created: ${savedUser.email} via ${data.provider} with role ${assignedRole}`,
     );
 
     return savedUser;
