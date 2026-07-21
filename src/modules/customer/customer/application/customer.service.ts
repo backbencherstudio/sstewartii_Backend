@@ -761,6 +761,8 @@ export class CustomerService {
     const customerLng = customer.longitude;
     const radiusKm = query.radiusKm ?? 10;
 
+    // console.log(query);
+
     if (query.type === CustomerSearchType.FOOD) {
       return this.searchFoods(
         customer.id,
@@ -791,6 +793,18 @@ export class CustomerService {
       this.repo.findFoodSearchCandidates(query),
       this.repo.findFavoriteProductIds(customerId),
     ]);
+
+    // console.log('🔍 Products found before enrichment:', products.length);
+    // console.log('📍 Customer Location:', { customerLat, customerLng });
+    // console.log('📡 Radius:', radiusKm);
+
+    // products.forEach((p) => {
+    //   console.log(`📦 Product: ${p.name}`);
+    //   console.log(`   Vendor: ${p.vendor?.businessName || 'Unknown'}`);
+    //   console.log(
+    //     `   ServiceArea: ${p.vendor?.serviceArea?.latitude}, ${p.vendor?.serviceArea?.longitude}`,
+    //   );
+    // });
 
     const favoriteSet = new Set(favoriteProductIds);
 
