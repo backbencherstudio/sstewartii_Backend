@@ -54,9 +54,9 @@ import {
   AdminVendorSubscriptionResponseDto,
   AdminVendorStatusResponseDto,
 } from '../presentation/dto/admin.response.dto';
-import { AnalyticsSummaryResponseDto } from '../presentation/dto/analytics-summary.response.dto';
 
 import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
+import { AnalyticsQueryDto } from '../presentation/dto/analytics-query.dto';
 
 export interface RevenueChartItem {
   label: string;
@@ -1084,9 +1084,7 @@ export class AdminVendorVerificationService {
     return this.adminMapper.toResponse(updatedVendor);
   }
 
-  async getAnalyticalSummary(): Promise<AnalyticsSummaryResponseDto> {
-    const raw = await this.repository.getAnalyticalSummary();
-
-    return this.adminAnalyticsMapper.toSummaryResponse(raw);
+  async getAnalyticalSummary(filter: AnalyticsQueryDto) {
+    return await this.repository.getAnalyticalSummary(filter);
   }
 }

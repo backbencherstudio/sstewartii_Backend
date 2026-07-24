@@ -8,6 +8,7 @@ import {
   IsBoolean,
   IsIn,
   IsEnum,
+  IsNotEmpty,
 } from 'class-validator';
 
 import { Type, Transform } from 'class-transformer';
@@ -276,4 +277,42 @@ export class CustomerAdvancedSearchQueryDto {
   @Min(1)
   @Max(50)
   limit?: number = 10;
+}
+
+export enum OrderFilter {
+  ALL = 'all',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
+export class OrderHistoryQueryDto {
+  @IsOptional()
+  @IsEnum(OrderFilter)
+  filter?: OrderFilter = OrderFilter.ALL;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number = 10;
+}
+
+
+export class OrderDetailQueryDto {
+  @IsString()
+  @IsNotEmpty()
+  orderId: string | undefined;
+}
+
+export class OrderAgainDto {
+  @IsString()
+  @IsNotEmpty()
+  orderId: string | undefined;
 }

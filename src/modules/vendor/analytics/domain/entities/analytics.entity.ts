@@ -1,8 +1,8 @@
 import { AnalyticsCapability } from '../value-objects/analytics-tier.value-object';
 
-export interface RevenueDataPoint {
-  day: number;
-  amount: number;
+export class RevenueDataPoint {
+  label: string | undefined;
+  value: number | undefined;
 }
 
 export interface RevenueData {

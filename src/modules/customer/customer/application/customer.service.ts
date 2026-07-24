@@ -23,6 +23,8 @@ import {
   CustomerAdvancedSearchQueryDto,
   CustomerSearchSortBy,
   CustomerSearchType,
+  OrderHistoryQueryDto,
+  OrderAgainDto,
 } from '../presentation/dto/customer.dto';
 
 import {
@@ -37,6 +39,8 @@ import {
 } from '../presentation/dto/customer.response.dto';
 
 import { VendorService } from '@/modules/vendor/vendor/application/vendor.service';
+import { IStorageService } from '@/common/storage/storage.interface';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class CustomerService {
@@ -45,6 +49,9 @@ export class CustomerService {
     private readonly repo: ICustomerRepository,
     private readonly vendorService: VendorService,
     private readonly mapper: CustomerMapper,
+    @Inject(IStorageService)
+    private readonly storage: IStorageService,
+    private readonly prisma: PrismaService
   ) {}
 
   async findActiveByUserId(userId: string): Promise<CustomerEntity | null> {
@@ -780,6 +787,349 @@ export class CustomerService {
       radiusKm,
       query,
     );
+  }
+
+  async getAllFavoriteProductIds(
+    userId: string,
+  ): Promise<{ productIds: string[]; count: number }> {
+    const customer = await this.repo.findByUserId(userId);
+
+    if (!customer || !customer.isActive) {
+      throw new NotFoundException('Customer not found or inactive');
+    }
+
+    const productIds = await this.repo.findAllFavoriteProductIds(customer.id);
+
+    return {
+      productIds,
+      count: productIds.length,
+    };
+  }
+
+  /**
+   * Get all favorite vendor IDs for a user
+   */
+  async getAllFavoriteVendorIds(
+    userId: string,
+  ): Promise<{ vendorIds: string[]; count: number }> {
+    const customer = await this.repo.findByUserId(userId);
+
+    if (!customer || !customer.isActive) {
+      throw new NotFoundException('Customer not found or inactive');
+    }
+
+    const vendorIds = await this.repo.findAllFavoriteVendorIds(customer.id);
+
+    return {
+      vendorIds,
+      count: vendorIds.length,
+    };
+  }
+
+  async updateProfile(
+    userId: string,
+    data: {
+      name?: string;
+      phoneNumber?: string;
+      dateOfBirth?: string;
+      address?: string;
+      preferredRadius?: number;
+    },
+    avatarFile?: Express.Multer.File,
+  ): Promise<CustomerResponseDto> {
+    const customer = await this.repo.findByUserId(userId);
+
+    if (!customer || !customer.isActive) {
+      throw new NotFoundException('Customer not found or inactive');
+    }
+
+    // Prepare update data
+    const updateData: {
+      name?: string;
+      phoneNumber?: string;
+      dateOfBirth?: Date;
+      address?: string;
+      avatar?: string;
+    } = {};
+
+    // Only include fields that are provided
+    if (data.name !== undefined) {
+      updateData.name = data.name;
+    }
+
+    if (data.phoneNumber !== undefined) {
+      updateData.phoneNumber = data.phoneNumber;
+    }
+
+    if (data.dateOfBirth) {
+      updateData.dateOfBirth = new Date(data.dateOfBirth);
+    }
+
+    if (data.address !== undefined) {
+      updateData.address = data.address;
+    }
+
+    // Handle avatar upload
+    if (avatarFile) {
+      // If there's an existing avatar, delete it
+      if (customer.avatar) {
+        try {
+          await this.storage.deleteFile(customer.avatar);
+        } catch (error: any) {
+          // Log error but continue
+          console.log(`Failed to delete old avatar: ${error.message}`);
+        }
+      }
+
+      // Upload new avatar
+      const folder = `customer/avatars/${userId}`;
+      const avatarUrl = await this.storage.uploadFile(avatarFile, folder);
+      updateData.avatar = avatarUrl;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestException('No valid fields to update');
+    }
+
+    const updatedCustomer = await this.repo.updateProfile(userId, updateData);
+
+    return CustomerMapper.toResponse(updatedCustomer);
+  }
+
+  async getOrderHistory(userId: string, query: OrderHistoryQueryDto) {
+    const customer = await this.repo.findByUserId(userId);
+
+    if (!customer || !customer.isActive) {
+      throw new NotFoundException('Customer not found or inactive');
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+
+    const { items, total } = await this.repo.findOrderHistory(
+      customer.id,
+      query.filter ?? 'all',
+      page,
+      limit,
+    );
+
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
+    return {
+      items: items.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        vendorId: order.vendor.id,
+        vendorName: order.vendor.businessName || 'Unnamed Vendor',
+        vendorAddress:
+          order.vendor.serviceArea?.address || 'Address not available',
+        status: order.status.toLowerCase(),
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        estimatedReadyAt: order.estimatedReadyAt,
+        confirmedAt: order.confirmedAt,
+        completedAt: order.completedAt,
+        cancelledAt: order.cancelledAt,
+        itemCount: order.orderItems.reduce(
+          (sum: number, item: any) => sum + item.quantity,
+          0,
+        ),
+        thumbnail: order.vendor.coverImage || undefined,
+      })),
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages,
+    };
+  }
+
+  async getOrderDetail(userId: string, orderId: string) {
+    // Verify customer exists
+    const customer = await this.repo.findByUserId(userId);
+
+    if (!customer || !customer.isActive) {
+      throw new NotFoundException('Customer not found or inactive');
+    }
+
+    // Get order with details
+    const order = await this.repo.findOrderDetail(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Verify the order belongs to this customer
+    if (order.customerId !== customer.id) {
+      throw new BadRequestException('This order does not belong to you');
+    }
+
+    // Check if can reorder (only completed orders)
+    const canReorder = order.status === 'COMPLETED';
+
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      vendorId: order.vendor.id,
+      vendorName: order.vendor.businessName || 'Unnamed Vendor',
+      vendorAddress:
+        order.vendor.serviceArea?.address || 'Address not available',
+      vendorCoverImage: order.vendor.coverImage || undefined,
+      status: order.status.toLowerCase(),
+      paymentMethod: order.paymentMethod,
+      subtotal: order.subtotal,
+      tax: order.tax,
+      serviceFee: order.serviceFee,
+      totalAmount: order.totalAmount,
+      note: order.note,
+      estimatedReadyAt: order.estimatedReadyAt,
+      confirmedAt: order.confirmedAt,
+      preparingAt: order.preparingAt,
+      readyAt: order.readyAt,
+      completedAt: order.completedAt,
+      cancelledAt: order.cancelledAt,
+      createdAt: order.createdAt,
+      items: order.orderItems.map((item: any) => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+        sizeName: item.sizeName,
+        sizePrice: item.sizePrice,
+        choiceOptions: item.orderItemChoiceOption.map((choice: any) => ({
+          name: choice.name,
+          price: choice.price,
+        })),
+        addOns: item.orderItemAddOn.map((addOn: any) => ({
+          name: addOn.name,
+          price: addOn.price,
+        })),
+      })),
+      canReorder,
+    };
+  }
+
+  async orderAgain(
+    userId: string,
+    dto: OrderAgainDto,
+  ) {
+    const customer = await this.repo.findByUserId(userId);
+
+    if (!customer || !customer.isActive) {
+      throw new NotFoundException('Customer not found or inactive');
+    }
+
+    // Validate order id
+    if (!dto.orderId) {
+      throw new BadRequestException('Order ID is required');
+    }
+
+    // Get the original order
+    const order = await this.repo.findOrderDetail(dto.orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Verify ownership
+    if (order.customerId !== customer.id) {
+      throw new BadRequestException('This order does not belong to you');
+    }
+
+    // Only completed orders can be reordered
+    if (order.status !== 'COMPLETED') {
+      throw new BadRequestException('Only completed orders can be reordered');
+    }
+
+    // Check if vendor is still active
+    if (!order.vendor || order.vendor.adminStatus !== 'ACTIVE') {
+      throw new BadRequestException('Vendor is not currently available');
+    }
+
+    // Create a new order with the same items
+    // This is a simplified version - you may want to add more logic
+    const newOrder = await this.prisma.$transaction(async (tx) => {
+      // Check if there's an existing cart for this vendor
+      let cart = await tx.cart.findUnique({
+        where: {
+          customerId_vendorId: {
+            customerId: customer.id,
+            vendorId: order.vendorId,
+          },
+        },
+      });
+
+      // If no cart exists, create one
+      if (!cart) {
+        cart = await tx.cart.create({
+          data: {
+            customerId: customer.id,
+            vendorId: order.vendorId,
+          },
+        });
+      }
+
+      // Clear existing cart items
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id },
+      });
+
+      // Add items from the original order to the cart
+      for (const item of order.orderItems) {
+        // Check if product is still active
+        const product = await tx.product.findUnique({
+          where: {
+            id: item.productId,
+            isActive: true,
+            isDeleted: false,
+          },
+        });
+
+        if (!product) {
+          throw new BadRequestException(
+            `Product "${item.productName}" is no longer available`,
+          );
+        }
+
+        const cartItem = await tx.cartItem.create({
+          data: {
+            cartId: cart.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.unitPrice,
+          },
+        });
+
+        // Add choice options
+        for (const choice of item.orderItemChoiceOption) {
+          await tx.cartItemChoiceOption.create({
+            data: {
+              cartItemId: cartItem.id,
+              choiceOptionId: choice.choiceOptionId || '',
+            },
+          });
+        }
+
+        // Add add-ons
+        for (const addOn of item.orderItemAddOn) {
+          await tx.cartItemAddOn.create({
+            data: {
+              cartItemId: cartItem.id,
+              addOnId: addOn.addOnId || '',
+            },
+          });
+        }
+      }
+
+      return cart;
+    });
+
+    return {
+      success: true,
+      orderId: newOrder.id,
+      message: 'Items added to cart successfully',
+    };
   }
 
   private async searchFoods(

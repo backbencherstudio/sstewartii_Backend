@@ -10,7 +10,10 @@ import type { IVendorRepository } from '@/modules/vendor/vendor/domain/interface
 import { Cuisine } from '../domain/entities/cuisine.entity';
 import type { IProductRepository } from '../domain/interfaces/product.interface';
 import type { IStorageService } from '@/common/storage/storage.interface';
-import { CreateProductDto } from '../presentation/dto/product.dto';
+import {
+  CreateProductDto,
+  UpdateProductStatusDto,
+} from '../presentation/dto/product.dto';
 import { ProductResponseDto } from '../presentation/dto/product.response.dto';
 import { ProductMapper } from '../infrastructure/mappers/product.mapper';
 import { ProductCart } from '../domain/entities/product.entity';
@@ -113,62 +116,41 @@ export class ProductService {
     return products.map((product) => this.productMapper.toResponse(product));
   }
 
-  // async searchProducts(
-  //   userId: string,
-  //   query: SearchProductQueryDto,
-  // ): Promise<ProductResponseDto[]> {
+  async updateProductStatus(
+    userId: string,
+    productId: string,
+    dto: UpdateProductStatusDto,
+  ): Promise<ProductResponseDto> {
+    const vendor = await this.vendorRepo.findByOwnerId(userId);
 
-  //   const vendor = await this.vendorRepo.findByOwnerId(userId);
+    if (!vendor) {
+      throw new BadRequestException('Vendor not found');
+    }
 
-  //   if (!vendor) {
-  //     throw new BadRequestException('Vendor not found');
-  //   }
+    const product = await this.productRepo.findProductByIdAndVendorId(
+      productId,
+      vendor.id,
+    );
 
-  //   const products = await this.productRepo.searchProducts({
-  //     vendorId: vendor.id,
-  //     search: query.search,
-  //     category: query.category,
-  //     isActive: query.isActive,
-  //     page: query.page,
-  //     limit: query.limit,
-  //   });
+    if (!product) {
+      throw new NotFoundException(
+        'Product not found or does not belong to this vendor',
+      );
+    }
 
-  //   return products.map(ProductMapper.toResponse);
-  // }
+    if (product.isActive === dto.isActive) {
+      throw new BadRequestException(
+        `Product is already ${dto.isActive ? 'active' : 'inactive'}`,
+      );
+    }
 
-  // async updateProductStatus(
-  //   userId: string,
-  //   productId: string,
-  //   dto: UpdateProductStatusDto,
-  // ): Promise<ProductResponseDto> {
-  //   const vendor = await this.vendorRepo.findByOwnerId(userId);
+    const updated = await this.productRepo.updateProductStatus(
+      productId,
+      dto.isActive,
+    );
 
-  //   if (!vendor) {
-  //     throw new BadRequestException('Vendor not found');
-  //   }
-
-  //   const product = await this.productRepo.findProductByIdAndVendorId(
-  //     productId,
-  //     vendor.id,
-  //   );
-
-  //   if (!product) {
-  //     throw new NotFoundException('Product not found or does not belong to this vendor');
-  //   }
-
-  //   if (product.isActive === dto.isActive) {
-  //     throw new BadRequestException(
-  //       `Product is already ${dto.isActive ? 'active' : 'inactive'}`,
-  //     );
-  //   }
-
-  //   const updated = await this.productRepo.updateProductStatus(
-  //     productId,
-  //     dto.isActive,
-  //   );
-
-  //   return ProductMapper.toResponse(updated);
-  // }
+    return this.productMapper.toResponse(updated);
+  }
 
   async deleteProduct(userId: string, productId: string): Promise<void> {
     const vendor = await this.vendorRepo.findByOwnerId(userId);
@@ -191,62 +173,14 @@ export class ProductService {
     await this.productRepo.deleteProduct(productId);
   }
 
-  // async getProductDetail(
-  //   productId: string,
-  // ): Promise<ProductResponseDto> {
-  //   const product = await this.productRepo.findProductDetailById(productId);
+  async getProductDetail(productId: string): Promise<ProductResponseDto> {
+    const product = await this.productRepo.findProductDetailById(productId);
 
-  //   if (!product) {
-  //     throw new NotFoundException('Product not found');
-  //   }
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
 
-  //   return {
-  //     id: product.id,
-  //     name: product.name,
-  //     description: product.description,
-  //     price: product.price,
-  //     isActive: product.isActive,
-  //     estimateCookTime: product.estimateCookTime,
-
-  //     category: product.category
-  //       ? {
-  //           id: product.category.id,
-  //           name: product.category.name,
-  //         }
-  //       : undefined,
-
-  //     images: product.images.map((img) => ({
-  //       id: img.id,
-  //       url: this.mediaService.getUrl(img.url),
-  //       isPrimary: img.isPrimary,
-  //       position: img.position,
-  //     })),
-
-  //     cuisines: product.vendor.cuisines.map((vc) => ({
-  //       id: vc.cuisine.id,
-  //       name: vc.cuisine.name,
-  //     })),
-
-  //     sizeOptions: product.sizeOptions.map((s) => ({
-  //       id: s.id,
-  //       name: s.name,
-  //       price: s.price,
-  //       isRequired: s.isRequired,
-  //     })),
-
-  //     choiceOptions: product.choiceOptions.map((c) => ({
-  //       id: c.id,
-  //       name: c.name,
-  //       price: c.price,
-  //       isRequired: c.isRequired,
-  //     })),
-
-  //     addOns: product.addOns.map((a) => ({
-  //       id: a.id,
-  //       name: a.name,
-  //       price: a.price,
-  //       isRequired: a.isRequired,
-  //     })),
-  //   };
-  // }
+    // Use the mapper to convert to response DTO
+    return this.productMapper.toResponse(product);
+  }
 }

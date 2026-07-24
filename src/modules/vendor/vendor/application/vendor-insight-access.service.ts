@@ -15,51 +15,52 @@ export class VendorInsightAccessService {
       name: string;
     } | null;
   }): VendorInsightAccessDto {
-    const plan = this.resolvePlan(vendor);
+    // const plan = this.resolvePlan(vendor);
+    const plan = 'PRO';
 
-    if (plan === 'TRIAL') {
-      return {
-        plan,
-        canViewRevenue: true,
-        canViewPeakHours: true,
-        canViewOrderDistribution: false,
-        canViewCustomerEngagement: false,
-        canViewTopDishes: false,
-        canViewTopCustomers: false,
-        canViewTopSpots: false,
-        canViewProfileViews: true,
-        canViewRatings: true,
-        canViewFavorites: true,
-        canViewAiGuidance: false,
-        canViewEvents: false,
-        upgradeRequired: true,
-        upgradePlan: 'PRO',
-        lockedMessage:
-          'Upgrade to see full performance insights about order distribution, customer engagement, top content, and more.',
-      };
-    }
+    // if (plan === 'TRIAL') {
+    //   return {
+    //     plan,
+    //     canViewRevenue: true,
+    //     canViewPeakHours: true,
+    //     canViewOrderDistribution: false,
+    //     canViewCustomerEngagement: false,
+    //     canViewTopDishes: false,
+    //     canViewTopCustomers: false,
+    //     canViewTopSpots: false,
+    //     canViewProfileViews: true,
+    //     canViewRatings: true,
+    //     canViewFavorites: true,
+    //     canViewAiGuidance: false,
+    //     canViewEvents: false,
+    //     upgradeRequired: true,
+    //     upgradePlan: 'PRO',
+    //     lockedMessage:
+    //       'Upgrade to see full performance insights about order distribution, customer engagement, top content, and more.',
+    //   };
+    // }
 
-    if (plan === 'STARTER') {
-      return {
-        plan,
-        canViewRevenue: false,
-        canViewPeakHours: false,
-        canViewOrderDistribution: false,
-        canViewCustomerEngagement: false,
-        canViewTopDishes: false,
-        canViewTopCustomers: false,
-        canViewTopSpots: false,
-        canViewProfileViews: true,
-        canViewRatings: true,
-        canViewFavorites: false,
-        canViewAiGuidance: false,
-        canViewEvents: false,
-        upgradeRequired: true,
-        upgradePlan: 'PRO',
-        lockedMessage:
-          'Upgrade to Pro to unlock analytics, performance dashboard, and customer engagement insights.',
-      };
-    }
+    // if (plan === 'STARTER') {
+    //   return {
+    //     plan,
+    //     canViewRevenue: false,
+    //     canViewPeakHours: false,
+    //     canViewOrderDistribution: false,
+    //     canViewCustomerEngagement: false,
+    //     canViewTopDishes: false,
+    //     canViewTopCustomers: false,
+    //     canViewTopSpots: false,
+    //     canViewProfileViews: true,
+    //     canViewRatings: true,
+    //     canViewFavorites: false,
+    //     canViewAiGuidance: false,
+    //     canViewEvents: false,
+    //     upgradeRequired: true,
+    //     upgradePlan: 'PRO',
+    //     lockedMessage:
+    //       'Upgrade to Pro to unlock analytics, performance dashboard, and customer engagement insights.',
+    //   };
+    // }
 
     if (plan === 'PRO') {
       return {
@@ -83,24 +84,24 @@ export class VendorInsightAccessService {
       };
     }
 
-    if (plan === 'ELITE') {
-      return {
-        plan,
-        canViewRevenue: true,
-        canViewPeakHours: true,
-        canViewOrderDistribution: true,
-        canViewCustomerEngagement: true,
-        canViewTopDishes: true,
-        canViewTopCustomers: true,
-        canViewTopSpots: true,
-        canViewProfileViews: true,
-        canViewRatings: true,
-        canViewFavorites: true,
-        canViewAiGuidance: true,
-        canViewEvents: true,
-        upgradeRequired: false,
-      };
-    }
+    // if (plan === 'ELITE') {
+    //   return {
+    //     plan,
+    //     canViewRevenue: true,
+    //     canViewPeakHours: true,
+    //     canViewOrderDistribution: true,
+    //     canViewCustomerEngagement: true,
+    //     canViewTopDishes: true,
+    //     canViewTopCustomers: true,
+    //     canViewTopSpots: true,
+    //     canViewProfileViews: true,
+    //     canViewRatings: true,
+    //     canViewFavorites: true,
+    //     canViewAiGuidance: true,
+    //     canViewEvents: true,
+    //     upgradeRequired: false,
+    //   };
+    // }
 
     return {
       plan: 'FREE',

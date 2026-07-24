@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 
-import { AnalyticsSummaryResponseDto } from '../../presentation/dto/analytics-summary.response.dto';
-
 export interface AnalyticsSummaryRawData {
   totalVendors: number;
   totalCustomers: number;
@@ -21,13 +19,29 @@ export interface PlatformGrowthRawData {
 
 @Injectable()
 export class AdminAnalyticsMapper {
-  toSummaryResponse(raw: AnalyticsSummaryRawData): AnalyticsSummaryResponseDto {
-    const dto = new AnalyticsSummaryResponseDto();
-    dto.totalVendors = raw.totalVendors;
-    dto.totalCustomers = raw.totalCustomers;
-    dto.totalSubscribers = raw.totalSubscribers;
-    dto.platformRevenue = Number(raw.platformRevenue.toFixed(2));
-    dto.updatedAt = new Date();
-    return dto;
+  toSummaryResponse(data: {
+    platformGrowth: {
+      series: any[];
+      totalVendors: number;
+      totalCustomers: number;
+    };
+    subscriberGrowth: { series: any[]; totalSubscribers: number };
+    leaderboard: { customers: any[]; vendors: any[] };
+  }) {
+    return {
+      platformGrowth: {
+        series: data.platformGrowth.series,
+        totalVendors: data.platformGrowth.totalVendors,
+        totalCustomers: data.platformGrowth.totalCustomers,
+      },
+      subscriberGrowth: {
+        series: data.subscriberGrowth.series,
+        totalSubscribers: data.subscriberGrowth.totalSubscribers,
+      },
+      leaderboard: {
+        customers: data.leaderboard.customers,
+        vendors: data.leaderboard.vendors,
+      },
+    };
   }
 }

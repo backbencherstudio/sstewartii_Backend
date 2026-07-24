@@ -1,16 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/unbound-method */
 import {
-  VerificationStatus,
   Prisma,
-  Customer,
   OrderStatus,
   OrderReportReason,
 } from '@prisma/client';
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { VendorVerificationListResult } from '../../domain/interface/admin.repository.interface';
-
-import { AdminVendorVerificationDocumentType } from '../../presentation/dto/admin.dto';
 import { CustomerListItemDto } from '../../presentation/dto/admin.response.dto';
 import {
   CustomerOrderHistoryDto,
@@ -287,6 +284,7 @@ export class AdminCustomerMapper {
     dto.incompleteOrders = getCount(OrderStatus.PENDING);
     dto.reportsFiled = reportsFiled;
     dto.lastOrderedAt = lastOrderedAt;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     dto.orders = orders.map(AdminCustomerMapper.toOrderHistory);
     dto.orderTotal = orderCount;
     dto.orderPage = page;
@@ -368,8 +366,7 @@ export class AdminCustomerMapper {
   }
 
   toReportItem(
-    report: { id: string; createdAt: Date },
-    index: number,
+report: { id: string; createdAt: Date; }, i: number,
   ): ReportItemDto {
     const dto = new ReportItemDto();
     dto.reportId = report.id;

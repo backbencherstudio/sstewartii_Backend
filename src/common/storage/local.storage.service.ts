@@ -1,4 +1,5 @@
 import {
+  Global,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -9,6 +10,7 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 
+@Global()
 @Injectable()
 export class LocalStorageService implements IStorageService {
   private readonly uploadRoot: string;

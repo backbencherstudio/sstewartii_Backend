@@ -672,9 +672,9 @@ async function main(): Promise<void> {
   console.log(`✅ ${categories.length} food categories seeded`);
 
   // ============================================
-  // 17. CREATE PRODUCTS
+  // 17. CREATE PRODUCTS WITH COMPLETE DATA
   // ============================================
-  console.log('📝 Creating products...');
+  console.log('📝 Creating products with complete data...');
 
   const products = [
     {
@@ -686,6 +686,23 @@ async function main(): Promise<void> {
       categoryName: 'Tacos & Burritos',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?q=80&w=1470&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=1380&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: 'Regular', price: 0, isRequired: false },
+        { name: 'Large', price: 1.5, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Extra Cheese', price: 0.5, isRequired: false },
+        { name: 'Guacamole', price: 1.0, isRequired: false },
+        { name: 'Sour Cream', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Jalapeños', price: 0.5, isRequired: false },
+        { name: 'Pico de Gallo', price: 0.75, isRequired: false },
+      ],
     },
     {
       name: 'Chicken Quesadilla',
@@ -696,6 +713,22 @@ async function main(): Promise<void> {
       categoryName: 'Tacos & Burritos',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1599974579688-8db2a0b3c6c1?q=80&w=1470&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?q=80&w=1374&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: 'Small', price: 0, isRequired: false },
+        { name: 'Large', price: 2.0, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Add Pico de Gallo', price: 0.5, isRequired: false },
+        { name: 'Add Salsa Verde', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Extra Cheese', price: 0.75, isRequired: false },
+        { name: 'Grilled Onions', price: 0.5, isRequired: false },
+      ],
     },
     {
       name: 'Veggie Burrito Bowl',
@@ -706,6 +739,24 @@ async function main(): Promise<void> {
       categoryName: 'Rice Bowls',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1470&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1470&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: 'Regular', price: 0, isRequired: false },
+        { name: 'Large', price: 2.5, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Extra Guacamole', price: 1.5, isRequired: false },
+        { name: 'Extra Salsa', price: 0.5, isRequired: false },
+        { name: 'Add Chicken', price: 2.0, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Corn', price: 0.5, isRequired: false },
+        { name: 'Black Beans', price: 0.5, isRequired: false },
+        { name: 'Rice', price: 0.5, isRequired: false },
+      ],
     },
     {
       name: 'Fish Tacos (3 pcs)',
@@ -716,6 +767,22 @@ async function main(): Promise<void> {
       categoryName: 'Tacos & Burritos',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1565299507177-b0ac66763828?q=80&w=1546&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1534352956036-cd7b1f1a4c5d?q=80&w=1374&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: '3 Tacos', price: 0, isRequired: false },
+        { name: '5 Tacos', price: 4.0, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Chipotle Sauce', price: 0, isRequired: false },
+        { name: 'Spicy Mayo', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Lime Wedges', price: 0.25, isRequired: false },
+        { name: 'Hot Sauce', price: 0.5, isRequired: false },
+      ],
     },
     {
       name: 'Churros with Chocolate Sauce',
@@ -726,6 +793,22 @@ async function main(): Promise<void> {
       categoryName: 'Desserts',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1624376939625-ffb4e1a0bc6d?q=80&w=1374&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1551024506-0bccd828d307?q=80&w=1374&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: '6 pcs', price: 0, isRequired: false },
+        { name: '12 pcs', price: 4.0, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Chocolate Sauce', price: 0, isRequired: false },
+        { name: 'Caramel Sauce', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Extra Cinnamon Sugar', price: 0.25, isRequired: false },
+        { name: 'Whipped Cream', price: 0.5, isRequired: false },
+      ],
     },
     {
       name: 'Mexican Street Corn (Elote)',
@@ -736,6 +819,22 @@ async function main(): Promise<void> {
       categoryName: 'Sides',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1551754655-cd0ff1a4f4a4?q=80&w=1471&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?q=80&w=1470&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: '1 Corn', price: 0, isRequired: false },
+        { name: '2 Corns', price: 3.0, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Extra Cheese', price: 0.5, isRequired: false },
+        { name: 'Spicy Mayo', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Extra Chili Powder', price: 0.25, isRequired: false },
+        { name: 'Lime Juice', price: 0.25, isRequired: false },
+      ],
     },
     {
       name: 'Horchata (16oz)',
@@ -745,6 +844,16 @@ async function main(): Promise<void> {
       categoryName: 'Drinks',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1580052614034-c55d20bfee3b?q=80&w=1374&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?q=80&w=1374&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: '16oz', price: 0, isRequired: false },
+        { name: '24oz', price: 1.5, isRequired: false },
+      ],
+      choiceOptions: [],
+      addOns: [],
     },
     {
       name: 'Breakfast Burrito',
@@ -755,6 +864,22 @@ async function main(): Promise<void> {
       categoryName: 'Breakfast',
       cuisineName: 'American',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?q=80&w=1374&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=1470&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: 'Regular', price: 0, isRequired: false },
+        { name: 'Large', price: 2.0, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Add Avocado', price: 1.0, isRequired: false },
+        { name: 'Add Salsa', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Extra Bacon', price: 1.5, isRequired: false },
+        { name: 'Extra Cheese', price: 0.75, isRequired: false },
+      ],
     },
     {
       name: 'Taco Salad',
@@ -765,6 +890,23 @@ async function main(): Promise<void> {
       categoryName: 'Salads',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1470&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: 'Regular', price: 0, isRequired: false },
+        { name: 'Large', price: 2.5, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Add Chicken', price: 2.0, isRequired: false },
+        { name: 'Add Steak', price: 3.0, isRequired: false },
+        { name: 'Extra Sour Cream', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Jalapeños', price: 0.5, isRequired: false },
+        { name: 'Extra Cheese', price: 0.75, isRequired: false },
+      ],
     },
     {
       name: 'Queso Fundido',
@@ -775,6 +917,22 @@ async function main(): Promise<void> {
       categoryName: 'Sides',
       cuisineName: 'Mexican',
       isActive: true,
+      images: [
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=880&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1552332386-f8dd00dc2f85?q=80&w=1374&auto=format&fit=crop',
+      ],
+      sizeOptions: [
+        { name: 'Small (serves 2)', price: 0, isRequired: false },
+        { name: 'Large (serves 4)', price: 4.0, isRequired: false },
+      ],
+      choiceOptions: [
+        { name: 'Add Chorizo', price: 1.0, isRequired: false },
+        { name: 'Add Mushrooms', price: 0.5, isRequired: false },
+      ],
+      addOns: [
+        { name: 'Extra Chips', price: 1.0, isRequired: false },
+        { name: 'Salsa', price: 0.5, isRequired: false },
+      ],
     },
   ];
 
@@ -797,9 +955,68 @@ async function main(): Promise<void> {
         isActive: productData.isActive,
       },
     });
+
     productIds.push(product.id);
     console.log(`✅ Product created: ${productData.name}`);
+
+    if (productData.images && productData.images.length > 0) {
+      await prisma.productImage.createMany({
+        data: productData.images.map((url, index) => ({
+          productId: product.id,
+          url: url,
+          isPrimary: index === 0,
+          position: index,
+        })),
+      });
+      console.log(
+        `  📸 Added ${productData.images.length} images for ${productData.name}`,
+      );
+    }
+
+    if (productData.sizeOptions && productData.sizeOptions.length > 0) {
+      await prisma.sizeOption.createMany({
+        data: productData.sizeOptions.map((size) => ({
+          productId: product.id,
+          name: size.name,
+          price: size.price,
+          isRequired: size.isRequired,
+        })),
+      });
+      console.log(
+        `  📏 Added ${productData.sizeOptions.length} size options for ${productData.name}`,
+      );
+    }
+
+    if (productData.choiceOptions && productData.choiceOptions.length > 0) {
+      await prisma.choiceOption.createMany({
+        data: productData.choiceOptions.map((choice) => ({
+          productId: product.id,
+          name: choice.name,
+          price: choice.price,
+          isRequired: choice.isRequired,
+        })),
+      });
+      console.log(
+        `  ✅ Added ${productData.choiceOptions.length} choice options for ${productData.name}`,
+      );
+    }
+
+    if (productData.addOns && productData.addOns.length > 0) {
+      await prisma.addOn.createMany({
+        data: productData.addOns.map((addOn) => ({
+          productId: product.id,
+          name: addOn.name,
+          price: addOn.price,
+          isRequired: addOn.isRequired,
+        })),
+      });
+      console.log(
+        `  ➕ Added ${productData.addOns.length} add-ons for ${productData.name}`,
+      );
+    }
   }
+
+  console.log(`✅ All ${products.length} products created successfully!`);
 
   // ============================================
   // 18. CREATE PRODUCT IMAGES
@@ -1387,41 +1604,354 @@ async function main(): Promise<void> {
   }
 
   // ============================================
-  // 30. CREATE ORDER REPORTS
+  // 30. CREATE ORDER REPORTS (COMPREHENSIVE DATA)
   // ============================================
-  console.log('📝 Creating order reports...');
+  console.log('📝 Creating order reports with comprehensive data...');
 
   if (customer && vendor) {
+    // Get multiple orders for different customers and vendors
     const orders = await prisma.order.findMany({
-      take: 1,
+      take: 30,
+      include: {
+        customer: {
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        vendor: {
+          include: {
+            owner: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    for (const order of orders) {
-      await prisma.orderReport.create({
-        data: {
-          orderId: order.id,
-          vendorId: order.vendorId,
-          customerId: order.customerId,
-          reason: 'OTHER',
-          description: 'The order arrived with missing items.',
-          status: 'RESOLVED',
-          reviewedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          resolvedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-          adminNote: 'Refund issued for missing items.',
-          images: {
-            create: [
-              {
-                imageUrl:
-                  'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?q=80&w=710&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-                position: 0,
-              },
-            ],
+    // ✅ Fetch the original customer with user relation included
+    const customerWithUser = await prisma.customer.findUnique({
+      where: { id: customer.id },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
           },
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
         },
-      });
+      },
+    });
+
+    // Get additional customers for reporting - WITH user relation included
+    const additionalCustomers = await prisma.customer.findMany({
+      where: {
+        id: {
+          not: customer.id,
+        },
+      },
+      take: 10,
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Get additional vendors for reporting
+    const additionalVendors = await prisma.vendor.findMany({
+      where: {
+        id: {
+          not: vendor.id,
+        },
+      },
+      take: 5,
+      include: {
+        owner: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // ✅ Combine all customers with user relation included
+    const allCustomers = [customerWithUser, ...additionalCustomers].filter(
+      Boolean,
+    );
+    const allVendors = [vendor, ...additionalVendors];
+
+    // Sample report data with different reasons and descriptions
+    const reportTemplates = [
+      {
+        reason: 'CUSTOMER_NO_SHOW',
+        description:
+          'Customer did not arrive for pickup. Waited 45 minutes and tried calling twice.',
+        adminNote:
+          'Customer reported as no-show. Order cancelled and vendor compensated.',
+        image:
+          'https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'CUSTOMER_UNREACHABLE',
+        description:
+          'Customer was unreachable at the provided phone number. Multiple attempts to contact.',
+        adminNote:
+          'Customer contact info needs verification. Vendor advised to confirm contact details.',
+        image:
+          'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'FAKE_ORDER',
+        description:
+          'Suspected fraudulent order. Payment declined and customer profile seems suspicious.',
+        adminNote:
+          'Order flagged as potential fraud. Customer account under review.',
+        image:
+          'https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'PAYMENT_ISSUE',
+        description:
+          'Payment failed during processing. Customer claimed card was charged but no transaction found.',
+        adminNote:
+          'Payment gateway issue. Customer advised to try alternative payment method.',
+        image:
+          'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'ABUSIVE_BEHAVIOR',
+        description:
+          'Customer was verbally abusive to delivery staff. Used inappropriate language.',
+        adminNote:
+          'Warning issued to customer. Further incidents may result in account suspension.',
+        image:
+          'https://images.unsplash.com/photo-1556742031-c6961e8560b0?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'WRONG_ORDER_CLAIM',
+        description:
+          'Customer claimed wrong items delivered, but order receipt shows correct items were sent.',
+        adminNote: 'Order verified as correct. Customer claim rejected.',
+        image:
+          'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'OTHER',
+        description:
+          'Customer requested cancellation after order was already prepared. Demanded refund.',
+        adminNote: 'Partial refund issued as goodwill gesture.',
+        image:
+          'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'CUSTOMER_NO_SHOW',
+        description:
+          'Customer did not show up for scheduled pickup. Restaurant had to discard prepared food.',
+        adminNote: 'Customer marked as no-show. Account flagged for review.',
+        image:
+          'https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'PAYMENT_ISSUE',
+        description:
+          'Customer disputed the charge with bank. Payment reversed after order completion.',
+        adminNote:
+          'Chargeback dispute initiated. Customer account under investigation.',
+        image:
+          'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'CUSTOMER_UNREACHABLE',
+        description:
+          'Customer provided incorrect delivery address. No response to calls or messages.',
+        adminNote:
+          'Delivery address needs verification. Customer advised to update profile.',
+        image:
+          'https://images.unsplash.com/photo-1556742031-c6961e8560b0?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'FAKE_ORDER',
+        description:
+          'Multiple fake orders from same customer with different payment methods.',
+        adminNote:
+          'Customer account flagged for fraudulent activity. Under investigation.',
+        image:
+          'https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'ABUSIVE_BEHAVIOR',
+        description:
+          'Customer made unreasonable demands and threatened to leave negative reviews.',
+        adminNote: 'Customer behavior reported. Monitoring account activities.',
+        image:
+          'https://images.unsplash.com/photo-1556742031-c6961e8560b0?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'WRONG_ORDER_CLAIM',
+        description:
+          'Customer claimed missing items but refused to provide photo evidence.',
+        adminNote:
+          'Claim rejected due to lack of evidence. Customer advised to provide proof.',
+        image:
+          'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'OTHER',
+        description:
+          'Customer requested special accommodation but order was already in process.',
+        adminNote:
+          'Special request noted. Customer informed about order processing time.',
+        image:
+          'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1470&auto=format&fit=crop',
+      },
+      {
+        reason: 'CUSTOMER_NO_SHOW',
+        description:
+          'Customer did not collect order after multiple reminders. Food went to waste.',
+        adminNote: 'Order cancelled. Customer charged cancellation fee.',
+        image:
+          'https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1470&auto=format&fit=crop',
+      },
+    ];
+
+    let reportCount = 0;
+
+    // Create reports for different customers and vendors
+    for (let i = 0; i < Math.min(orders.length, 25); i++) {
+      const order = orders[i];
+      const reportIndex = i % reportTemplates.length;
+      const report = reportTemplates[reportIndex];
+
+      let status: 'OPEN' | 'IN_REVIEW' | 'RESOLVED' | 'REJECTED' = 'RESOLVED';
+      let reviewedAt: Date | null = new Date(
+        Date.now() - (2 + (i % 5)) * 24 * 60 * 60 * 1000,
+      );
+      let resolvedAt: Date | null = new Date(
+        Date.now() - (1 + (i % 3)) * 24 * 60 * 60 * 1000,
+      );
+
+      if (i % 5 === 0) {
+        status = 'OPEN';
+        reviewedAt = null;
+        resolvedAt = null;
+      } else if (i % 5 === 1) {
+        status = 'IN_REVIEW';
+        resolvedAt = null;
+      } else if (i % 5 === 2) {
+        status = 'REJECTED';
+        reviewedAt = new Date(Date.now() - (3 + (i % 3)) * 24 * 60 * 60 * 1000);
+        resolvedAt = null;
+      }
+
+      try {
+        await prisma.orderReport.create({
+          data: {
+            orderId: order.id,
+            vendorId: order.vendorId,
+            customerId: order.customerId,
+            reason: report.reason as any,
+            description: report.description,
+            status: status as any,
+            reviewedAt: reviewedAt,
+            resolvedAt: resolvedAt,
+            adminNote: report.adminNote,
+            images: {
+              create: [
+                {
+                  imageUrl: report.image,
+                  position: 0,
+                },
+              ],
+            },
+            createdAt: new Date(
+              Date.now() - (5 + (i % 10)) * 24 * 60 * 60 * 1000,
+            ),
+          },
+        });
+        reportCount++;
+        if (reportCount % 5 === 0) {
+          console.log(`  ✅ Created ${reportCount} order reports...`);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        continue;
+      }
     }
-    console.log('✅ Order reports created');
+
+    // Create reports for specific customers with multiple vendors
+    // Using customer name 'John Doe' from the seed data
+    console.log('📝 Creating reports for John Doe from multiple vendors...');
+    const johnDoeCustomer = allCustomers.find(
+      (c) => c?.user?.name === 'John Doe',
+    );
+
+    if (johnDoeCustomer && allVendors.length >= 4) {
+      const johnDoeOrders = await prisma.order.findMany({
+        where: { customerId: johnDoeCustomer.id },
+        take: 4,
+      });
+
+      const reportReasons = [
+        'CUSTOMER_NO_SHOW',
+        'PAYMENT_ISSUE',
+        'CUSTOMER_UNREACHABLE',
+        'ABUSIVE_BEHAVIOR',
+      ];
+      const statuses: ('OPEN' | 'IN_REVIEW' | 'RESOLVED' | 'REJECTED')[] = [
+        'OPEN',
+        'IN_REVIEW',
+        'RESOLVED',
+        'RESOLVED',
+      ];
+
+      for (let v = 0; v < Math.min(allVendors.length, 4); v++) {
+        const vendorItem = allVendors[v];
+        const order = johnDoeOrders[v] || orders[v % orders.length];
+
+        try {
+          await prisma.orderReport.create({
+            data: {
+              orderId: order.id,
+              vendorId: vendorItem.id,
+              customerId: johnDoeCustomer.id,
+              reason: reportReasons[v] as any,
+              description: `Report from ${vendorItem.businessName || 'Vendor'} about customer John Doe - ${reportReasons[v].toLowerCase().replace('_', ' ')}`,
+              status: statuses[v],
+              adminNote: `Vendor ${vendorItem.businessName || 'Vendor'} reported this issue. Customer is being reviewed.`,
+              images: {
+                create: [
+                  {
+                    imageUrl:
+                      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1470&auto=format&fit=crop',
+                    position: 0,
+                  },
+                ],
+              },
+              createdAt: new Date(
+                Date.now() - (10 + v * 5) * 24 * 60 * 60 * 1000,
+              ),
+            },
+          });
+          reportCount++;
+          console.log(`  ✅ Added report for John Doe from vendor ${v + 1}`);
+        } catch (error) {
+          continue;
+        }
+      }
+    }
+
+    console.log(`✅ Created ${reportCount} total order reports`);
   }
 
   // ============================================

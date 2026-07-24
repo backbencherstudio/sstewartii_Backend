@@ -204,3 +204,37 @@ export class CustomerResponseDto {
   email!: string;
   createdAt!: Date;
 }
+
+
+export class AnalyticsDataPoint {
+  label: string | undefined; // e.g., "Jan", "Feb" or "1", "2", ...
+  vendors: number | undefined;
+  customers: number | undefined;
+}
+
+export class SubscriberDataPoint {
+  label: string | undefined;
+  value: number | undefined; // new subscriptions in that period
+}
+
+export class LeaderboardEntry {
+  id: string | undefined; // customerId or vendorId
+  name: string | undefined;
+  value: number | undefined; // total spent (customers) or total revenue (vendors)
+}
+
+export class AnalyticsSummaryResponseDto {
+  platformGrowth: {
+    series: AnalyticsDataPoint[];
+    totalVendors: number;
+    totalCustomers: number;
+  } | undefined;
+  subscriberGrowth: {
+    series: SubscriberDataPoint[];
+    totalSubscribers: number;
+  } | undefined;
+  leaderboard: {
+    customers: LeaderboardEntry[];
+    vendors: LeaderboardEntry[];
+  } | undefined;
+}

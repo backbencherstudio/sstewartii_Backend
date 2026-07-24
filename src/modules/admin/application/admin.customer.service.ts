@@ -105,16 +105,21 @@ export class AdminCustomerService {
 
   async getCustomerVendorReports2(
     customerId: string,
+    vendorId: string,
   ): Promise<CustomerVendorReportsResponseDto2> {
-    const raw =
-      await this.adminCustomerRepository.findCustomerVendorReports2(customerId);
+    const raw = await this.adminCustomerRepository.findCustomerVendorReports2(
+      customerId,
+      vendorId,
+    );
 
     if (!raw) {
       throw new NotFoundException('Customer not found');
     }
 
     if (!raw.vendorGroups.length) {
-      throw new NotFoundException('No reports found for this customer');
+      throw new NotFoundException(
+        'No reports found for this customer and vendor',
+      );
     }
 
     return this.adminCustomerMapper.toCustomerVendorReports1(raw);

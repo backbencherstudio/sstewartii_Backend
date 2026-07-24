@@ -191,7 +191,6 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
         }
       : {};
 
-
     const grouped = await this.prisma.orderReport.groupBy({
       by: ['customerId'],
       where: searchFilter,
@@ -392,7 +391,9 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
 
   async findCustomerVendorReports2(
     customerId: string,
+    vendorId: string,
   ): Promise<CustomerVendorReportsRawData1 | null> {
+    // Check if customer exists
     const customerExists = await this.prisma.customer.findUnique({
       where: { id: customerId },
       select: { id: true },
@@ -400,64 +401,73 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
 
     if (!customerExists) return null;
 
-    const vendorIds = await this.prisma.orderReport
-      .findMany({
-        where: { customerId },
-        select: { vendorId: true },
-        distinct: ['vendorId'],
-      })
-      .then((rows) => rows.map((r) => r.vendorId));
+    // Check if vendor exists
+    const vendorExists = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
 
-    if (!vendorIds.length) return { vendorGroups: [] };
+    if (!vendorExists) return null;
 
-    const [vendors, reports] = await Promise.all([
-      this.prisma.vendor.findMany({
-        where: { id: { in: vendorIds } },
-        select: {
-          id: true,
-          vendorCode: true,
-          businessName: true,
-          coverImage: true,
-        },
-      }),
+    // Get vendor details
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: {
+        id: true,
+        vendorCode: true,
+        businessName: true,
+        coverImage: true,
+      },
+    });
 
-      this.prisma.orderReport.findMany({
-        where: { customerId },
-        select: {
-          id: true,
-          vendorId: true,
-          reason: true,
-          description: true,
-          status: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'asc' },
-      }),
-    ]);
+    if (!vendor) return null;
 
-    const vendorMap = new Map(vendors.map((v) => [v.id, v]));
+    // Get all reports for this customer and vendor
+    const reports = await this.prisma.orderReport.findMany({
+      where: {
+        customerId,
+        vendorId,
+      },
+      select: {
+        id: true,
+        reason: true,
+        description: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
 
-    const reportsByVendor = new Map<string, OrderReportRaw[]>();
-    for (const report of reports) {
-      const existing = reportsByVendor.get(report.vendorId) ?? [];
-      existing.push({
-        id: report.id,
-        reason: report.reason,
-        description: report.description,
-        status: report.status,
-        createdAt: report.createdAt,
-      });
-      reportsByVendor.set(report.vendorId, existing);
+    // If no reports found, return empty
+    if (!reports.length) {
+      return {
+        vendorGroups: [],
+      };
     }
 
-    const vendorGroups: VendorReportsRaw1[] = vendorIds
-      .filter((id) => vendorMap.has(id))
-      .map((id) => ({
-        vendor: vendorMap.get(id)!,
-        reports: reportsByVendor.get(id) ?? [],
-      }));
+    // Map reports to the expected format
+    const reportItems: OrderReportRaw[] = reports.map((report) => ({
+      id: report.id,
+      reason: report.reason,
+      description: report.description,
+      status: report.status,
+      createdAt: report.createdAt,
+    }));
 
-    return { vendorGroups };
+    // Return the vendor with its reports
+    return {
+      vendorGroups: [
+        {
+          vendor: {
+            id: vendor.id,
+            vendorCode: vendor.vendorCode,
+            businessName: vendor.businessName,
+            coverImage: vendor.coverImage,
+          },
+          reports: reportItems,
+        },
+      ],
+    };
   }
 
   async findActiveStatus(customerId: string): Promise<{ isActive: boolean }> {

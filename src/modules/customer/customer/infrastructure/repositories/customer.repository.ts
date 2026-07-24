@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -1070,5 +1071,214 @@ export class CustomerRepository implements ICustomerRepository {
     });
 
     return favorites.map((item) => item.vendorId);
+  }
+
+  async findAllFavoriteProductIds(customerId: string): Promise<string[]> {
+    const favorites = await this.prisma.favoriteProduct.findMany({
+      where: {
+        customerId,
+        product: {
+          isActive: true,
+          isDeleted: false,
+        },
+      },
+      select: {
+        productId: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return favorites.map((fav) => fav.productId);
+  }
+
+  async findAllFavoriteVendorIds(customerId: string): Promise<string[]> {
+    const favorites = await this.prisma.favoriteVendor.findMany({
+      where: {
+        customerId,
+        vendor: {
+          adminStatus: 'ACTIVE',
+        },
+      },
+      select: {
+        vendorId: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return favorites.map((fav) => fav.vendorId);
+  }
+
+  async updateProfile(
+    userId: string,
+    data: {
+      name?: string;
+      phoneNumber?: string;
+      dateOfBirth?: Date;
+      address?: string;
+      preferredRadius?: number;
+      avatar?: string;
+    },
+  ) {
+    // Update User table for name
+    if (data.name) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { name: data.name },
+      });
+    }
+
+    // Update Customer table
+    const updateData: any = {};
+
+    if (data.phoneNumber !== undefined) {
+      updateData.phoneNumber = data.phoneNumber;
+    }
+
+    if (data.dateOfBirth) {
+      updateData.dateOfBirth = data.dateOfBirth;
+    }
+
+    if (data.address !== undefined) {
+      updateData.address = data.address;
+    }
+
+    if (data.preferredRadius !== undefined && data.preferredRadius !== null) {
+      updateData.preferredRadius = data.preferredRadius;
+    }
+
+    if (data.avatar) {
+      updateData.avatar = data.avatar;
+    }
+
+    const updatedCustomer = await this.prisma.customer.update({
+      where: { userId },
+      data: updateData,
+      include: {
+        user: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: updatedCustomer.id,
+      userId: updatedCustomer.userId,
+      phoneNumber: updatedCustomer.phoneNumber ?? undefined,
+      dateOfBirth: updatedCustomer.dateOfBirth ?? undefined,
+      address: updatedCustomer.address ?? undefined,
+      latitude: updatedCustomer.latitude ?? undefined,
+      longitude: updatedCustomer.longitude ?? undefined,
+      avatar: updatedCustomer.avatar ?? undefined,
+      isActive: updatedCustomer.isActive,
+      preferredRadius: updatedCustomer.preferredRadius ?? undefined,
+      user: updatedCustomer.user,
+    };
+  }
+
+  async findOrderHistory(
+    customerId: string,
+    filter: 'all' | 'completed' | 'cancelled',
+    page: number,
+    limit: number,
+  ): Promise<{
+    items: any[];
+    total: number;
+  }> {
+    // Build where clause
+    const where: Prisma.OrderWhereInput = {
+      customerId,
+    };
+
+    // Apply status filter
+    if (filter === 'completed') {
+      where.status = 'COMPLETED';
+    } else if (filter === 'cancelled') {
+      where.status = 'CANCELLED';
+    }
+    // 'all' - no status filter
+
+    // Get total count for pagination
+    const total = await this.prisma.order.count({ where });
+
+    // Get paginated orders
+    const items = await this.prisma.order.findMany({
+      where,
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            coverImage: true,
+            serviceArea: {
+              select: {
+                address: true,
+              },
+            },
+          },
+        },
+        orderItems: {
+          select: {
+            id: true,
+            quantity: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return { items, total };
+  }
+
+  async findOrderDetail(orderId: string): Promise<any | null> {
+    return this.prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            businessName: true,
+            coverImage: true,
+            serviceArea: {
+              select: {
+                address: true,
+              },
+            },
+          },
+        },
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                images: {
+                  orderBy: {
+                    position: 'asc',
+                  },
+                  take: 1,
+                  select: {
+                    url: true,
+                  },
+                },
+              },
+            },
+            orderItemChoiceOption: true,
+            orderItemAddOn: true,
+          },
+        },
+      },
+    });
   }
 }

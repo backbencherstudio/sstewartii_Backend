@@ -54,6 +54,7 @@ export interface IAdminCustomerRepository {
 
   findCustomerVendorReports2(
     customerId: string,
+    vendorId: string,
   ): Promise<CustomerVendorReportsRawData1 | null>;
 
   findActiveStatus(customerId: string): Promise<{ isActive: boolean }>;

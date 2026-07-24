@@ -59,7 +59,6 @@ import { AnalyticsModule } from './modules/vendor/analytics/analytics.module';
         },
       },
     }),
-
     AuthModule,
     VendorProfileSetupModule,
     StorageModule,
