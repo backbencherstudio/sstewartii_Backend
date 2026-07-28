@@ -973,6 +973,9 @@ export class CustomerService {
       vendorName: order.vendor.businessName || 'Unnamed Vendor',
       vendorAddress:
         order.vendor.serviceArea?.address || 'Address not available',
+      vendorPhone: order.vendor.contactNumber,
+      vendorlat: order.vendor.serviceArea?.latitude,
+      vendorlng: order.vendor.serviceArea?.longitude,
       vendorCoverImage: order.vendor.coverImage || undefined,
       status: order.status.toLowerCase(),
       paymentMethod: order.paymentMethod,

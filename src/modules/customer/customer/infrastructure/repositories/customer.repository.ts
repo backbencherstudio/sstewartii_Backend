@@ -1248,11 +1248,14 @@ export class CustomerRepository implements ICustomerRepository {
         vendor: {
           select: {
             id: true,
+            contactNumber: true,
             businessName: true,
             coverImage: true,
             serviceArea: {
               select: {
                 address: true,
+                latitude: true,
+                longitude: true,
               },
             },
           },
