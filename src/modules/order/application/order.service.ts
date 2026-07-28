@@ -132,22 +132,22 @@ export class OrderService {
     });
 
     // ✅ Send notification to VENDOR about new order
-    const vendor = await this.vendorService.execute(userId);
-    if (vendor) {
-      await this.notificationHelper.sendToUser(vendor.id, {
-        title: `New Order #${order.orderNumber}`,
-        body: `${orderItems.length} items • $${totalAmount.toFixed(2)}`,
-        type: NotificationType.NEW_ORDER,
-        channel: NotificationChannel.PUSH,
-        data: {
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          customerId: customer.id,
-          totalAmount: totalAmount,
-          itemCount: orderItems.length,
-        },
-      });
-    }
+    // const vendor = await this.vendorService.execute(cart.vendorId);
+    // if (vendor) {
+    //   await this.notificationHelper.sendToUser(vendor.id, {
+    //     title: `New Order #${order.orderNumber}`,
+    //     body: `${orderItems.length} items • $${totalAmount.toFixed(2)}`,
+    //     type: NotificationType.NEW_ORDER,
+    //     channel: NotificationChannel.PUSH,
+    //     data: {
+    //       orderId: order.id,
+    //       orderNumber: order.orderNumber,
+    //       customerId: customer.id,
+    //       totalAmount: totalAmount,
+    //       itemCount: orderItems.length,
+    //     },
+    //   });
+    // }
 
     // ✅ Send notification to CUSTOMER about order confirmation
     await this.notificationHelper.sendToUser(userId, {

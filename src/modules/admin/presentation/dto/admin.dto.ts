@@ -212,9 +212,23 @@ export class AnalyticsDataPoint {
   customers: number | undefined;
 }
 
+export class SubscriberPlanCount {
+  planId: string | undefined;
+  planCode: string | undefined;
+  planName: string | undefined;
+  count: number | undefined;
+}
+
 export class SubscriberDataPoint {
   label: string | undefined;
-  value: number | undefined; // new subscriptions in that period
+  total: number | undefined; // total new subscriptions across all plans in that period
+  plans: SubscriberPlanCount[] | undefined;
+}
+
+export class SubscriberPlanLegend {
+  planId: string | undefined;
+  planCode: string | undefined;
+  planName: string | undefined;
 }
 
 export class LeaderboardEntry {

@@ -39,7 +39,6 @@ import {
   AdminVendorOrderSort,
   LeaderboardEntry,
   AnalyticsDataPoint,
-  SubscriberDataPoint,
 } from '../../presentation/dto/admin.dto';
 import { AnalyticsQueryDto, AnalyticsTimeFilter, RevenueTimeFilter } from '../../presentation/dto/analytics-query.dto';
 import { RevenueDataPoint } from '@/modules/vendor/analytics/domain/entities/analytics.entity';
@@ -1219,33 +1218,70 @@ export class AdminVendorVerificationRepository implements IAdminVendorVerificati
   }
 
   // Separate method for Subscriber Growth
-  private async getSubscriberGrowthData(filter: AnalyticsTimeFilter): Promise<{
-    series: SubscriberDataPoint[];
-    totalSubscribers: number;
-  }> {
+  private async getSubscriberGrowthData(filter: AnalyticsTimeFilter) {
     const { startDate, endDate, buckets } =
       this.buildDateBucketsForAnalytics(filter);
 
-    const subscriptionsInRange = await this.prisma.vendorSubscription.findMany({
-      where: { createdAt: { gte: startDate, lte: endDate } },
-      select: { createdAt: true },
+    // Fetch all active plans up front so every plan shows in the response,
+    // even ones with zero subscriptions in this range (matches Figma's fixed legend)
+    const allPlans = await this.prisma.subscriptionPlan.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, code: true },
+      orderBy: { position: 'asc' },
     });
 
-    const subscriberCounts = this.groupCountsByBucket(
-      subscriptionsInRange.map((s) => s.createdAt),
-      buckets,
-    );
+    const subscriptionsInRange = await this.prisma.vendorSubscription.findMany({
+      where: { createdAt: { gte: startDate, lte: endDate } },
+      select: {
+        createdAt: true,
+        subscriptionPlanId: true,
+        subscriptionPlan: {
+          select: { id: true, name: true, code: true },
+        },
+      },
+    });
 
-    const series: SubscriberDataPoint[] = buckets.map((bucket) => ({
-      label: bucket.label,
-      value: subscriberCounts.get(bucket.key) || 0,
-    }));
+    // Group raw createdAt dates by plan code (fallback to 'unknown' if plan was deleted/null)
+    const datesByPlanCode = new Map<string, Date[]>();
+    subscriptionsInRange.forEach((s) => {
+      const code = s.subscriptionPlan?.code ?? 'unknown';
+      if (!datesByPlanCode.has(code)) datesByPlanCode.set(code, []);
+      datesByPlanCode.get(code)!.push(s.createdAt);
+    });
+
+    // Bucket each plan's dates using your existing helper
+    const countsByPlanAndBucket = new Map<string, Map<string, number>>();
+    for (const [code, dates] of datesByPlanCode.entries()) {
+      countsByPlanAndBucket.set(code, this.groupCountsByBucket(dates, buckets));
+    }
+
+    const series = buckets.map((bucket) => {
+      const plans = allPlans.map((plan) => ({
+        planId: plan.id,
+        planCode: plan.code,
+        planName: plan.name,
+        count: countsByPlanAndBucket.get(plan.code)?.get(bucket.key) || 0,
+      }));
+
+      const total = plans.reduce((sum, p) => sum + p.count, 0);
+
+      return {
+        label: bucket.label,
+        total,
+        plans, // e.g. [{ planId, planCode: 'GOLD', planName: 'Gold Plan', count: 2 }, ...]
+      };
+    });
 
     const totalSubscribers = await this.prisma.vendorSubscription.count();
 
     return {
       series,
       totalSubscribers,
+      planLegend: allPlans.map((p) => ({
+        planId: p.id,
+        planCode: p.code,
+        planName: p.name,
+      })), // frontend uses this to assign the 5 fixed colors, in order
     };
   }
 

@@ -129,7 +129,31 @@ export class VendorMapper {
     };
   }
 
-  static toInfoResponse(vendor: any): VendorInfoResponseDto {
+  static toInfoResponse(vendor: any, distance?: number): VendorInfoResponseDto {
+    // Deduplicate opening hours by dayOfWeek
+    const uniqueOpeningHours = (vendor.operationHours ?? []).reduce(
+      (acc: any[], item: any) => {
+        const existing = acc.find((h) => h.dayOfWeek === item.dayOfWeek);
+        if (!existing) {
+          acc.push(item);
+        }
+        return acc;
+      },
+      [],
+    );
+
+    // Deduplicate social links by url
+    const uniqueSocialLinks = (vendor.socialLinks ?? []).reduce(
+      (acc: any[], item: any) => {
+        const existing = acc.find((link) => link.url === item.url);
+        if (!existing) {
+          acc.push(item);
+        }
+        return acc;
+      },
+      [],
+    );
+
     return {
       id: vendor.id,
       bio: vendor.bio ?? undefined,
@@ -139,14 +163,16 @@ export class VendorMapper {
       latitude: vendor.serviceArea?.latitude ?? undefined,
       longitude: vendor.serviceArea?.longitude ?? undefined,
       radius: vendor.serviceArea?.radius ?? undefined,
-      openingHours: (vendor.operationHours ?? []).map((item: any) => ({
+      distance: distance, // Use the parameter
+      distanceUnit: distance ? 'km' : undefined,
+      openingHours: uniqueOpeningHours.map((item: any) => ({
         dayOfWeek: item.dayOfWeek,
         dayLabel: VendorMapper.getDayLabel(item.dayOfWeek),
         openTime: item.openTime,
         closeTime: item.closeTime,
         isClosed: item.isClosed,
       })),
-      socialLinks: (vendor.socialLinks ?? []).map((item: any) => ({
+      socialLinks: uniqueSocialLinks.map((item: any) => ({
         platform: VendorMapper.detectSocialPlatform(item.url),
         url: item.url,
       })),

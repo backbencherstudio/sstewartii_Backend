@@ -44,7 +44,6 @@ import {
 import {
   CustomerDetailResponseDto,
   CustomerReportQueueResponseDto,
-  CustomerReportDetailResponseDto,
   CustomerVendorReportsResponseDto,
   CustomerVendorReportsResponseDto2,
 } from '../dto/customer-detail.response.dto';
@@ -193,10 +192,21 @@ export class AdminController {
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   async getCustomers(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.adminCustomerService.getCustomers({
+    const result = await this.adminCustomerService.getCustomers({
       page: Number(page),
       limit: Number(limit),
     });
+
+    return {
+      success: true,
+      statusCode: 200,
+      message: 'Request successful',
+      data: {
+        customers: result.data.customers,
+        total: result.data.total,
+        stats: result.data.stats,
+      },
+    };
   }
 
   @Get('customer/report')
@@ -235,7 +245,7 @@ export class AdminController {
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
   async getCustomerReportDetail(
     @Param('customerId', ParseUUIDPipe) customerId: string,
-  ): Promise<CustomerReportDetailResponseDto> {
+  ) {
     return this.adminCustomerService.getCustomerReportDetail(customerId);
   }
 

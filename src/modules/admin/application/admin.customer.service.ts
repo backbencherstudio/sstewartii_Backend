@@ -19,7 +19,6 @@ import {
 import {
   CustomerDetailResponseDto,
   CustomerReportQueueResponseDto,
-  CustomerReportDetailResponseDto,
   CustomerVendorReportsResponseDto,
   CustomerVendorReportsResponseDto2,
 } from '../presentation/dto/customer-detail.response.dto';
@@ -36,9 +35,7 @@ export class AdminCustomerService {
   ) {}
 
   async getCustomers(params: FindAllCustomersParams) {
-    const result = await this.adminCustomerRepository.findAll(params);
-
-    return this.adminCustomerMapper.toPaginated(result);
+    return await this.adminCustomerRepository.findAll(params);
   }
 
   async getCustomerDetail(
@@ -70,9 +67,7 @@ export class AdminCustomerService {
     return this.adminCustomerMapper.toReportQueueResponse(raw, page, limit);
   }
 
-  async getCustomerReportDetail(
-    customerId: string,
-  ): Promise<CustomerReportDetailResponseDto> {
+  async getCustomerReportDetail(customerId: string) {
     const raw = await this.adminCustomerRepository.findReportDetail(customerId);
 
     if (!raw) {
@@ -83,7 +78,7 @@ export class AdminCustomerService {
       throw new NotFoundException('No reports found for this customer');
     }
 
-    return this.adminCustomerMapper.toReportDetail(raw);
+    return raw;
   }
 
   async getCustomerVendorReports(

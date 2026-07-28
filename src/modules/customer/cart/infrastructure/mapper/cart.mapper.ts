@@ -107,6 +107,7 @@ export class CartMapper {
         items: cart.items.map((item: any) => ({
           id: item.id,
           productId: item.productId,
+          price: item.price,
           productName: item.product.name,
           productImage: this.mediaService.getUrl(item.product.images?.[0]?.url),
           quantity: item.quantity,

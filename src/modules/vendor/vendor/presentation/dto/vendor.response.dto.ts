@@ -59,6 +59,8 @@ export class VendorInfoResponseDto {
   latitude?: number;
   longitude?: number;
   radius?: number;
+  distance?: number; // Add this field
+  distanceUnit?: string; // Optional: 'km' or 'miles'
   openingHours!: VendorInfoOpeningHourResponseDto[];
   socialLinks!: VendorInfoSocialLinkResponseDto[];
 }

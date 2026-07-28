@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // prisma/seed.ts
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -1945,7 +1946,7 @@ async function main(): Promise<void> {
           });
           reportCount++;
           console.log(`  ✅ Added report for John Doe from vendor ${v + 1}`);
-        } catch (error) {
+        } catch (error: any) {
           continue;
         }
       }

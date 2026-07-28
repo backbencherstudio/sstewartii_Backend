@@ -35,6 +35,7 @@ import {
 import { RevenueCatService } from '@/modules/revenuecat/revenuecat.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { NotificationHelperService } from '@/common/shared/notification.service';
+import { LocalStorageService } from '@/common/storage/local.storage.service';
 
 @Injectable()
 export class AuthService {
@@ -53,6 +54,7 @@ export class AuthService {
     private readonly revenueCatService: RevenueCatService,
     private readonly prisma: PrismaService,
     private readonly notificationHelperService: NotificationHelperService,
+    private readonly localStorageService: LocalStorageService,
   ) {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('google.clientId'),
@@ -946,7 +948,7 @@ export class AuthService {
           phoneNumber: user.customer.phoneNumber,
           dateOfBirth: user.customer.dateOfBirth,
           address: user.customer.address,
-          avatar: user.customer.avatar,
+          avatar: this.localStorageService.getFullUrl(user.customer.avatar),
           isActive: user.customer.isActive,
           preferredRadius: user.customer.preferredRadius,
         },
@@ -979,7 +981,9 @@ export class AuthService {
           publicEmail: user.vendorStore.publicEmail,
           contactNumber: user.vendorStore.contactNumber,
           bio: user.vendorStore.bio,
-          coverImage: user.vendorStore.coverImage,
+          coverImage: this.localStorageService.getFullUrl(
+            user.vendorStore.coverImage,
+          ),
           onboardingStep: user.vendorStore.onboardingStep,
           kycStatus: user.vendorStore.kycStatus,
           status: user.vendorStore.status,

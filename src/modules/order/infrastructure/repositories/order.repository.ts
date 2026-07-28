@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { Injectable } from '@nestjs/common';
 import { Prisma, PaymentMethod, OrderStatus } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';

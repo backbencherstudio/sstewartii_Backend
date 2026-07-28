@@ -107,6 +107,7 @@ model AdminNotificationPreferences {
 
   @@index([userId])
 }
+
 // ============================================
 // VENDOR NOTIFICATION PREFERENCES
 // ============================================
@@ -197,7 +198,7 @@ model NotificationLog {
   deliveredAt  DateTime?
   scheduledFor DateTime? // For scheduled notifications
 
-  createdAt   DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([type])
@@ -255,8 +256,8 @@ model Vendor {
   kycStatus KycStatus @default(UNVERIFIED)
 
   // Subscription relation - fixed
-  vendorSubscription   VendorSubscription? 
-  vendorSubscriptionId String? @unique
+  vendorSubscription   VendorSubscription?
+  vendorSubscriptionId String?             @unique
 
   truckReviewAverage Float @default(0)
   truckReviewCount   Int   @default(0)
@@ -270,22 +271,22 @@ model Vendor {
   suspendedAt DateTime?
   disabledAt  DateTime?
 
-  kycProfile         KycProfile?
-  products           Product[]
-  socialLinks        SocialLink[]
-  cuisines           VendorCuisine[]
-  operationHours     OperationHour[]
-  serviceArea        ServiceArea?
-  vendorVerification VendorVerification?
-  orders             Order[]
-  favoritedBy        FavoriteVendor[]
-  carts              Cart[]
-  categories         Category[]
-  truckReviews       VendorTruckReview[]
-  truckGalleryImages TruckGalleryImage[]
-  orderReports       OrderReport[]
-  helpTickets        HelpCenterTicket[]
-  profileViews       VendorProfileView[]
+  kycProfile               KycProfile?
+  products                 Product[]
+  socialLinks              SocialLink[]
+  cuisines                 VendorCuisine[]
+  operationHours           OperationHour[]
+  serviceArea              ServiceArea?
+  vendorVerification       VendorVerification?
+  orders                   Order[]
+  favoritedBy              FavoriteVendor[]
+  carts                    Cart[]
+  categories               Category[]
+  truckReviews             VendorTruckReview[]
+  truckGalleryImages       TruckGalleryImage[]
+  orderReports             OrderReport[]
+  helpTickets              HelpCenterTicket[]
+  profileViews             VendorProfileView[]
   subscriptionTransactions SubscriptionTransaction[]
 
   createdAt DateTime @default(now())
@@ -295,21 +296,21 @@ model Vendor {
 }
 
 model RevenueCatWebhookLog {
-  id          String   @id @default(uuid())
-  eventId     String?  @unique
+  id          String  @id @default(uuid())
+  eventId     String? @unique
   eventType   String
   vendorId    String
   productId   String?
   store       String?
   environment String?
-  
-  rawPayload Json
-  processedAt DateTime @default(now())
+
+  rawPayload  Json
+  processedAt DateTime      @default(now())
   status      WebhookStatus @default(RECEIVED)
-  error       String?  @db.Text
-  
+  error       String?       @db.Text
+
   createdAt DateTime @default(now())
-  
+
   @@index([eventType])
   @@index([vendorId])
   @@index([createdAt])
@@ -340,46 +341,46 @@ model SubscriptionPlan {
 
 model VendorSubscription {
   id String @id @default(uuid())
-  
+
   // Vendor reference - fixed relation
   vendorId String @unique
   vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  
+
   // RevenueCat data
   revenueCatAppUserId String?
   entitlementId       String?
   productId           String?
   store               SubscriptionStore?
-  
+
   // Subscription plan - fixed relation
   subscriptionPlanId String?
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
-  
+
   // Status
-  status SubscriptionStatus @default(INACTIVE)
+  status   SubscriptionStatus   @default(INACTIVE)
   provider SubscriptionProvider @default(REVENUECAT)
-  
+
   // Dates
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime?
   expiresAt          DateTime?
   lastRenewalDate    DateTime?
   cancellationDate   DateTime?
-  
+
   // Metadata
   isTrialPeriod Boolean @default(false)
   isActive      Boolean @default(true)
   autoRenew     Boolean @default(true)
-  
+
   // Raw data from RevenueCat
   rawProviderData Json?
-  
+
   // Subscription history
   transactions SubscriptionTransaction[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([vendorId])
   @@index([status])
   @@index([expiresAt])
@@ -387,51 +388,51 @@ model VendorSubscription {
 
 model SubscriptionTransaction {
   id String @id @default(uuid())
-  
+
   // RevenueCat specific fields
-  revenueCatEventId String?  @unique
+  revenueCatEventId   String? @unique
   revenueCatProductId String?
-  store String?
-  environment String?
-  
+  store               String?
+  environment         String?
+
   // Vendor reference
   vendorId String
   vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  
+
   // Subscription reference
   vendorSubscriptionId String?
   vendorSubscription   VendorSubscription? @relation(fields: [vendorSubscriptionId], references: [id])
-  
+
   // Subscription details
-  productId   String
-  transactionId String?  @unique
+  productId             String
+  transactionId         String? @unique
   originalTransactionId String?
-  
+
   // Amount and currency
-  amount   Float?
-  currency String? @default("USD")
-  price    Float?
+  amount                   Float?
+  currency                 String? @default("USD")
+  price                    Float?
   priceInPurchasedCurrency Float?
-  
+
   // Timestamps
-  purchasedAt   DateTime
-  expirationAt  DateTime?
+  purchasedAt    DateTime
+  expirationAt   DateTime?
   eventTimestamp DateTime
-  
+
   // Subscription metadata
-  periodType     PeriodType @default(NORMAL)
-  isTrialPeriod  Boolean @default(false)
-  isFamilyShare  Boolean @default(false)
-  renewalNumber  Int?
-  
+  periodType    PeriodType @default(NORMAL)
+  isTrialPeriod Boolean    @default(false)
+  isFamilyShare Boolean    @default(false)
+  renewalNumber Int?
+
   // Status
   status SubscriptionTransactionStatus @default(COMPLETED)
-  
+
   // Raw data
   rawData Json?
-  
+
   createdAt DateTime @default(now())
-  
+
   @@index([vendorId])
   @@index([vendorSubscriptionId])
   @@index([productId])
@@ -447,11 +448,20 @@ model KycProfile {
 
   documentType   DocumentType
   documentNumber String       @unique
-  frontImageUrl  String
+  frontImageUrl  String?
   backImageUrl   String?
+  selfieImageUrl String?
+
+  // review trail
+  rejectionReason String?   @db.Text
+  reviewedByAdminId String?
+  reviewedAt       DateTime?
 
   submittedAt DateTime  @default(now())
-  verifiedAt  DateTime?
+  updatedAt DateTime @default(now()) @updatedAt
+  verifiedAt DateTime?
+
+  @@index([vendorId])
 }
 
 model Product {

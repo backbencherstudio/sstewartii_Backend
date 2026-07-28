@@ -26,6 +26,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { RevenueCatModule } from './modules/revenuecat/revenuecat.module';
 import { AnalyticsModule } from './modules/vendor/analytics/analytics.module';
+import { VendorKycModule } from './modules/vendor/vendor-kyc/vendor-kyc.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { AnalyticsModule } from './modules/vendor/analytics/analytics.module';
     VendorProfileSetupModule,
     StorageModule,
     VendorVerificationModule,
+    VendorKycModule,
     VendorModule,
     ProductModule,
     CustomerModule,

@@ -57,6 +57,7 @@ import {
 import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { VendorInsightAccessService } from './vendor-insight-access.service';
 import { MediaService } from '@/common/media/media.service';
+import { UserRepository } from '@/modules/auth/infrastructure/repositories/user.repository';
 
 @Injectable()
 export class VendorService {
@@ -68,6 +69,7 @@ export class VendorService {
     private readonly vendorInsightsMapper: VendorInsightsMapper,
     private readonly vendorInsightAccessService: VendorInsightAccessService,
     private readonly mediaService: MediaService,
+    private readonly userRepository: UserRepository,
   ) {}
 
   async findByVendorId(vendorId: string) {
@@ -241,14 +243,68 @@ export class VendorService {
     return address.split(',')[0]?.trim() || undefined;
   }
 
-  async getVendorInfo(vendorId: string): Promise<VendorInfoResponseDto> {
+  async getVendorInfo(
+    vendorId: string,
+    userId?: string,
+  ): Promise<VendorInfoResponseDto> {
+    console.log(vendorId, userId);
     const vendor = await this.vendorRepository.findVendorInfoById(vendorId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
     }
 
-    return VendorMapper.toInfoResponse(vendor);
+    let distance: number | undefined;
+
+    // Only calculate distance if userId is provided
+    if (userId) {
+      // Get user location from database
+      const user = await this.userRepository.findLoginUserById(userId);
+      let customerLat: number | undefined;
+      let customerLng: number | undefined;
+
+      console.log(user);
+      if (user?.customer) {
+        customerLat = user.customer.latitude ?? undefined;
+        customerLng = user.customer.longitude ?? undefined;
+      }
+
+      // Calculate distance if customer location is available
+      if (
+        customerLat !== undefined &&
+        customerLng !== undefined &&
+        vendor.serviceArea?.latitude !== undefined &&
+        vendor.serviceArea?.longitude !== undefined
+      ) {
+        distance = this.calculateDistance(
+          customerLat,
+          customerLng,
+          vendor.serviceArea.latitude,
+          vendor.serviceArea.longitude,
+        );
+      }
+    }
+
+    return VendorMapper.toInfoResponse(vendor, distance);
+  }
+
+  async getVendorTruckGallery(
+    vendorId: string,
+  ): Promise<TruckGalleryResponseDto> {
+    const vendor =
+      await this.vendorRepository.findTruckGalleryByVendorId(vendorId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    // Check if vendor's gallery is public (if you have this field)
+    // If you have a visibility setting, you can check it here
+    // if (!vendor.isGalleryPublic) {
+    //   throw new ForbiddenException('This vendor\'s gallery is not public');
+    // }
+
+    return this.vendorMapper.toResponse(vendor);
   }
 
   async uploadTruckGalleryImages(
@@ -983,6 +1039,36 @@ export class VendorService {
       limit,
       followers: result.followers,
     });
+  }
+
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) *
+        Math.cos(this.deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return Math.round(distance * 10) / 10; // Round to 1 decimal place
+  }
+
+  /**
+   * Convert degrees to radians
+   */
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
   }
 
   private async trackVendorProfileViewSafely(
