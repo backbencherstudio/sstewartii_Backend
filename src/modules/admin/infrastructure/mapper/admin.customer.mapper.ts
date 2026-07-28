@@ -1,16 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/unbound-method */
 import {
-  VerificationStatus,
   Prisma,
-  Customer,
   OrderStatus,
   OrderReportReason,
 } from '@prisma/client';
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { VendorVerificationListResult } from '../../domain/interface/admin.repository.interface';
-
-import { AdminVendorVerificationDocumentType } from '../../presentation/dto/admin.dto';
 import { CustomerListItemDto } from '../../presentation/dto/admin.response.dto';
 import {
   CustomerOrderHistoryDto,
@@ -186,6 +183,7 @@ const REASON_LABEL: Record<OrderReportReason, string> = {
 export class AdminCustomerMapper {
   constructor(private readonly mediaService: MediaService) {}
 
+  // admin.customer.mapper.ts
   toListItem(entity: any): CustomerListItemDto {
     const totalSpent = entity.orders.reduce(
       (sum, order) => sum + (order.totalAmount || 0),
@@ -203,10 +201,26 @@ export class AdminCustomerMapper {
     };
   }
 
-  toPaginated(result: { data: any[]; total: number }) {
+  toPaginated(result: { data: any[]; total: number; stats: any }) {
     return {
       data: result.data.map((item) => this.toListItem(item)),
       total: result.total,
+      stats: result.stats, // Make sure this is included
+    };
+  }
+
+  // If you want to keep backward compatibility, you can add an overload or a new method
+  toPaginatedWithStats(result: { data: any[]; total: number; stats: any }) {
+    return {
+      data: result.data.map((item) => this.toListItem(item)),
+      total: result.total,
+      stats: {
+        totalCustomers: result.stats.totalCustomers,
+        activeUsers: result.stats.activeUsers,
+        reportedCustomers: result.stats.reportedCustomers,
+        suspendedCustomers: result.stats.suspendedCustomers,
+        lastUpdated: result.stats.lastUpdated,
+      },
     };
   }
 
@@ -287,6 +301,7 @@ export class AdminCustomerMapper {
     dto.incompleteOrders = getCount(OrderStatus.PENDING);
     dto.reportsFiled = reportsFiled;
     dto.lastOrderedAt = lastOrderedAt;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     dto.orders = orders.map(AdminCustomerMapper.toOrderHistory);
     dto.orderTotal = orderCount;
     dto.orderPage = page;
@@ -369,7 +384,7 @@ export class AdminCustomerMapper {
 
   toReportItem(
     report: { id: string; createdAt: Date },
-    index: number,
+    i: number,
   ): ReportItemDto {
     const dto = new ReportItemDto();
     dto.reportId = report.id;

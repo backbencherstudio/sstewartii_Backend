@@ -1,15 +1,13 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import {
   VerificationStatus,
   KycStatus,
   SubscriptionStatus,
   OrderStatus,
   VendorVerification,
-  VendorSubscription,
   Prisma,
   Vendor,
 } from '@prisma/client';
-
-import { AnalyticsSummaryRawData } from '../../infrastructure/mapper/admin-analytics.mapper';
 
 import {
   VendorVerificationSort,
@@ -19,7 +17,11 @@ import {
   AdminVendorOrderStatusFilter,
   AdminVendorOrderSort,
   UpdateVendorStatusData,
+  AnalyticsDataPoint,
+  SubscriberDataPoint,
+  LeaderboardEntry,
 } from '../../presentation/dto/admin.dto';
+import { AnalyticsQueryDto } from '../../presentation/dto/analytics-query.dto';
 
 export interface FindVendorVerificationsInput {
   status?: VerificationStatus;
@@ -274,5 +276,19 @@ export interface IAdminVendorVerificationRepository {
 
   updateStatus(vendorId: string, data: UpdateVendorStatusData): Promise<Vendor>;
 
-  getAnalyticalSummary(): Promise<AnalyticsSummaryRawData>;
+  getAnalyticalSummary(filter: AnalyticsQueryDto): Promise<{
+    platformGrowth: {
+      series: AnalyticsDataPoint[];
+      totalVendors: number;
+      totalCustomers: number;
+    };
+    subscriberGrowth: {
+      series: SubscriberDataPoint[];
+      totalSubscribers: number;
+    };
+    leaderboard: {
+      customers: LeaderboardEntry[];
+      vendors: LeaderboardEntry[];
+    };
+  }>;
 }

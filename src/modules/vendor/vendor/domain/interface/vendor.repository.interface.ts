@@ -293,6 +293,10 @@ export interface IVendorRepository {
     ownerId: string,
   ): Promise<VendorTruckGalleryView | null>;
 
+  findTruckGalleryByVendorId(
+    vendorId: string,
+  ): Promise<VendorTruckGalleryView | null>;
+
   findVendorInsightProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorInsightProfileView | null>;

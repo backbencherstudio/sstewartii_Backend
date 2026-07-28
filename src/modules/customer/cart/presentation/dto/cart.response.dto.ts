@@ -49,7 +49,13 @@ export class CartListItemDto {
   productId!: string;
   productName!: string;
   productImage?: string;
+
   quantity!: number;
+
+  unitBasePrice!: number;
+  sizePrice!: number;
+  addOnTotal!: number;
+  lineTotal!: number;
 }
 
 export class CartListVendorDto {

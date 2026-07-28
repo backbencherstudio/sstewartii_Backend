@@ -92,6 +92,14 @@ export class VendorController {
     return this.vendorService.getVendorInfo(vendorId);
   }
 
+  @Public()
+  @Get(':vendorId/truck-gallery')
+  async getVendorTruckGallery(
+    @Param('vendorId') vendorId: string,
+  ): Promise<TruckGalleryResponseDto> {
+    return this.vendorService.getVendorTruckGallery(vendorId);
+  }
+
   /**
    * Upload multiple truck gallery images
    * Max 10 images per request

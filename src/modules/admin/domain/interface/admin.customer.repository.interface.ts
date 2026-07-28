@@ -7,7 +7,6 @@ import {
 import {
   CustomerRawData,
   ReportQueueRawData,
-  CustomerReportDetailRawData,
   CustomerVendorReportsRawData,
   CustomerVendorReportsRawData1,
 } from '../../infrastructure/mapper/admin.customer.mapper';
@@ -26,7 +25,19 @@ export interface FindAllCustomersParams {
 
 // Main Interface
 export interface IAdminCustomerRepository {
-  findAll(params: FindAllCustomersParams): Promise<PaginatedResult<any>>;
+  findAll(params: FindAllCustomersParams): Promise<{
+    data: {
+      customers: any[];
+      total: number;
+      stats: {
+        totalCustomers: number;
+        activeUsers: number;
+        reportedCustomers: number;
+        suspendedCustomers: number;
+        lastUpdated: Date;
+      };
+    };
+  }>;
 
   findRawCustomerData(
     customerId: string,
@@ -44,9 +55,7 @@ export interface IAdminCustomerRepository {
     query: CustomerReportQueueQueryDto,
   ): Promise<ReportQueueRawData>;
 
-  findReportDetail(
-    customerId: string,
-  ): Promise<CustomerReportDetailRawData | null>;
+  findReportDetail(customerId: string);
 
   findCustomerVendorReports(
     customerId: string,
@@ -54,6 +63,7 @@ export interface IAdminCustomerRepository {
 
   findCustomerVendorReports2(
     customerId: string,
+    vendorId: string,
   ): Promise<CustomerVendorReportsRawData1 | null>;
 
   findActiveStatus(customerId: string): Promise<{ isActive: boolean }>;

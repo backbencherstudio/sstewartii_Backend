@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import { CustomerEntity } from '../entities/customer.entity';
 import {
   NearbyVendorsQueryDto,
@@ -86,4 +87,41 @@ export interface ICustomerRepository {
   findFavoriteVendorIds(customerId: string): Promise<string[]>;
 
   findFavoriteVendorIdsByCustomerId(customerId: string): Promise<string[]>;
+
+  findAllFavoriteProductIds(customerId: string): Promise<string[]>;
+
+  /**
+   * Get all favorite vendor IDs for a customer
+   */
+  findAllFavoriteVendorIds(customerId: string): Promise<string[]>;
+
+  updateProfile(
+    userId: string,
+    data: {
+      name?: string;
+      phoneNumber?: string;
+      dateOfBirth?: Date;
+      address?: string;
+      preferredRadius?: number;
+      avatar?: string;
+    },
+  ): Promise<CustomerEntity>;
+
+  /**
+   * Get order history for a customer with filtering and pagination
+   */
+  findOrderHistory(
+    customerId: string,
+    filter: 'all' | 'completed' | 'cancelled',
+    page: number,
+    limit: number,
+  ): Promise<{
+    items: any[];
+    total: number;
+  }>;
+
+  /**
+   * Get detailed order information by order ID
+   */
+  findOrderDetail(orderId: string): Promise<any | null>;
 }

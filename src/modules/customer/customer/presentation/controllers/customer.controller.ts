@@ -6,7 +6,14 @@ import {
   Get,
   Query,
   Param,
+  Put,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 
 import { CustomerService } from '../../application/customer.service';
 import { RoleGuard } from '@/common/guards/roles.guard';
@@ -27,6 +34,8 @@ import {
   FavoriteProductsQueryDto,
   FavoriteVendorsQueryDto,
   CustomerAdvancedSearchQueryDto,
+  OrderAgainDto,
+  OrderHistoryQueryDto,
 } from '../dto/customer.dto';
 
 import {
@@ -39,7 +48,10 @@ import {
   FavoriteVendorsResponseDto,
   CustomerAdvancedSearchResponseDto,
 } from '../dto/customer.response.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UpdateCustomerProfileDto } from '../dto/customer-profile-update.dto';
 
+@ApiTags('Customer')
 @Controller('customer')
 export class CustomerController {
   constructor(
@@ -119,6 +131,16 @@ export class CustomerController {
   @Get('favorites/products')
   @UseGuards(RoleGuard)
   @Roles(Role.USER)
+  @ApiOperation({
+    summary: 'Get favorite products with pagination and field selection',
+  })
+  @ApiResponse({ status: 200, description: 'Returns favorite products' })
+  @ApiQuery({
+    name: 'fields',
+    required: false,
+    description: 'Comma-separated list of fields to return',
+    example: 'id,name,price,vendor.businessName,image',
+  })
   async getFavoriteProducts(
     @CurrentUser() user: AuthUser,
     @Query() query: FavoriteProductsQueryDto,
@@ -145,6 +167,131 @@ export class CustomerController {
     @Query() query: FavoriteVendorsQueryDto,
   ): Promise<FavoriteVendorsResponseDto> {
     return this.service.getFavoriteVendors(user.id, query);
+  }
+
+  /**
+   * Get all favorite product IDs for the authenticated user
+   * Returns only IDs, not full objects
+   */
+  @Get('favorites/products/ids')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ApiOperation({
+    summary: 'Get all favorite product IDs for the current user',
+    description:
+      'Returns an array of product IDs that the user has favorited. Useful for checking favorite status in bulk.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns list of favorite product IDs',
+    schema: {
+      example: {
+        productIds: ['prod_123', 'prod_456', 'prod_789'],
+        count: 3,
+      },
+    },
+  })
+  async getAllFavoriteProductIds(
+    @CurrentUser() user: AuthUser,
+  ): Promise<{ productIds: string[]; count: number }> {
+    return this.service.getAllFavoriteProductIds(user.id);
+  }
+
+  /**
+   * Get all favorite vendor IDs for the authenticated user
+   * Returns only IDs, not full objects
+   */
+  @Get('favorites/truck/ids')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ApiOperation({
+    summary: 'Get all favorite vendor/truck IDs for the current user',
+    description:
+      'Returns an array of vendor IDs that the user has favorited. Useful for checking favorite status in bulk.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns list of favorite vendor IDs',
+    schema: {
+      example: {
+        vendorIds: ['vendor_123', 'vendor_456', 'vendor_789'],
+        count: 3,
+      },
+    },
+  })
+  async getAllFavoriteVendorIds(
+    @CurrentUser() user: AuthUser,
+  ): Promise<{ vendorIds: string[]; count: number }> {
+    return this.service.getAllFavoriteVendorIds(user.id);
+  }
+
+  /**
+   * Update customer profile with optional avatar upload
+   * Supports multipart/form-data
+   */
+  @Put('profile')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @UseInterceptors(FileInterceptor('avatar'))
+  @ApiOperation({
+    summary: 'Update customer profile with optional avatar upload',
+    description:
+      'Update customer profile f  ields and optionally upload a new avatar image.',
+  })
+  @ResponseMessage('Profile updated successfully')
+  async updateProfile(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateCustomerProfileDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new FileTypeValidator({
+            fileType:
+              /(image\/jpeg|image\/png|image\/webp|image\/gif|image\/svg\+xml)/,
+          }),
+        ],
+        fileIsRequired: false, // Avatar is optional
+      }),
+    )
+    avatarFile?: Express.Multer.File,
+  ): Promise<CustomerResponseDto> {
+    return this.service.updateProfile(user.id, dto, avatarFile);
+  }
+
+  @Get('orders')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ApiQuery({
+    name: 'filter',
+    enum: ['all', 'completed', 'cancelled'],
+    required: false,
+  })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'limit', type: Number, required: false })
+  async getOrderHistory(
+    @CurrentUser() user: AuthUser,
+    @Query() query: OrderHistoryQueryDto,
+  ) {
+    return this.service.getOrderHistory(user.id, query);
+  }
+
+  @Get('orders/:orderId')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  async getOrderDetail(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+  ) {
+    return this.service.getOrderDetail(user.id, orderId);
+  }
+
+  @Post('orders/again')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
+  @ResponseMessage('Items added to cart successfully')
+  async orderAgain(@CurrentUser() user: AuthUser, @Body() dto: OrderAgainDto) {
+    return this.service.orderAgain(user.id, dto);
   }
 
   @Get('food-advhance-search')

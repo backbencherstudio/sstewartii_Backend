@@ -11,6 +11,7 @@ import { CreateProductDto } from '../../presentation/dto/product.dto';
 type ProductDetailPrisma = Prisma.ProductGetPayload<{
   include: {
     category: true;
+    cuisine: true;
     images: true;
     sizeOptions: true;
     choiceOptions: true;
@@ -334,15 +335,13 @@ export class ProductRepository implements IProductRepository {
       },
       include: {
         category: true,
-
+        cuisine: true,
         images: {
           orderBy: { position: 'asc' },
         },
-
         sizeOptions: true,
         choiceOptions: true,
         addOns: true,
-
         vendor: {
           include: {
             cuisines: {

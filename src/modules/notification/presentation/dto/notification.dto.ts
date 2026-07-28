@@ -132,14 +132,6 @@ export class UnreadCountResponseDto {
 // ============================================
 
 export class UpdateNotificationSettingsDto {
-  @ApiProperty({
-    required: false,
-    description: 'Master toggle for all push notifications',
-  })
-  @IsOptional()
-  @IsBoolean()
-  pushNotificationsEnabled?: boolean;
-
   @ApiProperty({ required: false, description: 'Enable Do Not Disturb mode' })
   @IsOptional()
   @IsBoolean()
@@ -171,6 +163,14 @@ export class UpdateNotificationSettingsDto {
 export class UpdateAdminNotificationPreferencesDto {
   @ApiProperty({
     required: false,
+    description: 'Master toggle for all push notifications',
+  })
+  @IsOptional()
+  @IsBoolean()
+  pushNotificationsEnabled?: boolean;
+
+  @ApiProperty({
+    required: false,
     description: 'System alerts (critical system notifications)',
   })
   @IsOptional()
@@ -193,6 +193,14 @@ export class UpdateAdminNotificationPreferencesDto {
 // ============================================
 
 export class UpdateVendorNotificationPreferencesDto {
+  @ApiProperty({
+    required: false,
+    description: 'Master toggle for all push notifications',
+  })
+  @IsOptional()
+  @IsBoolean()
+  pushNotificationsEnabled?: boolean;
+
   // Order Updates
   @ApiProperty({
     required: false,
@@ -271,6 +279,14 @@ export class UpdateVendorNotificationPreferencesDto {
 // ============================================
 
 export class UpdateCustomerNotificationPreferencesDto {
+  @ApiProperty({
+    required: false,
+    description: 'Master toggle for all push notifications',
+  })
+  @IsOptional()
+  @IsBoolean()
+  pushNotificationsEnabled?: boolean;
+
   // Order Updates
   @ApiProperty({
     required: false,

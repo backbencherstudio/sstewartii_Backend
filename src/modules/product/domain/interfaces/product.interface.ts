@@ -9,6 +9,7 @@ type ProductWithCategory = Prisma.ProductGetPayload<{
 export type ProductDetailPrisma = Prisma.ProductGetPayload<{
   include: {
     category: true;
+    cuisine: true;
     images: true;
     sizeOptions: true;
     choiceOptions: true;

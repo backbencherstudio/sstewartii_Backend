@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
-import { Customer, OrderReportReason } from '@prisma/client';
+import { OrderReportReason } from '@prisma/client';
 
 import type {
   IAdminCustomerRepository,
   FindAllCustomersParams,
 } from '../../domain/interface/admin.customer.repository.interface';
 
-import { VendorVerificationSort } from '../../presentation/dto/admin.dto';
 import {
   CustomerOrderHistoryQueryDto,
   CustomerReportQueueQueryDto,
@@ -16,7 +15,6 @@ import {
 import {
   CustomerRawData,
   ReportQueueRawData,
-  CustomerReportDetailRawData,
   CustomerVendorReportsRawData,
   CustomerVendorReportsRawData1,
 } from '../mapper/admin.customer.mapper';
@@ -42,16 +40,6 @@ type OrderReportRaw = {
   createdAt: Date;
 };
 
-type VendorReportsRaw1 = {
-  vendor: {
-    id: string;
-    vendorCode: string;
-    businessName: string | null;
-    coverImage: string | null;
-  };
-  reports: OrderReportRaw[];
-};
-
 @Injectable()
 export class AdminCustomerRepository implements IAdminCustomerRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -59,7 +47,7 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
   async findAll(params: FindAllCustomersParams) {
     const { where, page, limit, orderBy } = params;
 
-    const [data, total] = await Promise.all([
+    const [data, stats, total] = await Promise.all([
       this.prisma.customer.findMany({
         where,
         skip: (page - 1) * limit,
@@ -79,10 +67,36 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
           },
         },
       }),
+      this.getCustomerStats(),
       this.prisma.customer.count({ where }),
     ]);
 
-    return { data, total };
+    // Map the customers to the format you want
+    const mappedCustomers = data.map((customer) => {
+      const totalSpent = customer.orders.reduce(
+        (sum, order) => sum + (order.totalAmount || 0),
+        0,
+      );
+
+      return {
+        id: customer.id,
+        name: customer.user?.name,
+        email: customer.user?.email,
+        status: customer.isActive ? 'ACTIVE' : 'INACTIVE',
+        dateJoined: customer.createdAt,
+        orders: customer.orders.length,
+        totalSpent: totalSpent,
+      };
+    });
+
+    // Return the restructured data
+    return {
+      data: {
+        customers: mappedCustomers,
+        total: total,
+        stats: stats,
+      },
+    };
   }
 
   async existsById(customerId: string): Promise<boolean> {
@@ -162,7 +176,7 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
 
     return {
       customer: customer!,
-      orderStats: orderStats as any,
+      orderStats: orderStats,
       orders,
       orderCount,
       lastOrderedAt: lastOrder?.createdAt ?? null,
@@ -191,11 +205,6 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
           },
         }
       : {};
-
-    const orderBy =
-      sortBy === 'oldest'
-        ? { createdAt: 'asc' as const }
-        : { createdAt: 'desc' as const };
 
     const grouped = await this.prisma.orderReport.groupBy({
       by: ['customerId'],
@@ -257,46 +266,64 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
     return { items, total };
   }
 
-  async findReportDetail(
-    customerId: string,
-  ): Promise<CustomerReportDetailRawData | null> {
-    const [customer, vendorReportGroups, totalReportCount, lastOrder] =
-      await Promise.all([
-        this.prisma.customer.findUnique({
-          where: { id: customerId },
-          select: {
-            id: true,
-            avatar: true,
-            dateOfBirth: true,
-            address: true,
-            user: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-            orders: {
-              select: { status: true },
+  async findReportDetail(customerId: string) {
+    const [
+      customer,
+      vendorReportGroups,
+      totalReportCount,
+      lastOrder,
+      allReports,
+    ] = await Promise.all([
+      this.prisma.customer.findUnique({
+        where: { id: customerId },
+        select: {
+          id: true,
+          avatar: true,
+          dateOfBirth: true,
+          address: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
             },
           },
-        }),
+        },
+      }),
 
-        this.prisma.orderReport.groupBy({
-          by: ['vendorId'],
-          where: { customerId },
-          _count: { vendorId: true },
-        }),
+      this.prisma.orderReport.groupBy({
+        by: ['vendorId'],
+        where: { customerId },
+        _count: { vendorId: true },
+      }),
 
-        this.prisma.orderReport.count({
-          where: { customerId },
-        }),
+      this.prisma.orderReport.count({
+        where: { customerId },
+      }),
 
-        this.prisma.order.findFirst({
-          where: { customerId },
-          orderBy: { createdAt: 'desc' },
-          select: { createdAt: true },
-        }),
-      ]);
+      this.prisma.order.findFirst({
+        where: { customerId },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+
+      // Fetch all reports with full details
+      this.prisma.orderReport.findMany({
+        where: { customerId },
+        select: {
+          id: true,
+          vendorId: true,
+          reason: true,
+          description: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          reviewedAt: true,
+          resolvedAt: true,
+          adminNote: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
 
     if (!customer) return null;
 
@@ -314,12 +341,45 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
 
     const vendorMap = new Map(vendors.map((v) => [v.id, v]));
 
+    // Group reports by vendor
+    const reportsByVendor = new Map<
+      string,
+      Array<{
+        id: string;
+        reason: string;
+        description: string | null;
+        status: string;
+        createdAt: Date;
+        updatedAt: Date;
+        reviewedAt: Date | null;
+        resolvedAt: Date | null;
+        adminNote: string | null;
+      }>
+    >();
+
+    for (const report of allReports) {
+      const existing = reportsByVendor.get(report.vendorId) ?? [];
+      existing.push({
+        id: report.id,
+        reason: report.reason,
+        description: report.description,
+        status: report.status,
+        createdAt: report.createdAt,
+        updatedAt: report.updatedAt,
+        reviewedAt: report.reviewedAt,
+        resolvedAt: report.resolvedAt,
+        adminNote: report.adminNote,
+      });
+      reportsByVendor.set(report.vendorId, existing);
+    }
+
     const vendorGroups = vendorReportGroups
       .filter((g) => vendorMap.has(g.vendorId))
       .map((g) => ({
         vendorId: g.vendorId,
         reportCount: g._count.vendorId,
         vendor: vendorMap.get(g.vendorId)!,
+        reports: reportsByVendor.get(g.vendorId) ?? [],
       }));
 
     return {
@@ -397,7 +457,9 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
 
   async findCustomerVendorReports2(
     customerId: string,
+    vendorId: string,
   ): Promise<CustomerVendorReportsRawData1 | null> {
+    // Check if customer exists
     const customerExists = await this.prisma.customer.findUnique({
       where: { id: customerId },
       select: { id: true },
@@ -405,64 +467,73 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
 
     if (!customerExists) return null;
 
-    const vendorIds = await this.prisma.orderReport
-      .findMany({
-        where: { customerId },
-        select: { vendorId: true },
-        distinct: ['vendorId'],
-      })
-      .then((rows) => rows.map((r) => r.vendorId));
+    // Check if vendor exists
+    const vendorExists = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
 
-    if (!vendorIds.length) return { vendorGroups: [] };
+    if (!vendorExists) return null;
 
-    const [vendors, reports] = await Promise.all([
-      this.prisma.vendor.findMany({
-        where: { id: { in: vendorIds } },
-        select: {
-          id: true,
-          vendorCode: true,
-          businessName: true,
-          coverImage: true,
-        },
-      }),
+    // Get vendor details
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: {
+        id: true,
+        vendorCode: true,
+        businessName: true,
+        coverImage: true,
+      },
+    });
 
-      this.prisma.orderReport.findMany({
-        where: { customerId },
-        select: {
-          id: true,
-          vendorId: true,
-          reason: true,
-          description: true,
-          status: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'asc' },
-      }),
-    ]);
+    if (!vendor) return null;
 
-    const vendorMap = new Map(vendors.map((v) => [v.id, v]));
+    // Get all reports for this customer and vendor
+    const reports = await this.prisma.orderReport.findMany({
+      where: {
+        customerId,
+        vendorId,
+      },
+      select: {
+        id: true,
+        reason: true,
+        description: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
 
-    const reportsByVendor = new Map<string, OrderReportRaw[]>();
-    for (const report of reports) {
-      const existing = reportsByVendor.get(report.vendorId) ?? [];
-      existing.push({
-        id: report.id,
-        reason: report.reason,
-        description: report.description,
-        status: report.status,
-        createdAt: report.createdAt,
-      });
-      reportsByVendor.set(report.vendorId, existing);
+    // If no reports found, return empty
+    if (!reports.length) {
+      return {
+        vendorGroups: [],
+      };
     }
 
-    const vendorGroups: VendorReportsRaw1[] = vendorIds
-      .filter((id) => vendorMap.has(id))
-      .map((id) => ({
-        vendor: vendorMap.get(id)!,
-        reports: reportsByVendor.get(id) ?? [],
-      }));
+    // Map reports to the expected format
+    const reportItems: OrderReportRaw[] = reports.map((report) => ({
+      id: report.id,
+      reason: report.reason,
+      description: report.description,
+      status: report.status,
+      createdAt: report.createdAt,
+    }));
 
-    return { vendorGroups };
+    // Return the vendor with its reports
+    return {
+      vendorGroups: [
+        {
+          vendor: {
+            id: vendor.id,
+            vendorCode: vendor.vendorCode,
+            businessName: vendor.businessName,
+            coverImage: vendor.coverImage,
+          },
+          reports: reportItems,
+        },
+      ],
+    };
   }
 
   async findActiveStatus(customerId: string): Promise<{ isActive: boolean }> {
@@ -477,5 +548,59 @@ export class AdminCustomerRepository implements IAdminCustomerRepository {
       where: { id: customerId },
       data: { isActive: false },
     });
+  }
+
+  private async getCustomerStats() {
+    const now = new Date();
+
+    const [totalCustomers, activeUsers, reportedCustomers, suspendedCustomers] =
+      await Promise.all([
+        // Total customers
+        this.prisma.customer.count(),
+
+        // Active users (customers with at least one order in the last 30 days)
+        this.prisma.customer.count({
+          where: {
+            orders: {
+              some: {
+                createdAt: {
+                  gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+                },
+              },
+            },
+          },
+        }),
+
+        // Reported customers (customers with order reports)
+        this.prisma.customer.count({
+          where: {
+            orderReports: {
+              some: {
+                status: 'OPEN',
+              },
+            },
+          },
+        }),
+
+        // Suspended customers (you might want to add a 'suspended' field to Customer model)
+        // For now, checking if customer has any cancelled orders or specific status
+        this.prisma.customer.count({
+          where: {
+            orders: {
+              some: {
+                status: 'CANCELLED',
+              },
+            },
+          },
+        }),
+      ]);
+
+    return {
+      totalCustomers,
+      activeUsers,
+      reportedCustomers,
+      suspendedCustomers,
+      lastUpdated: now,
+    };
   }
 }

@@ -192,6 +192,17 @@ export class CartRepository implements ICartRepository {
                 },
               },
             },
+            sizeOption: true,
+            choiceOptions: {
+              include: {
+                choiceOption: true,
+              },
+            },
+            addOns: {
+              include: {
+                addOn: true,
+              },
+            },
           },
         },
       },

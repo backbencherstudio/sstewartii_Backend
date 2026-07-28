@@ -44,16 +44,15 @@ import {
 import {
   CustomerDetailResponseDto,
   CustomerReportQueueResponseDto,
-  CustomerReportDetailResponseDto,
   CustomerVendorReportsResponseDto,
   CustomerVendorReportsResponseDto2,
 } from '../dto/customer-detail.response.dto';
-import { AnalyticsSummaryResponseDto } from '../dto/analytics-summary.response.dto';
 
 import { RoleGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { Role } from '@/common/enums/role.enum';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { AnalyticsQueryDto } from '../dto/analytics-query.dto';
 
 @Controller('admin')
 export class AdminController {
@@ -193,10 +192,21 @@ export class AdminController {
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   async getCustomers(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.adminCustomerService.getCustomers({
+    const result = await this.adminCustomerService.getCustomers({
       page: Number(page),
       limit: Number(limit),
     });
+
+    return {
+      success: true,
+      statusCode: 200,
+      message: 'Request successful',
+      data: {
+        customers: result.data.customers,
+        total: result.data.total,
+        stats: result.data.stats,
+      },
+    };
   }
 
   @Get('customer/report')
@@ -235,7 +245,7 @@ export class AdminController {
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
   async getCustomerReportDetail(
     @Param('customerId', ParseUUIDPipe) customerId: string,
-  ): Promise<CustomerReportDetailResponseDto> {
+  ) {
     return this.adminCustomerService.getCustomerReportDetail(customerId);
   }
 
@@ -253,7 +263,7 @@ export class AdminController {
     return this.adminCustomerService.getCustomerVendorReports(customerId);
   }
 
-  @Get('customers/:customerId/reports/vendors')
+  @Get('customers/:customerId/reports/vendors/:vendorId')
   @UseGuards(RoleGuard)
   @Roles(Role.ADMIN)
   @ResponseMessage('Customer vendor reports fetched successfully')
@@ -261,10 +271,15 @@ export class AdminController {
     summary: 'Get vendor reports against customer with reason and details',
   })
   @ApiParam({ name: 'customerId', description: 'Customer UUID' })
+  @ApiParam({ name: 'vendorId', description: 'Vendor UUID' })
   async getCustomerVendorReports2(
     @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Param('vendorId', ParseUUIDPipe) vendorId: string,
   ): Promise<CustomerVendorReportsResponseDto2> {
-    return this.adminCustomerService.getCustomerVendorReports2(customerId);
+    return this.adminCustomerService.getCustomerVendorReports2(
+      customerId,
+      vendorId,
+    );
   }
 
   @Patch('customer/:customerId/deactivate')
@@ -284,7 +299,7 @@ export class AdminController {
   @Roles(Role.ADMIN)
   @ResponseMessage('Analytics summary fetched successfully')
   @ApiOperation({ summary: 'Get platform analytics summary stats' })
-  async getAnalyticalSummary(): Promise<AnalyticsSummaryResponseDto> {
-    return this.service.getAnalyticalSummary();
+  async getAnalyticalSummary(@Query() query: AnalyticsQueryDto) {
+    return this.service.getAnalyticalSummary(query);
   }
 }

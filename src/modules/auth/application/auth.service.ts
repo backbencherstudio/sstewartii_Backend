@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { IUserRepository } from '../domain/interfaces/user.repository.interface';
 import type { IOtpRepository } from '../domain/interfaces/otp.repository.interface';
-import { User } from '../domain/entities/user.entity';
+import { User, UserProps } from '../domain/entities/user.entity';
 import { AuthOtpQueueService } from '../infrastructure/queues/auth-otp-queue.service';
 import { RegisterDto } from '../presentation/dto/registerDto/register.dto';
 import { LoginDto } from '../presentation/dto/loginDto/login.dto';
@@ -27,9 +27,15 @@ import { VerifyOtpDto } from '../presentation/dto/mail/otp.dto';
 import { RecoverAccountVerifyDto } from '../presentation/dto/delete-account/recover-account-verify.dto';
 import { VerifyDeletionOtpDto } from '../presentation/dto/delete-account/verify-deletion-otp.dto';
 import { DeletionStatusDto } from '../presentation/dto/delete-account/deletion-status.dto';
-import { DevicePlatform } from '@prisma/client';
+import {
+  DevicePlatform,
+  NotificationChannel,
+  NotificationType,
+} from '@prisma/client';
 import { RevenueCatService } from '@/modules/revenuecat/revenuecat.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { NotificationHelperService } from '@/common/shared/notification.service';
+import { LocalStorageService } from '@/common/storage/local.storage.service';
 
 @Injectable()
 export class AuthService {
@@ -47,6 +53,8 @@ export class AuthService {
     private readonly authOtpQueueService: AuthOtpQueueService,
     private readonly revenueCatService: RevenueCatService,
     private readonly prisma: PrismaService,
+    private readonly notificationHelperService: NotificationHelperService,
+    private readonly localStorageService: LocalStorageService,
   ) {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('google.clientId'),
@@ -55,7 +63,139 @@ export class AuthService {
     );
   }
 
-  // ---------- REGISTER ----------
+  // ============ FIREBASE SOCIAL AUTH METHODS ============
+
+  /**
+   * Find user by email (for Firebase auth)
+   */
+  async findUserByEmail(email: string): Promise<any> {
+    return this.userRepository.findByEmail(email);
+  }
+
+  /**
+   * Find user by Firebase UID
+   */
+  async findUserByFirebaseUid(firebaseUid: string): Promise<any> {
+    return this.userRepository.findByFirebaseUid(firebaseUid);
+  }
+
+  async updateUserDevice(
+    userId: string,
+    data: { fcmToken?: string; platform?: DevicePlatform },
+  ) {
+    return this.userRepository.update(userId, {
+      fcm_token: data.fcmToken,
+      platform: data.platform,
+    });
+  }
+
+  /**
+   * Create a new user from social provider (Google/Apple via Firebase)
+   */
+  // auth.service.ts (or similar)
+  async createSocialUser(data: {
+    email: string;
+    name: string;
+    firebaseUid: string;
+    provider: 'google' | 'apple' | 'facebook' | 'twitter';
+    emailVerified: boolean;
+    avatar?: string | null;
+    fcmToken?: string | null;
+    platform?: DevicePlatform | null;
+    role?: string; // client‑supplied role, will be validated
+  }): Promise<any> {
+    // Validate role if provided – only allow non‑admin roles
+    const allowedRoles = ['USER', 'VENDOR'] as const; // adjust as needed
+    let assignedRole: 'USER' | 'VENDOR' = 'USER'; // default
+    if (data.role && allowedRoles.includes(data.role.toUpperCase() as any)) {
+      assignedRole = data.role.toUpperCase() as 'USER' | 'VENDOR';
+    }
+
+    // Generate random password
+    const randomPassword = await bcrypt.hash(
+      Math.random().toString(36) + Date.now().toString(),
+      10,
+    );
+
+    const userProps: UserProps = {
+      id: uuidv4(),
+      email: data.email,
+      name: data.name,
+      password: randomPassword,
+      provider: data.provider.toUpperCase(),
+      isEmailVerified: data.emailVerified,
+      fcm_token: data.fcmToken || null,
+      platform: data.platform || null,
+      googleId: data.provider === 'google' ? data.firebaseUid : null,
+      appleId: data.provider === 'apple' ? data.firebaseUid : null,
+      isDeleted: false,
+      deletionScheduledAt: null,
+      deletionReason: null,
+      refreshToken: null,
+      permissions: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      role: assignedRole, // store role – ensure your User entity has a role field
+    };
+
+    const newUser = new User(userProps);
+    const savedUser = await this.userRepository.create(newUser, assignedRole);
+
+    this.logger.log(
+      `✅ Social user created: ${savedUser.email} via ${data.provider} with role ${assignedRole}`,
+    );
+
+    return savedUser;
+  }
+
+  /**
+   * Update Firebase UID for existing user
+   * Note: Since your User entity doesn't have a firebaseUid field,
+   * we'll use googleId or appleId to store the Firebase UID
+   */
+  async updateFirebaseUid(userId: string, firebaseUid: string): Promise<void> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Store Firebase UID in the appropriate field based on provider
+    // If you want to add a dedicated firebaseUid field, you can add it to the User entity
+    // For now, we'll use googleId or appleId
+    const updateData: any = {};
+
+    if (user.provider === 'GOOGLE') {
+      updateData.googleId = firebaseUid;
+    } else if (user.provider === 'APPLE') {
+      updateData.appleId = firebaseUid;
+    } else {
+      // If user was LOCAL but now using social login, update provider
+      updateData.provider = user.provider || 'GOOGLE';
+      if (user.provider === 'GOOGLE' || !user.provider) {
+        updateData.googleId = firebaseUid;
+      } else if (user.provider === 'APPLE') {
+        updateData.appleId = firebaseUid;
+      }
+    }
+
+    await this.userRepository.update(userId, updateData);
+    this.logger.log(`✅ Firebase UID updated for user: ${userId}`);
+  }
+
+  /**
+   * Update email verification status
+   */
+  async updateEmailVerification(
+    userId: string,
+    verified: boolean,
+  ): Promise<void> {
+    await this.userRepository.update(userId, { isEmailVerified: verified });
+    this.logger.log(
+      `✅ Email verification updated for user: ${userId} -> ${verified}`,
+    );
+  }
+
+  // ============ REGISTER ============
   async register(registerDto: RegisterDto): Promise<any> {
     const {
       email,
@@ -76,7 +216,6 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // ✅ Ensure platform is properly formatted
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
     let platformValue: DevicePlatform | null = null;
     if (platform) {
       const platformString = platform.toString().toUpperCase();
@@ -85,19 +224,31 @@ export class AuthService {
         platformString === 'ANDROID' ||
         platformString === 'WEB'
       ) {
-        platformValue = platformString as DevicePlatform;
+        platformValue = platformString;
       }
     }
 
-    const newUser = new User({
+    const userProps: UserProps = {
       id: uuidv4(),
       email,
       password: hashedPassword,
       name,
       platform: platformValue,
       fcm_token: fcmToken || null,
-    });
+      provider: 'LOCAL',
+      isEmailVerified: false,
+      isDeleted: false,
+      deletionScheduledAt: null,
+      deletionReason: null,
+      refreshToken: null,
+      permissions: [],
+      googleId: null,
+      appleId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
+    const newUser = new User(userProps);
     const roleType = accountType === 'VENDOR' ? 'VENDOR' : 'USER';
     const savedUser = await this.userRepository.create(newUser, roleType);
 
@@ -186,8 +337,6 @@ export class AuthService {
 
       if (platform) {
         // ✅ Ensure platform is in the correct format
-        // If platform is 'IOS' or 'ANDROID' or 'WEB' it should be fine
-        // If it's lowercase, convert to uppercase
         const platformValue = platform.toUpperCase();
         updateData.platform = platformValue;
         console.log(`📱 Updating platform to: ${platformValue}`);
@@ -264,6 +413,29 @@ export class AuthService {
     await this.updateRefreshTokenHash(user.id, token.refreshToken);
 
     const locationState = this.buildLocationState(user);
+
+    try {
+      await this.notificationHelperService.sendToUser(user.id, {
+        title: 'Welcome Back! 🎉',
+        body: `Hello ${user.email}, you've successfully logged in. WebSocket is working!`,
+        type: NotificationType.NEW_ORDER,
+        channel: NotificationChannel.PUSH,
+        data: {
+          screen: 'home',
+          action: 'login_success',
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      this.logger.log(
+        `✅ Welcome notification sent to user ${user.id} via WebSocket`,
+      );
+    } catch (error: any) {
+      // Don't block login if notification fails
+      this.logger.error(
+        `Failed to send welcome notification: ${error.message}`,
+      );
+    }
 
     return {
       success: true,
@@ -637,34 +809,53 @@ export class AuthService {
     return this.googleClient.generateAuthUrl({
       access_type: 'offline',
       scope: ['email', 'profile'],
-      prompt: 'consent',
+      prompt: 'select_account',
     });
   }
 
-  async validateGoogleLogin(profile: any): Promise<any> {
+  async validateGoogleLogin(profile: any) {
     const { email, name, googleId } = profile;
+
     let user = await this.userRepository.findByEmail(email);
+
     if (user) {
       if (!user.googleId) {
-        await this.userRepository.update(user.id, {
+        user = await this.userRepository.update(user.id, {
           googleId,
           provider: 'GOOGLE',
         });
       }
     } else {
-      const newUser = new User({
+      const userProps: UserProps = {
         id: uuidv4(),
         email,
         name,
         password: null,
         googleId,
         provider: 'GOOGLE',
-      });
+        isEmailVerified: false,
+        isDeleted: false,
+        deletionScheduledAt: null,
+        deletionReason: null,
+        refreshToken: null,
+        permissions: [],
+        fcm_token: null,
+        platform: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const newUser = new User(userProps);
       user = await this.userRepository.create(newUser, 'USER');
     }
+
     const tokens = await this.getTokens(user.id, user.email, user.role.name);
+
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
-    return { user, tokens };
+
+    return {
+      user,
+      tokens,
+    };
   }
 
   async getDeletionStatus(userId: string): Promise<DeletionStatusDto> {
@@ -698,7 +889,7 @@ export class AuthService {
       (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     );
 
-    // Calculate days elapsed since scheduling - FIX: handle undefined createdAt
+    // Calculate days elapsed since scheduling
     const startDate = user.updatedAt || user.createdAt || now;
     const daysElapsed = Math.ceil(
       (now.getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24),
@@ -757,7 +948,7 @@ export class AuthService {
           phoneNumber: user.customer.phoneNumber,
           dateOfBirth: user.customer.dateOfBirth,
           address: user.customer.address,
-          avatar: user.customer.avatar,
+          avatar: this.localStorageService.getFullUrl(user.customer.avatar),
           isActive: user.customer.isActive,
           preferredRadius: user.customer.preferredRadius,
         },
@@ -765,7 +956,6 @@ export class AuthService {
     }
 
     if (role === 'VENDOR' && user.vendorStore) {
-      // Get subscription status from vendorSubscription
       const subscription = await this.userRepository.getVendorSubscription(
         user.vendorStore.id,
       );
@@ -791,16 +981,48 @@ export class AuthService {
           publicEmail: user.vendorStore.publicEmail,
           contactNumber: user.vendorStore.contactNumber,
           bio: user.vendorStore.bio,
-          coverImage: user.vendorStore.coverImage,
+          coverImage: this.localStorageService.getFullUrl(
+            user.vendorStore.coverImage,
+          ),
           onboardingStep: user.vendorStore.onboardingStep,
           kycStatus: user.vendorStore.kycStatus,
-          subscriptionStatus: subscription?.status || null,
-          subscriptionExpiry: subscription?.expiresAt || null,
           status: user.vendorStore.status,
           adminStatus: user.vendorStore.adminStatus,
           truckReviewAverage: user.vendorStore.truckReviewAverage,
           truckReviewCount: user.vendorStore.truckReviewCount,
         },
+        subscription: subscription
+          ? {
+              id: subscription.id,
+              status: subscription.status,
+              isActive: subscription.isActive,
+              isTrialPeriod: subscription.isTrialPeriod,
+              autoRenew: subscription.autoRenew,
+              currentPeriodStart: subscription.currentPeriodStart,
+              currentPeriodEnd: subscription.currentPeriodEnd,
+              expiresAt: subscription.expiresAt,
+              lastRenewalDate: subscription.lastRenewalDate,
+              cancellationDate: subscription.cancellationDate,
+              revenueCatAppUserId: subscription.revenueCatAppUserId,
+              entitlementId: subscription.entitlementId,
+              productId: subscription.productId,
+              store: subscription.store,
+              provider: subscription.provider,
+              plan: subscription.subscriptionPlan
+                ? {
+                    id: subscription.subscriptionPlan.id,
+                    name: subscription.subscriptionPlan.name,
+                    code: subscription.subscriptionPlan.code,
+                    durationDays: subscription.subscriptionPlan.durationDays,
+                    maxProducts: subscription.subscriptionPlan.maxProducts,
+                    price: subscription.subscriptionPlan.price,
+                    currency: subscription.subscriptionPlan.currency,
+                    revenueCatEntitlementId:
+                      subscription.subscriptionPlan.revenueCatEntitlementId,
+                  }
+                : null,
+            }
+          : null,
       };
     }
 

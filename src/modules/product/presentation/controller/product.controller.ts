@@ -6,8 +6,6 @@ import {
   Get,
   UseInterceptors,
   UploadedFiles,
-  Query,
-  Patch,
   ParseUUIDPipe,
   Param,
   Delete,
@@ -25,9 +23,6 @@ import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { ProductService } from '../../application/product.service';
 import { CreateProductDto } from '../dto/product.dto';
 import { ProductResponseDto } from '../dto/product.response.dto';
-import { SearchProductQueryDto } from '../dto/searchQuery.dto';
-import { UpdateProductStatusDto } from '../dto/product.dto';
-import { ApiResponses } from '@/common/types/api-response.type';
 
 @ApiTags('Product')
 @Controller('product')
@@ -112,11 +107,11 @@ export class ProductController {
     return this.service.deleteProduct(user.id, productId);
   }
 
-  // @Get('get-specific/:id')
-  // @Public()
-  // async getProductDetail(
-  //   @Param('id') id: string,
-  // ): Promise<ProductResponseDto> {
-  //   return this.service.getProductDetail(id);
-  // }
+  @Get('get-specific/:id')
+  @Public()
+  async getProductDetail(
+    @Param('id') id: string,
+  ): Promise<ProductResponseDto> {
+    return this.service.getProductDetail(id);
+  }
 }

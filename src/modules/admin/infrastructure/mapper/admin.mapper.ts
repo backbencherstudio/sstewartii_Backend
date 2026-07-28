@@ -5,7 +5,6 @@ import {
   VendorLiveStatus,
   OrderStatus,
   VendorVerification,
-  VendorSubscription,
   Vendor,
   VendorAdminStatus,
 } from '@prisma/client';
@@ -486,9 +485,11 @@ export class AdminMapper {
       case SubscriptionStatus.CANCELLED:
         return 'Cancelled';
 
+      // eslint-disable-next-line no-duplicate-case
       case SubscriptionStatus.CANCELLED:
         return 'Grace Period';
 
+      // eslint-disable-next-line no-duplicate-case
       case SubscriptionStatus.CANCELLED:
         return 'Billing Retry';
 

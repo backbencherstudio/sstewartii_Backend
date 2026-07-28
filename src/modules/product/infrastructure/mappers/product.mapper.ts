@@ -36,6 +36,8 @@ export class ProductMapper {
     entity.vendorId = raw.vendorId;
     entity.categoryId = raw.categoryId;
     entity.createdAt = raw.createdAt;
+    // ✅ Remove updatedAt - it doesn't exist on Product entity
+    // entity.updatedAt = raw.updatedAt;
     return entity;
   }
 
@@ -65,33 +67,37 @@ export class ProductMapper {
           }
         : undefined,
 
-      images: product.images.map((image: any) => ({
-        id: image.id,
-        url: this.resolveMediaUrl(image.url),
-        isPrimary: image.isPrimary,
-        position: image.position,
-      })),
+      images:
+        product.images?.map((image: any) => ({
+          id: image.id,
+          url: this.resolveMediaUrl(image.url),
+          isPrimary: image.isPrimary,
+          position: image.position,
+        })) || [],
 
-      sizeOptions: product.sizeOptions.map((size: any) => ({
-        id: size.id,
-        name: size.name,
-        price: size.price,
-        isRequired: size.isRequired,
-      })),
+      sizeOptions:
+        product.sizeOptions?.map((size: any) => ({
+          id: size.id,
+          name: size.name,
+          price: size.price,
+          isRequired: size.isRequired,
+        })) || [],
 
-      choiceOptions: product.choiceOptions.map((choice: any) => ({
-        id: choice.id,
-        name: choice.name,
-        price: choice.price,
-        isRequired: choice.isRequired,
-      })),
+      choiceOptions:
+        product.choiceOptions?.map((choice: any) => ({
+          id: choice.id,
+          name: choice.name,
+          price: choice.price,
+          isRequired: choice.isRequired,
+        })) || [],
 
-      addOns: product.addOns.map((addOn: any) => ({
-        id: addOn.id,
-        name: addOn.name,
-        price: addOn.price,
-        isRequired: addOn.isRequired,
-      })),
+      addOns:
+        product.addOns?.map((addOn: any) => ({
+          id: addOn.id,
+          name: addOn.name,
+          price: addOn.price,
+          isRequired: addOn.isRequired,
+        })) || [],
     };
   }
 
