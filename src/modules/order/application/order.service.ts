@@ -185,7 +185,11 @@ export class OrderService {
   }
 
   private generateOrderNumber(): string {
-    return `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.floor(1000 + Math.random() * 9000)
+      .toString(36)
+      .toUpperCase();
+    return `ORD-${timestamp}${random}`;
   }
 
   // ============================================

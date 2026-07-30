@@ -380,6 +380,8 @@ export class CustomerService {
     const customerLat = customer.latitude;
     const customerLng = customer.longitude;
 
+    console.log(customerLat, customerLng);
+
     const vendors = await this.repo.findExploreMapVendorCandidates(query);
 
     const radiusKm = query.radiusKm ?? 10;
