@@ -8,14 +8,10 @@ import {
   Body,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
   UploadedFiles,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  FileInterceptor,
-  FileFieldsInterceptor,
-} from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
   IsEnum,
   IsNotEmpty,
@@ -33,9 +29,6 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { CurrentUser } from '@/modules/auth/decorators/get-user.decorator';
 import { Role } from '@/common/enums/role.enum';
 import type { AuthUser } from '@/modules/auth/domain/interfaces/auth-user.interface';
-
-
-// Replace these with your actual guards/decorators
 
 // ============================================
 // DTOs
@@ -78,9 +71,25 @@ export class ListKycQueryDto {
   search?: string;
 }
 
+// Field names accepted in the multipart selfie upload.
+// FRONT is mandatory; LEFT/RIGHT/SMILE are optional liveness frames.
+export const SELFIE_FIELDS = [
+  { name: 'frontImage', maxCount: 1 },
+  { name: 'leftImage', maxCount: 1 },
+  { name: 'rightImage', maxCount: 1 },
+  { name: 'smileImage', maxCount: 1 },
+];
+
+export type SelfieFiles = {
+  frontImage?: Express.Multer.File[];
+  leftImage?: Express.Multer.File[];
+  rightImage?: Express.Multer.File[];
+  smileImage?: Express.Multer.File[];
+};
+
 // ============================================
 // VENDOR-FACING CONTROLLER
-// (mobile app: upload NID, upload selfie, submit, check status)
+// (mobile app: upload NID, upload selfie poses, submit, check status)
 // ============================================
 
 @UseGuards(RoleGuard)
@@ -90,7 +99,7 @@ export class VendorKycController {
   constructor(private readonly vendorKycService: VendorKycService) {}
 
   /**
-   * Step 1: upload NID front + back in one call
+   * Step 1: upload NID front (+ back, depending on documentType) in one call
    */
   @Post('document')
   @UseInterceptors(
@@ -108,39 +117,47 @@ export class VendorKycController {
     },
     @Body() dto: UploadNidDto,
   ) {
-    if (!files?.frontImage?.[0] || !files?.backImage?.[0]) {
-      throw new BadRequestException(
-        'Both frontImage and backImage files are required',
-      );
+    if (!files?.frontImage?.[0]) {
+      throw new BadRequestException('frontImage file is required');
     }
 
     return this.vendorKycService.uploadDocument(
       user.id,
       dto,
       files.frontImage[0],
-      files.backImage[0],
+      files.backImage?.[0],
     );
   }
 
   /**
-   * Step 2: upload the final selfie frame captured after
-   * the Flutter liveness check (turn left/right, blink, smile) passes
+   * Step 2: upload liveness selfie frames captured after the Flutter
+   * gesture check (turn left/right, blink, smile) passes.
+   * frontImage is required; leftImage/rightImage/smileImage are optional.
+   * Can be called multiple times — each pose overwrites the previous one.
    */
   @Post('selfie')
-  @UseInterceptors(FileInterceptor('selfieImage'))
+  @UseInterceptors(FileFieldsInterceptor(SELFIE_FIELDS))
   uploadSelfie(
     @CurrentUser() user: AuthUser,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: SelfieFiles,
   ) {
-    if (!file) {
-      throw new BadRequestException('selfieImage file is required');
+    if (
+      !files?.frontImage?.[0] &&
+      !files?.leftImage?.[0] &&
+      !files?.rightImage?.[0] &&
+      !files?.smileImage?.[0]
+    ) {
+      throw new BadRequestException(
+        'At least one selfie image (frontImage/leftImage/rightImage/smileImage) is required',
+      );
     }
-    return this.vendorKycService.uploadSelfie(user.id, file);
+
+    return this.vendorKycService.uploadSelfie(user.id, files);
   }
 
   /**
    * Step 3: submit for manual admin review
-   * (only allowed once NID + selfie are both uploaded)
+   * (only allowed once NID + at least the front selfie are uploaded)
    */
   @Post('submit')
   submit(@CurrentUser() user: AuthUser) {
@@ -178,7 +195,7 @@ export class AdminVendorKycController {
 
   /**
    * Full detail for the "Reviewing documents" screen
-   * (vendor info + NID front/back + selfie)
+   * (vendor info + document images + selfie poses)
    */
   @Get(':vendorId')
   getDetail(@Param('vendorId') vendorId: string) {
@@ -186,10 +203,7 @@ export class AdminVendorKycController {
   }
 
   @Patch(':vendorId/approve')
-  approve(
-    @Param('vendorId') vendorId: string,
-    @CurrentUser() user: AuthUser,
-  ) {
+  approve(@Param('vendorId') vendorId: string, @CurrentUser() user: AuthUser) {
     return this.vendorKycService.approve(vendorId, user.id);
   }
 

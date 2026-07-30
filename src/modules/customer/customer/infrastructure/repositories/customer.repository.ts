@@ -1225,7 +1225,20 @@ export class CustomerRepository implements ICustomerRepository {
         orderItems: {
           select: {
             id: true,
+            productId: true,
+            productName: true,
             quantity: true,
+            unitPrice: true,
+            lineTotal: true,
+            product: {
+              select: {
+                images: {
+                  orderBy: { position: 'asc' },
+                  take: 1,
+                  select: { url: true },
+                },
+              },
+            },
           },
         },
       },
