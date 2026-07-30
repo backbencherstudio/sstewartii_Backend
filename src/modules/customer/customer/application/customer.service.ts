@@ -51,7 +51,7 @@ export class CustomerService {
     private readonly mapper: CustomerMapper,
     @Inject(IStorageService)
     private readonly storage: IStorageService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
   ) {}
 
   async findActiveByUserId(userId: string): Promise<CustomerEntity | null> {
@@ -379,6 +379,8 @@ export class CustomerService {
 
     const customerLat = customer.latitude;
     const customerLng = customer.longitude;
+
+    console.log(customerLat, customerLng);
 
     const vendors = await this.repo.findExploreMapVendorCandidates(query);
 
@@ -934,7 +936,17 @@ export class CustomerService {
           (sum: number, item: any) => sum + item.quantity,
           0,
         ),
-        thumbnail: order.vendor.coverImage || undefined,
+        items: order.orderItems.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.productName,
+          productImage: this.storage.getFullUrl(
+            item.product?.images?.[0]?.url ?? null,
+          ),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          lineTotal: item.lineTotal,
+        })),
       })),
       page: query.page,
       limit: query.limit,
@@ -976,7 +988,7 @@ export class CustomerService {
       vendorPhone: order.vendor.contactNumber,
       vendorlat: order.vendor.serviceArea?.latitude,
       vendorlng: order.vendor.serviceArea?.longitude,
-      vendorCoverImage: order.vendor.coverImage || undefined,
+      vendorCoverImage: this.storage.getFullUrl(order.vendor.coverImage),
       status: order.status.toLowerCase(),
       paymentMethod: order.paymentMethod,
       subtotal: order.subtotal,
@@ -995,6 +1007,9 @@ export class CustomerService {
         id: item.id,
         productId: item.productId,
         productName: item.productName,
+        productImage: this.storage.getFullUrl(
+          item.product?.images?.[0]?.url ?? null,
+        ),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         lineTotal: item.lineTotal,
@@ -1013,10 +1028,7 @@ export class CustomerService {
     };
   }
 
-  async orderAgain(
-    userId: string,
-    dto: OrderAgainDto,
-  ) {
+  async orderAgain(userId: string, dto: OrderAgainDto) {
     const customer = await this.repo.findByUserId(userId);
 
     if (!customer || !customer.isActive) {

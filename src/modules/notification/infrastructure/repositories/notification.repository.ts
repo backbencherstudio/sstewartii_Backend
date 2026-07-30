@@ -7,151 +7,311 @@ import {
   INotificationFilters,
   INotification,
 } from '../../domain/interface/notification.repository.interface';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class NotificationRepository implements INotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: ICreateNotification): Promise<INotification> {
-    const result = await this.prisma.notificationLog.create({
-      data: {
-        userId: data.userId,
-        type: data.type,
-        channel: data.channel,
-        title: data.title,
-        body: data.body,
-        data: data.data || {},
-        scheduledFor: data.scheduledFor,
-        status: 'PENDING',
-      },
-    });
+    try {
+      // First check if user exists
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { id: true },
+      });
 
-    return this.mapToINotification(result);
+      if (!userExists) {
+        throw new Error(`User with ID ${data.userId} does not exist`);
+      }
+
+      const result = await this.prisma.notificationLog.create({
+        data: {
+          userId: data.userId,
+          type: data.type,
+          channel: data.channel,
+          title: data.title,
+          body: data.body,
+          data: data.data || {},
+          scheduledFor: data.scheduledFor,
+          status: 'PENDING',
+        },
+      });
+
+      return this.mapToINotification(result);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2003') {
+          throw new Error(
+            `User with ID ${data.userId} does not exist. Cannot create notification.`,
+          );
+        }
+        throw new Error(
+          `Database error while creating notification: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   async createMany(data: ICreateNotification[]): Promise<{ count: number }> {
-    const result = await this.prisma.notificationLog.createMany({
-      data: data.map((item) => ({
-        userId: item.userId,
-        type: item.type,
-        channel: item.channel,
-        title: item.title,
-        body: item.body,
-        data: item.data || {},
-        scheduledFor: item.scheduledFor,
-        status: 'PENDING',
-      })),
-    });
+    try {
+      // Validate all users exist first
+      const userIds = [...new Set(data.map((item) => item.userId))];
 
-    return { count: result.count };
+      const existingUsers = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true },
+      });
+
+      const existingUserIds = new Set(existingUsers.map((user) => user.id));
+      const invalidUserIds = userIds.filter((id) => !existingUserIds.has(id));
+
+      if (invalidUserIds.length > 0) {
+        throw new Error(
+          `The following user IDs do not exist: ${invalidUserIds.join(', ')}`,
+        );
+      }
+
+      const result = await this.prisma.notificationLog.createMany({
+        data: data.map((item) => ({
+          userId: item.userId,
+          type: item.type,
+          channel: item.channel,
+          title: item.title,
+          body: item.body,
+          data: item.data || {},
+          scheduledFor: item.scheduledFor,
+          status: 'PENDING',
+        })),
+      });
+
+      return { count: result.count };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2003') {
+          throw new Error(
+            'One or more users do not exist. Cannot create notifications.',
+          );
+        }
+        throw new Error(
+          `Database error while creating notifications: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   async findById(id: string): Promise<INotification | null> {
-    const result = await this.prisma.notificationLog.findUnique({
-      where: { id },
-    });
-    return result ? this.mapToINotification(result) : null;
+    try {
+      const result = await this.prisma.notificationLog.findUnique({
+        where: { id },
+      });
+      return result ? this.mapToINotification(result) : null;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new Error(
+          `Database error while finding notification: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   async findByUserId(
     userId: string,
     filters?: INotificationFilters,
   ): Promise<{ notifications: INotification[]; total: number }> {
-    const limit = filters?.limit || 50;
-    const offset = filters?.offset || 0;
+    try {
+      const limit = filters?.limit || 50;
+      const offset = filters?.offset || 0;
 
-    const where: any = { userId };
+      const where: any = { userId };
 
-    if (filters?.type) where.type = filters.type;
-    if (filters?.status) where.status = filters.status;
+      if (filters?.type) where.type = filters.type;
+      if (filters?.status) where.status = filters.status;
 
-    if (filters?.startDate || filters?.endDate) {
-      where.sentAt = {};
-      if (filters.startDate) where.sentAt.gte = filters.startDate;
-      if (filters.endDate) where.sentAt.lte = filters.endDate;
+      if (filters?.startDate || filters?.endDate) {
+        where.sentAt = {};
+        if (filters.startDate) where.sentAt.gte = filters.startDate;
+        if (filters.endDate) where.sentAt.lte = filters.endDate;
+      }
+
+      const [notifications, total] = await Promise.all([
+        this.prisma.notificationLog.findMany({
+          where,
+          orderBy: { sentAt: 'desc' },
+          skip: offset,
+          take: limit,
+        }),
+        this.prisma.notificationLog.count({ where }),
+      ]);
+
+      return {
+        notifications: notifications.map((n) => this.mapToINotification(n)),
+        total,
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new Error(
+          `Database error while fetching notifications: ${error.message}`,
+        );
+      }
+      throw error;
     }
-
-    const [notifications, total] = await Promise.all([
-      this.prisma.notificationLog.findMany({
-        where,
-        orderBy: { sentAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }),
-      this.prisma.notificationLog.count({ where }),
-    ]);
-
-    return {
-      notifications: notifications.map((n) => this.mapToINotification(n)),
-      total,
-    };
   }
 
   async updateStatus(data: IUpdateNotificationStatus): Promise<INotification> {
-    const result = await this.prisma.notificationLog.update({
-      where: { id: data.notificationId },
-      data: {
-        status: data.status,
-        error: data.error,
-        deliveredAt: data.deliveredAt,
-        readAt: data.readAt,
-      },
-    });
+    try {
+      // Check if notification exists
+      const exists = await this.prisma.notificationLog.findUnique({
+        where: { id: data.notificationId },
+        select: { id: true },
+      });
 
-    return this.mapToINotification(result);
+      if (!exists) {
+        throw new Error(
+          `Notification with ID ${data.notificationId} does not exist`,
+        );
+      }
+
+      const result = await this.prisma.notificationLog.update({
+        where: { id: data.notificationId },
+        data: {
+          status: data.status,
+          error: data.error,
+          deliveredAt: data.deliveredAt,
+          readAt: data.readAt,
+        },
+      });
+
+      return this.mapToINotification(result);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new Error(
+            `Notification with ID ${data.notificationId} does not exist`,
+          );
+        }
+        throw new Error(
+          `Database error while updating notification status: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   async markAsRead(notificationIds: string[]): Promise<{ count: number }> {
-    const result = await this.prisma.notificationLog.updateMany({
-      where: {
-        id: { in: notificationIds },
-        readAt: null,
-      },
-      data: {
-        status: 'READ',
-        readAt: new Date(),
-      },
-    });
+    try {
+      if (notificationIds.length === 0) {
+        return { count: 0 };
+      }
 
-    return { count: result.count };
+      const result = await this.prisma.notificationLog.updateMany({
+        where: {
+          id: { in: notificationIds },
+          readAt: null,
+        },
+        data: {
+          status: 'READ',
+          readAt: new Date(),
+        },
+      });
+
+      return { count: result.count };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new Error(
+          `Database error while marking notifications as read: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   async markAllAsRead(userId: string): Promise<{ count: number }> {
-    const result = await this.prisma.notificationLog.updateMany({
-      where: {
-        userId,
-        readAt: null,
-      },
-      data: {
-        status: 'READ',
-        readAt: new Date(),
-      },
-    });
+    try {
+      // Check if user exists
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
 
-    return { count: result.count };
+      if (!userExists) {
+        throw new Error(`User with ID ${userId} does not exist`);
+      }
+
+      const result = await this.prisma.notificationLog.updateMany({
+        where: {
+          userId,
+          readAt: null,
+        },
+        data: {
+          status: 'READ',
+          readAt: new Date(),
+        },
+      });
+
+      return { count: result.count };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new Error(
+          `Database error while marking all notifications as read: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   async countUnread(userId: string): Promise<number> {
-    return await this.prisma.notificationLog.count({
-      where: {
-        userId,
-        readAt: null,
-      },
-    });
+    try {
+      // Check if user exists
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+
+      if (!userExists) {
+        throw new Error(`User with ID ${userId} does not exist`);
+      }
+
+      return await this.prisma.notificationLog.count({
+        where: {
+          userId,
+          readAt: null,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new Error(
+          `Database error while counting unread notifications: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   async deleteOldNotifications(daysOld: number): Promise<{ count: number }> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-    const result = await this.prisma.notificationLog.deleteMany({
-      where: {
-        sentAt: { lt: cutoffDate },
-        status: { in: ['SENT', 'READ', 'DELIVERED'] },
-      },
-    });
+      const result = await this.prisma.notificationLog.deleteMany({
+        where: {
+          sentAt: { lt: cutoffDate },
+          status: { in: ['SENT', 'READ', 'DELIVERED'] },
+        },
+      });
 
-    return { count: result.count };
+      return { count: result.count };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new Error(
+          `Database error while deleting old notifications: ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   // Helper to map Prisma result to INotification

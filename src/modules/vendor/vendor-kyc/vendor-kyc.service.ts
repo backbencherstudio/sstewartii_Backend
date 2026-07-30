@@ -7,9 +7,27 @@ import {
   Logger,
   Inject,
 } from '@nestjs/common';
-import { UploadNidDto, ListKycQueryDto } from './vendor-kyc.controller';
-import { KycStatus } from '@prisma/client';
+import {
+  UploadNidDto,
+  ListKycQueryDto,
+  SelfieFiles,
+} from './vendor-kyc.controller';
+import { KycStatus, DocumentType, SelfiePose } from '@prisma/client';
 import { IStorageService } from '@/common/storage/storage.interface';
+
+// Maps multipart field name -> SelfiePose enum value
+const SELFIE_FIELD_TO_POSE: Record<keyof SelfieFiles, SelfiePose> = {
+  frontImage: SelfiePose.FRONT,
+  leftImage: SelfiePose.LEFT,
+  rightImage: SelfiePose.RIGHT,
+  smileImage: SelfiePose.SMILE,
+};
+
+// Document types where the back-of-card image is required
+const DOCUMENT_TYPES_REQUIRING_BACK: DocumentType[] = [
+  DocumentType.NATIONAL_ID,
+  DocumentType.DRIVERS_LICENSE,
+];
 
 @Injectable()
 export class VendorKycService {
@@ -29,21 +47,31 @@ export class VendorKycService {
     userId: string,
     dto: UploadNidDto,
     frontFile: Express.Multer.File,
-    backFile: Express.Multer.File,
+    backFile?: Express.Multer.File,
   ) {
     const vendor = await this.assertEditable(userId);
 
     if (!dto.documentType) {
       throw new BadRequestException('documentType is required');
     }
-
     if (!dto.documentNumber) {
       throw new BadRequestException('documentNumber is required');
     }
 
+    const backRequired = DOCUMENT_TYPES_REQUIRING_BACK.includes(
+      dto.documentType,
+    );
+    if (backRequired && !backFile) {
+      throw new BadRequestException(
+        `backImage is required for documentType ${dto.documentType}`,
+      );
+    }
+
     const [frontImageUrl, backImageUrl] = await Promise.all([
       this.localStorageService.uploadFile(frontFile, 'kyc/nid'),
-      this.localStorageService.uploadFile(backFile, 'kyc/nid'),
+      backFile
+        ? this.localStorageService.uploadFile(backFile, 'kyc/nid')
+        : Promise.resolve(null),
     ]);
 
     await this.prisma.kycProfile.upsert({
@@ -72,11 +100,12 @@ export class VendorKycService {
     return { message: 'NID document uploaded successfully' };
   }
 
-  async uploadSelfie(userId: string, file: Express.Multer.File) {
+  async uploadSelfie(userId: string, files: SelfieFiles) {
     const vendor = await this.assertEditable(userId);
 
     const profile = await this.prisma.kycProfile.findUnique({
       where: { vendorId: vendor.id },
+      select: { id: true },
     });
 
     if (!profile) {
@@ -85,19 +114,46 @@ export class VendorKycService {
       );
     }
 
-    const selfieImageUrl = await this.localStorageService.uploadFile(
-      file,
-      'kyc/selfie',
+    const entries = Object.entries(files) as [
+      keyof SelfieFiles,
+      Express.Multer.File[] | undefined,
+    ][];
+
+    const uploads = entries
+      .filter(([, fileArr]) => !!fileArr?.[0])
+      .map(async ([field, fileArr]) => {
+        const pose = SELFIE_FIELD_TO_POSE[field];
+        const imageUrl = await this.localStorageService.uploadFile(
+          fileArr![0],
+          `kyc/selfie/${pose.toLowerCase()}`,
+        );
+        return { pose, imageUrl };
+      });
+
+    const results = await Promise.all(uploads);
+
+    // Upsert each pose independently so re-taking one shot doesn't
+    // require re-uploading the others.
+    await this.prisma.$transaction(
+      results.map(({ pose, imageUrl }) =>
+        this.prisma.kycSelfieImage.upsert({
+          where: {
+            kycProfileId_pose: { kycProfileId: profile.id, pose },
+          },
+          update: { imageUrl },
+          create: { kycProfileId: profile.id, pose, imageUrl },
+        }),
+      ),
     );
 
-    await this.prisma.kycProfile.update({
-      where: { vendorId: vendor.id },
-      data: { selfieImageUrl },
-    });
+    this.logger.log(
+      `✅ Selfie pose(s) [${results.map((r) => r.pose).join(', ')}] uploaded for vendor ${vendor.id}`,
+    );
 
-    this.logger.log(`✅ Selfie uploaded for vendor ${vendor.id}`);
-
-    return { message: 'Selfie uploaded successfully' };
+    return {
+      message: 'Selfie image(s) uploaded successfully',
+      uploadedPoses: results.map((r) => r.pose),
+    };
   }
 
   async submitForReview(userId: string) {
@@ -106,35 +162,40 @@ export class VendorKycService {
 
     const profile = await this.prisma.kycProfile.findUnique({
       where: { vendorId },
+      include: { selfieImages: true },
     });
 
     if (!profile) {
       throw new BadRequestException('Please upload your NID document first');
     }
 
-    if (
-      !profile.frontImageUrl ||
-      !profile.backImageUrl ||
-      !profile.selfieImageUrl
-    ) {
+    const backRequired = DOCUMENT_TYPES_REQUIRING_BACK.includes(
+      profile.documentType,
+    );
+
+    if (!profile.frontImageUrl || (backRequired && !profile.backImageUrl)) {
       throw new BadRequestException(
-        'Complete NID (front + back) and selfie upload before submitting',
+        'Complete the NID document upload before submitting',
+      );
+    }
+
+    const hasFrontSelfie = profile.selfieImages.some(
+      (s) => s.pose === SelfiePose.FRONT,
+    );
+    if (!hasFrontSelfie) {
+      throw new BadRequestException(
+        'A front-facing selfie is required before submitting',
       );
     }
 
     await this.prisma.$transaction([
       this.prisma.vendor.update({
         where: { id: vendorId },
-        data: {
-          kycStatus: KycStatus.PENDING_REVIEW,
-          updatedAt: new Date(),
-        },
+        data: { kycStatus: KycStatus.PENDING_REVIEW, updatedAt: new Date() },
       }),
       this.prisma.kycProfile.update({
         where: { vendorId },
-        data: {
-          submittedAt: new Date(),
-        },
+        data: { submittedAt: new Date() },
       }),
     ]);
 
@@ -151,16 +212,18 @@ export class VendorKycService {
         kycStatus: true,
         kycProfile: {
           select: {
-            frontImageUrl: true,
-            backImageUrl: true,
-            selfieImageUrl: true,
-            rejectionReason: true,
-            reviewedAt: true,
             documentType: true,
             documentNumber: true,
+            frontImageUrl: true,
+            backImageUrl: true,
+            rejectionReason: true,
             submittedAt: true,
+            reviewedAt: true,
             updatedAt: true,
             verifiedAt: true,
+            selfieImages: {
+              select: { pose: true, imageUrl: true, createdAt: true },
+            },
           },
         },
       },
@@ -170,44 +233,10 @@ export class VendorKycService {
       throw new NotFoundException('Vendor not found');
     }
 
-    const profile = vendor.kycProfile;
-
-    const frontImageUrl = this.localStorageService.getFullUrl(
-      profile?.frontImageUrl as string,
-    );
-    const backImageUrl = this.localStorageService.getFullUrl(
-      profile?.backImageUrl as string,
-    );
-    const selfieImageUrl = this.localStorageService.getFullUrl(
-      profile?.selfieImageUrl as string,
-    );
-
-    const hasNid = !!(profile?.frontImageUrl && profile?.backImageUrl);
-    const hasSelfie = !!profile?.selfieImageUrl;
-
     return {
       kycStatus: vendor.kycStatus,
-      steps: {
-        nidUploaded: hasNid,
-        selfieUploaded: hasSelfie,
-        submittedForReview: vendor.kycStatus === KycStatus.PENDING_REVIEW,
-        isApproved: vendor.kycStatus === KycStatus.APPROVED,
-        isRejected: vendor.kycStatus === KycStatus.REJECTED,
-      },
-      kycProfile: profile
-        ? {
-            frontImageUrl,
-            backImageUrl,
-            selfieImageUrl,
-            documentType: profile.documentType,
-            documentNumber: profile.documentNumber,
-            rejectionReason: profile.rejectionReason,
-            submittedAt: profile.submittedAt,
-            reviewedAt: profile.reviewedAt,
-            updatedAt: profile.updatedAt,
-            verifiedAt: profile.verifiedAt,
-          }
-        : null,
+      steps: this.buildSteps(vendor.kycStatus, vendor.kycProfile),
+      kycProfile: this.formatKycProfile(vendor.kycProfile),
     };
   }
 
@@ -219,27 +248,93 @@ export class VendorKycService {
   private async assertEditable(userId: string) {
     const vendor = await this.prisma.vendor.findUnique({
       where: { ownerId: userId },
-      select: {
-        id: true,
-        kycStatus: true,
-      },
+      select: { id: true, kycStatus: true },
     });
 
     if (!vendor) {
       throw new NotFoundException('Vendor profile not found');
     }
-
     if (vendor.kycStatus === KycStatus.PENDING_REVIEW) {
       throw new ConflictException(
         'Your verification is already pending review',
       );
     }
-
     if (vendor.kycStatus === KycStatus.APPROVED) {
       throw new ConflictException('Your account is already verified');
     }
 
     return vendor;
+  }
+
+  private buildSteps(kycStatus: KycStatus, profile: any) {
+    const backRequired = profile
+      ? DOCUMENT_TYPES_REQUIRING_BACK.includes(profile.documentType)
+      : false;
+
+    const hasDocument = !!(
+      profile?.frontImageUrl &&
+      (!backRequired || profile?.backImageUrl)
+    );
+    const hasFrontSelfie = !!profile?.selfieImages?.some(
+      (s: any) => s.pose === SelfiePose.FRONT,
+    );
+
+    return {
+      documentUploaded: hasDocument,
+      selfieUploaded: hasFrontSelfie,
+      submittedForReview: kycStatus === KycStatus.PENDING_REVIEW,
+      isApproved: kycStatus === KycStatus.APPROVED,
+      isRejected: kycStatus === KycStatus.REJECTED,
+    };
+  }
+
+  /**
+   * Shapes the flat KycProfile + selfieImages relation into a
+   * `document` block and a `selfie` block, and resolves full URLs.
+   */
+  private formatKycProfile(profile: any) {
+    if (!profile) return null;
+
+    const selfiePoses: SelfiePose[] = [
+      SelfiePose.FRONT,
+      SelfiePose.LEFT,
+      SelfiePose.RIGHT,
+      SelfiePose.SMILE,
+    ];
+
+    const selfieByPose = new Map(
+      (profile.selfieImages ?? []).map((s: any) => [s.pose, s]),
+    );
+
+    return {
+      document: {
+        type: profile.documentType,
+        documentNumber: profile.documentNumber,
+        frontImageUrl: this.localStorageService.getFullUrl(
+          profile.frontImageUrl,
+        ),
+        backImageUrl: profile.backImageUrl
+          ? this.localStorageService.getFullUrl(profile.backImageUrl)
+          : null,
+      },
+      selfie: {
+        images: selfiePoses
+          .filter((pose) => selfieByPose.has(pose))
+          .map((pose) => {
+            const s: any = selfieByPose.get(pose);
+            return {
+              pose,
+              imageUrl: this.localStorageService.getFullUrl(s.imageUrl),
+              uploadedAt: s.createdAt,
+            };
+          }),
+      },
+      rejectionReason: profile.rejectionReason,
+      submittedAt: profile.submittedAt,
+      reviewedAt: profile.reviewedAt,
+      updatedAt: profile.updatedAt,
+      verifiedAt: profile.verifiedAt,
+    };
   }
 
   // ============================================
@@ -282,24 +377,20 @@ export class VendorKycService {
           kycStatus: true,
           createdAt: true,
           updatedAt: true,
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          owner: { select: { id: true, name: true, email: true } },
           kycProfile: {
             select: {
               documentType: true,
               documentNumber: true,
               frontImageUrl: true,
               backImageUrl: true,
-              selfieImageUrl: true,
               submittedAt: true,
               reviewedAt: true,
               rejectionReason: true,
               verifiedAt: true,
+              selfieImages: {
+                select: { pose: true, imageUrl: true, createdAt: true },
+              },
             },
           },
         },
@@ -310,34 +401,15 @@ export class VendorKycService {
       this.prisma.vendor.count({ where }),
     ]);
 
-    // Resolve full URLs for images
     const data = items.map((vendor) => ({
       ...vendor,
       coverImage: this.localStorageService.getFullUrl(vendor.coverImage),
-      kycProfile: vendor.kycProfile
-        ? {
-            ...vendor.kycProfile,
-            frontImageUrl: this.localStorageService.getFullUrl(
-              vendor.kycProfile.frontImageUrl,
-            ),
-            backImageUrl: this.localStorageService.getFullUrl(
-              vendor.kycProfile.backImageUrl,
-            ),
-            selfieImageUrl: this.localStorageService.getFullUrl(
-              vendor.kycProfile.selfieImageUrl,
-            ),
-          }
-        : null,
+      kycProfile: this.formatKycProfile(vendor.kycProfile),
     }));
 
     return {
       data,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 
@@ -355,12 +427,7 @@ export class VendorKycService {
         createdAt: true,
         updatedAt: true,
         owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            createdAt: true,
-          },
+          select: { id: true, name: true, email: true, createdAt: true },
         },
         kycProfile: {
           select: {
@@ -368,13 +435,15 @@ export class VendorKycService {
             documentNumber: true,
             frontImageUrl: true,
             backImageUrl: true,
-            selfieImageUrl: true,
             submittedAt: true,
             reviewedAt: true,
             reviewedByAdminId: true,
             rejectionReason: true,
             updatedAt: true,
             verifiedAt: true,
+            selfieImages: {
+              select: { pose: true, imageUrl: true, createdAt: true },
+            },
           },
         },
       },
@@ -384,28 +453,10 @@ export class VendorKycService {
       throw new NotFoundException('Vendor not found');
     }
 
-    // Resolve relative storage paths to full URLs for the dashboard
-    const coverImage = this.localStorageService.getFullUrl(vendor.coverImage);
-
-    const kycProfile = vendor.kycProfile
-      ? {
-          ...vendor.kycProfile,
-          frontImageUrl: this.localStorageService.getFullUrl(
-            vendor.kycProfile.frontImageUrl,
-          ),
-          backImageUrl: this.localStorageService.getFullUrl(
-            vendor.kycProfile.backImageUrl,
-          ),
-          selfieImageUrl: this.localStorageService.getFullUrl(
-            vendor.kycProfile.selfieImageUrl,
-          ),
-        }
-      : null;
-
     return {
       ...vendor,
-      coverImage,
-      kycProfile,
+      coverImage: this.localStorageService.getFullUrl(vendor.coverImage),
+      kycProfile: this.formatKycProfile(vendor.kycProfile),
     };
   }
 
@@ -415,24 +466,16 @@ export class VendorKycService {
       select: {
         id: true,
         kycStatus: true,
-        kycProfile: {
-          select: {
-            id: true,
-          },
-        },
+        kycProfile: { select: { id: true } },
       },
     });
 
-    if (!vendor) {
-      throw new NotFoundException('Vendor not found');
-    }
-
+    if (!vendor) throw new NotFoundException('Vendor not found');
     if (vendor.kycStatus !== KycStatus.PENDING_REVIEW) {
       throw new ConflictException(
         'Only vendors with PENDING_REVIEW status can be approved',
       );
     }
-
     if (!vendor.kycProfile) {
       throw new BadRequestException('Vendor has no KYC profile to approve');
     }
@@ -440,10 +483,7 @@ export class VendorKycService {
     await this.prisma.$transaction([
       this.prisma.vendor.update({
         where: { id: vendorId },
-        data: {
-          kycStatus: KycStatus.APPROVED,
-          updatedAt: new Date(),
-        },
+        data: { kycStatus: KycStatus.APPROVED, updatedAt: new Date() },
       }),
       this.prisma.kycProfile.update({
         where: { vendorId },
@@ -473,24 +513,16 @@ export class VendorKycService {
       select: {
         id: true,
         kycStatus: true,
-        kycProfile: {
-          select: {
-            id: true,
-          },
-        },
+        kycProfile: { select: { id: true } },
       },
     });
 
-    if (!vendor) {
-      throw new NotFoundException('Vendor not found');
-    }
-
+    if (!vendor) throw new NotFoundException('Vendor not found');
     if (vendor.kycStatus !== KycStatus.PENDING_REVIEW) {
       throw new ConflictException(
         'Only vendors with PENDING_REVIEW status can be rejected',
       );
     }
-
     if (!vendor.kycProfile) {
       throw new BadRequestException('Vendor has no KYC profile to reject');
     }
@@ -501,21 +533,19 @@ export class VendorKycService {
     await this.prisma.$transaction([
       this.prisma.vendor.update({
         where: { id: vendorId },
-        data: {
-          kycStatus: KycStatus.REJECTED,
-          updatedAt: new Date(),
-        },
+        data: { kycStatus: KycStatus.REJECTED, updatedAt: new Date() },
+      }),
+      this.prisma.kycSelfieImage.deleteMany({
+        where: { kycProfileId: vendor.kycProfile.id },
       }),
       this.prisma.kycProfile.update({
         where: { vendorId },
         data: {
           reviewedByAdminId: adminId,
           reviewedAt: new Date(),
-          rejectionReason: rejectionReason,
-          // Clear uploaded files so the vendor re-submits cleanly
+          rejectionReason,
           frontImageUrl: null,
           backImageUrl: null,
-          selfieImageUrl: null,
           verifiedAt: null,
         },
       }),
@@ -541,7 +571,9 @@ export class VendorKycService {
       }),
       this.prisma.vendor.count({ where: { kycStatus: KycStatus.APPROVED } }),
       this.prisma.vendor.count({ where: { kycStatus: KycStatus.REJECTED } }),
-      this.prisma.vendor.count({ where: { kycStatus: KycStatus.UNVERIFIED } }),
+      this.prisma.vendor.count({
+        where: { kycStatus: KycStatus.UNVERIFIED },
+      }),
     ]);
 
     return {

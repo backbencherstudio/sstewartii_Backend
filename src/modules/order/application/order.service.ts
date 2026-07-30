@@ -185,7 +185,11 @@ export class OrderService {
   }
 
   private generateOrderNumber(): string {
-    return `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.floor(1000 + Math.random() * 9000)
+      .toString(36)
+      .toUpperCase();
+    return `ORD-${timestamp}${random}`;
   }
 
   // ============================================
@@ -270,9 +274,9 @@ export class OrderService {
     });
 
     // ✅ Send notification to VENDOR about order cancellation
-    const vendor = await this.vendorService.execute(userId);
-    if (vendor) {
-      await this.notificationHelper.sendToUser(vendor.id, {
+    // const vendor = await this.vendorService.execute(order?.vendor?.id);
+    if (order) {
+      await this.notificationHelper.sendToUser(userId, {
         title: `Order #${order.orderNumber} Cancelled`,
         body: `Customer has cancelled their order.`,
         type: NotificationType.ORDER_CANCELLATION,
@@ -378,7 +382,7 @@ export class OrderService {
     });
 
     // ✅ Send notification to CUSTOMER about vendor cancellation
-    await this.notificationHelper.sendToUser(order.customerId, {
+    await this.notificationHelper.sendToUser(userId, {
       title: `Order #${order.orderNumber} Cancelled by Vendor`,
       body: `The vendor has cancelled your order.`,
       type: NotificationType.ORDER_CANCELLATION,
@@ -428,7 +432,7 @@ export class OrderService {
     });
 
     // ✅ Send notification to CUSTOMER about order acceptance
-    await this.notificationHelper.sendToUser(order.customerId, {
+    await this.notificationHelper.sendToUser(userId, {
       title: `Order #${order.orderNumber} Confirmed!`,
       body: `The vendor has accepted your order.`,
       type: NotificationType.ORDER_CONFIRMED,
@@ -468,7 +472,7 @@ export class OrderService {
     );
 
     // ✅ Send notification to CUSTOMER about order ready for pickup
-    await this.notificationHelper.sendToUser(order.customerId, {
+    await this.notificationHelper.sendToUser(userId, {
       title: `Order #${order.orderNumber} Ready for Pickup!`,
       body: `Your order is ready for pickup. Please collect it soon.`,
       type: NotificationType.READY_FOR_PICKUP,
@@ -503,7 +507,7 @@ export class OrderService {
     });
 
     // ✅ Send notification to CUSTOMER about order completion
-    await this.notificationHelper.sendToUser(order.customerId, {
+    await this.notificationHelper.sendToUser(userId, {
       title: `Order #${order.orderNumber} Completed`,
       body: `Your order has been completed. Thank you for ordering!`,
       type: NotificationType.ORDER_CONFIRMED,

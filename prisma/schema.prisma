@@ -450,18 +450,40 @@ model KycProfile {
   documentNumber String       @unique
   frontImageUrl  String?
   backImageUrl   String?
-  selfieImageUrl String?
 
-  // review trail
-  rejectionReason String?   @db.Text
+  selfieImages KycSelfieImage[]
+
+  rejectionReason   String?   @db.Text
   reviewedByAdminId String?
-  reviewedAt       DateTime?
+  reviewedAt        DateTime?
+  verifiedAt        DateTime?
 
   submittedAt DateTime  @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  verifiedAt DateTime?
+  updatedAt   DateTime  @updatedAt
 
   @@index([vendorId])
+}
+
+enum SelfiePose {
+  FRONT
+  LEFT
+  RIGHT
+  SMILE
+}
+
+model KycSelfieImage {
+  id           String     @id @default(uuid())
+  kycProfileId String
+  kycProfile   KycProfile @relation(fields: [kycProfileId], references: [id], onDelete: Cascade)
+
+  pose     SelfiePose
+  imageUrl String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kycProfileId, pose])
+  @@index([kycProfileId])
 }
 
 model Product {
