@@ -11,6 +11,7 @@ model User {
   email    String  @unique
   password String?
   name     String?
+  avatar   String? // admin avatar
 
   provider String  @default("local")
   googleId String? @unique
@@ -458,8 +459,8 @@ model KycProfile {
   reviewedAt        DateTime?
   verifiedAt        DateTime?
 
-  submittedAt DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([vendorId])
 }
