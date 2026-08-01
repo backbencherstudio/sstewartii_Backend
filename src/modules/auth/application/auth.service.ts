@@ -916,12 +916,102 @@ export class AuthService {
     };
   }
 
+  async updateAdminProfile(
+    userId: string,
+    updateData: { name?: string; avatar?: Express.Multer.File },
+  ) {
+    // Get user with role using Prisma directly
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+        customer: true,
+        vendorStore: {
+          include: {
+            serviceArea: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user is admin
+    if (user.role?.name !== 'ADMIN') {
+      throw new UnauthorizedException('Only admins can update admin profile');
+    }
+
+    // Prepare update data
+    const updatePayload: any = {};
+
+    // Update name if provided
+    if (updateData.name) {
+      updatePayload.name = updateData.name.trim();
+    }
+
+    // Handle avatar upload if provided
+    if (updateData.avatar) {
+      // Validate file exists
+      if (!updateData.avatar.buffer) {
+        throw new BadRequestException('Invalid file upload');
+      }
+
+      // Delete old avatar if exists
+      if (user.avatar) {
+        try {
+          // Remove leading '/uploads/' if it exists
+          const avatarPath = user.avatar.replace(/^\/uploads\//, '');
+          await this.localStorageService.deleteFile(avatarPath);
+        } catch (error) {
+          console.warn('Failed to delete old avatar:', error);
+        }
+      }
+
+      // Upload new avatar
+      const avatarUrl = await this.localStorageService.uploadFile(
+        updateData.avatar,
+        `admin-avatars/${userId}`,
+      );
+
+      updatePayload.avatar = avatarUrl;
+    }
+
+    // If no updates, return current user
+    if (Object.keys(updatePayload).length === 0) {
+      return this.getCurrentUser(userId);
+    }
+
+    // Update user using Prisma directly
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: updatePayload,
+      include: {
+        role: true,
+        customer: true,
+        vendorStore: {
+          include: {
+            serviceArea: true,
+          },
+        },
+      },
+    });
+
+    // Return updated user with full profile
+    return this.getCurrentUser(updatedUser.id);
+  }
+
   // ---------- CURRENT USER ----------
   async getCurrentUser(userId: string) {
     const user = await this.userRepository.findLoginUserById(userId);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     const role = user.role?.name;
+
+    // Base response with common fields
     const baseResponse = {
       id: user.id,
       email: user.email,
@@ -933,6 +1023,18 @@ export class AuthService {
       updatedAt: user.updatedAt,
     };
 
+    // Handle ADMIN role
+    if (role === 'ADMIN') {
+      return {
+        ...baseResponse,
+        userType: 'ADMIN',
+        avatar: user.avatar
+          ? this.localStorageService.getFullUrl(user.avatar)
+          : null,
+      };
+    }
+
+    // Handle USER (Customer) role
     if (role === 'USER' && user.customer) {
       return {
         ...baseResponse,
@@ -955,6 +1057,7 @@ export class AuthService {
       };
     }
 
+    // Handle VENDOR role
     if (role === 'VENDOR' && user.vendorStore) {
       const subscription = await this.userRepository.getVendorSubscription(
         user.vendorStore.id,
@@ -1026,6 +1129,13 @@ export class AuthService {
       };
     }
 
-    return { ...baseResponse, userType: role || 'UNKNOWN' };
+    // Fallback
+    return {
+      ...baseResponse,
+      userType: role || 'UNKNOWN',
+      avatar: user.avatar
+        ? this.localStorageService.getFullUrl(user.avatar)
+        : null,
+    };
   }
 }

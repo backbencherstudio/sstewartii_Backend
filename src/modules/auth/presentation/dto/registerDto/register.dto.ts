@@ -5,6 +5,7 @@ import {
   MinLength,
   IsEnum,
   IsOptional,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { DevicePlatform } from '@prisma/client';
@@ -47,4 +48,26 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(DevicePlatform)
   platform?: DevicePlatform;
+}
+
+export class UpdateAdminProfileDto {
+  @ApiProperty({
+    description: 'Admin name',
+    required: false,
+    example: 'John Doe',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(2, { message: 'Name must be at least 2 characters long' })
+  @MaxLength(100, { message: 'Name must not exceed 100 characters' })
+  name?: string;
+
+  @ApiProperty({
+    description: 'Admin avatar file (image)',
+    type: 'string',
+    format: 'binary',
+    required: false,
+  })
+  @IsOptional()
+  avatar?: any; // This will be handled by multer
 }

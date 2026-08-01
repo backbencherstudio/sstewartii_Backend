@@ -8,6 +8,12 @@ import {
   UnauthorizedException,
   UseGuards,
   BadRequestException,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  Patch,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
@@ -17,7 +23,10 @@ import type { AuthUser } from '../domain/interfaces/auth-user.interface';
 
 import { JwtAuthGuard } from '../infrastructure/guards/jwt-auth.guard';
 
-import { RegisterDto } from './dto/registerDto/register.dto';
+import {
+  RegisterDto,
+  UpdateAdminProfileDto,
+} from './dto/registerDto/register.dto';
 import { LoginDto } from './dto/loginDto/login.dto';
 import { SendOtpDto, VerifyOtpDto, NewPasswordDto } from './dto/mail/otp.dto';
 
@@ -43,7 +52,10 @@ import { ChangePasswordDto } from './dto/change-password/change-password.dto';
 import { RecoverAccountInitiateDto } from './dto/delete-account/recover-account-initiate.dto';
 import { DeletionStatusDto } from './dto/delete-account/deletion-status.dto';
 import { FirebaseLoginDto } from './dto/loginDto/firebase-login.dto';
-
+import { FileInterceptor } from '@nestjs/platform-express';
+import { RoleGuard } from '@/common/guards/roles.guard';
+import { Role } from '@/common/enums/role.enum';
+import { Roles } from '@/common/decorators/roles.decorator';
 
 export class FirebaseCodeLoginDto {
   @ApiProperty({ description: 'Authorization code from OAuth provider' })
@@ -397,6 +409,48 @@ export class AuthController {
     });
 
     return { accessToken: tokens.accessToken };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN)
+  @Patch('admin/profile')
+  @UseInterceptors(FileInterceptor('avatar'))
+  @ApiBody({
+    description: 'Admin profile update with optional avatar',
+    type: UpdateAdminProfileDto,
+  })
+  async updateAdminProfile(
+    @CurrentUser() user: AuthUser,
+    @Body() updateData: UpdateAdminProfileDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new FileTypeValidator({
+            fileType: /(image\/jpeg|image\/png|image\/webp|image\/gif)/,
+          }),
+        ],
+        fileIsRequired: false,
+      }),
+    )
+    avatar?: Express.Multer.File,
+  ) {
+    // Merge body data with file
+    const updatePayload = {
+      ...updateData,
+      avatar,
+    };
+
+    const result = await this.authService.updateAdminProfile(
+      user.id,
+      updatePayload,
+    );
+
+    return {
+      message: 'Admin profile updated successfully',
+      data: result,
+    };
   }
 
   @Post('send-verification')
