@@ -573,9 +573,14 @@ model OperationHour {
   dayOfWeek  Int // 0 = Sunday, 6 = Saturday
   openTime   String? // "09:00"
   closeTime  String? // "22:00"
-  isClosed   Boolean   @default(false)
+  isClosed   Boolean @default(false)
   activeFrom DateTime
   activeTo   DateTime?
+
+  // New fields for leaving soon feature
+  leavingSoonEnabled  Boolean @default(true)
+  leavingSoonMinutes  Int     @default(30) // 30 minutes default
+  customLeavingTime   String? // "00:30:00" custom time when leaving
 
   priority Int @default(0)
 
