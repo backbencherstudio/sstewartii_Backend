@@ -2,10 +2,16 @@ import { Injectable } from '@nestjs/common';
 import {
   CuisineResponseDto,
   VendorProfileSetupResponseDto,
+  OperationHoursResponseDto,
+  OperationHourDetailResponseDto,
+  TodayStatusResponseDto,
 } from '../../presentation/dto/profile-setup-flow.response.dto';
 import {
   VendorProfileSetupView,
   CuisineView,
+  OperationHoursResponseView,
+  OperationHourDetailView,
+  TodayStatusView,
 } from '../../domain/interface/profile.setup.interface';
 
 import { MediaService } from '@/common/media/media.service';
@@ -57,6 +63,55 @@ export class VendorProfileSetupMapper {
         : undefined,
       createdAt: cuisine.createdAt,
       updatedAt: cuisine.updatedAt,
+    };
+  }
+
+  // ============================================
+  // OPERATION HOURS MAPPERS
+  // ============================================
+
+  toOperationHoursResponse(
+    view: OperationHoursResponseView,
+  ): OperationHoursResponseDto {
+    return {
+      vendorId: view.vendorId,
+      activePeriodStart: view.activePeriodStart,
+      activePeriodEnd: view.activePeriodEnd,
+      hours: view.hours.map((h) => this.toOperationHourDetail(h)),
+      todayStatus: this.toTodayStatus(view.todayStatus),
+    };
+  }
+
+  private toOperationHourDetail(
+    view: OperationHourDetailView,
+  ): OperationHourDetailResponseDto {
+    return {
+      id: view.id,
+      dayOfWeek: view.dayOfWeek,
+      openTime: view.openTime,
+      closeTime: view.closeTime,
+      isClosed: view.isClosed,
+      priority: view.priority,
+      activeFrom: view.activeFrom,
+      activeTo: view.activeTo,
+      leavingSoonEnabled: view.leavingSoonEnabled,
+      leavingSoonMinutes: view.leavingSoonMinutes,
+      customLeavingTime: view.customLeavingTime,
+      createdAt: view.createdAt,
+      updatedAt: view.updatedAt,
+    };
+  }
+
+  private toTodayStatus(view: TodayStatusView): TodayStatusResponseDto {
+    return {
+      isOpen: view.isOpen,
+      openTime: view.openTime,
+      closeTime: view.closeTime,
+      leavingSoonEnabled: view.leavingSoonEnabled,
+      leavingSoonMinutes: view.leavingSoonMinutes,
+      customLeavingTime: view.customLeavingTime,
+      timeUntilClose: view.timeUntilClose,
+      timeUntilLeavingSoon: view.timeUntilLeavingSoon,
     };
   }
 

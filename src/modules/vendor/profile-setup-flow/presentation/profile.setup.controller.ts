@@ -57,12 +57,10 @@ export class ProfileSetupFlowController {
   @Roles(Role.VENDOR)
   @ResponseMessage('Step 2: Operation Hours saved successfully')
   async setOperationHours(
-    @Req() req: any,
+    @CurrentUser() user: AuthUser,
     @Body() dto: UpsertOperationHoursDto,
-  ): Promise<void> {
-    const userId = req.user.id;
-
-    return this.service.upsertOperationHours(userId, dto);
+  ) {
+    return this.service.upsertOperationHours(user.id, dto);
   }
 
   @Post('service-area')

@@ -1,3 +1,5 @@
+// src/modules/vendor/profile-setup-flow/application/profile.setup.service.ts
+
 import {
   Injectable,
   Inject,
@@ -13,9 +15,11 @@ import {
   UpsertOperationHoursDto,
   CreateCuisineDto,
   SetupProfileDto,
+  OperationHourDto,
 } from '../presentation/dto/profile-setup-flow.dto';
 import {
   CuisineResponseDto,
+  OperationHoursResponseDto,
   VendorProfileSetupResponseDto,
 } from '../presentation/dto/profile-setup-flow.response.dto';
 
@@ -60,19 +64,29 @@ export class ProfileSetupFlowService {
   async upsertOperationHours(
     userId: string,
     dto: UpsertOperationHoursDto,
-  ): Promise<void> {
-    for (const h of dto.hours) {
-      if (!h.isClosed && (!h.openTime || !h.closeTime)) {
-        throw new Error('Open and close time required when not closed');
-      }
+  ): Promise<OperationHoursResponseDto> {
+    // Validate hours
+    this.validateOperationHours(dto.hours);
+
+    // Check for duplicate days
+    const days = new Set(dto.hours.map((h) => h.dayOfWeek));
+    if (days.size !== dto.hours.length) {
+      throw new BadRequestException(
+        'Duplicate dayOfWeek entries are not allowed',
+      );
     }
 
-    return this.vendorRepository.createOperationHourVersion(userId, dto.hours);
+    const result = await this.vendorRepository.createOperationHourVersion(
+      userId,
+      dto,
+    );
+
+    return this.vendorProfileSetupMapper.toOperationHoursResponse(result);
   }
 
   async upsertServiceArea(userId: string, dto: ServiceAreaDto): Promise<void> {
     if (dto.radius > 50) {
-      throw new Error('Radius too large (max 50km allowed)');
+      throw new BadRequestException('Radius too large (max 50km allowed)');
     }
 
     return this.vendorRepository.upsertServiceArea(userId, dto);
@@ -129,5 +143,82 @@ export class ProfileSetupFlowService {
     const cuisines = await this.vendorRepository.findAllCuisine();
 
     return this.vendorProfileSetupMapper.toListResponse(cuisines);
+  }
+
+  private validateOperationHours(hours: OperationHourDto[]): void {
+    for (const h of hours) {
+      // Check day range
+      if (h.dayOfWeek < 0 || h.dayOfWeek > 6) {
+        throw new BadRequestException(
+          `dayOfWeek must be between 0 and 6, got ${h.dayOfWeek}`,
+        );
+      }
+
+      // Validate open/close times when not closed
+      if (!h.isClosed) {
+        if (!h.openTime || !h.closeTime) {
+          throw new BadRequestException(
+            `Open and close time required when not closed for day ${h.dayOfWeek}`,
+          );
+        }
+
+        // Validate time format
+        const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+        if (!timeRegex.test(h.openTime)) {
+          throw new BadRequestException(
+            `Invalid openTime format for day ${h.dayOfWeek}. Expected HH:MM`,
+          );
+        }
+        if (!timeRegex.test(h.closeTime)) {
+          throw new BadRequestException(
+            `Invalid closeTime format for day ${h.dayOfWeek}. Expected HH:MM`,
+          );
+        }
+
+        // Validate openTime < closeTime
+        const openMinutes = this.parseTimeToMinutes(h.openTime);
+        const closeMinutes = this.parseTimeToMinutes(h.closeTime);
+        if (openMinutes >= closeMinutes) {
+          throw new BadRequestException(
+            `Close time must be after open time for day ${h.dayOfWeek}`,
+          );
+        }
+      }
+
+      // Validate leaving soon minutes
+      if (h.leavingSoonEnabled && h.leavingSoonMinutes !== undefined) {
+        if (h.leavingSoonMinutes < 1 || h.leavingSoonMinutes > 120) {
+          throw new BadRequestException(
+            `Leaving soon minutes must be between 1 and 120 for day ${h.dayOfWeek}`,
+          );
+        }
+      }
+
+      // Validate custom leaving time format if provided
+      if (h.customLeavingTime) {
+        const timeRegex = /^([0-9]{2}):([0-5][0-9]):([0-5][0-9])$/;
+        if (!timeRegex.test(h.customLeavingTime)) {
+          throw new BadRequestException(
+            `Invalid customLeavingTime format for day ${h.dayOfWeek}. Expected HH:MM:SS`,
+          );
+        }
+      }
+
+      // Validate activeFrom/activeTo
+      if (h.activeFrom && h.activeTo) {
+        const from = new Date(h.activeFrom);
+        const to = new Date(h.activeTo);
+        if (from >= to) {
+          throw new BadRequestException(
+            `activeFrom must be before activeTo for day ${h.dayOfWeek}`,
+          );
+        }
+      }
+    }
+  }
+
+  private parseTimeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 }
