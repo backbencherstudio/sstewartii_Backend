@@ -10,6 +10,7 @@ import {
   VendorLiveStatus,
   VerificationStatus,
   KycStatus,
+  VendorAdminStatus,
 } from '@prisma/client';
 
 import type { IVendorRepository } from '../domain/interface/vendor.repository.interface';
@@ -582,7 +583,7 @@ export class VendorService {
       endOfDay,
     });
 
-    const isLive = false;
+    const isLive = vendor.status === VendorLiveStatus.ONLINE;
 
     const unreadNotificationCount = 0;
 
@@ -624,6 +625,7 @@ export class VendorService {
     }
 
     if (dto.status === VendorLiveStatus.ONLINE) {
+      // Validate vendor can go live (includes KYC + business verification)
       this.validateVendorCanGoLive(vendor);
     }
 
@@ -643,32 +645,85 @@ export class VendorService {
 
   private validateVendorCanGoLive(vendor: {
     kycStatus: KycStatus;
+    adminStatus: VendorAdminStatus;
+    statusReason?: string | null;
     vendorVerification: {
       status: VerificationStatus;
     } | null;
   }): void {
-    if (vendor.kycStatus !== KycStatus.APPROVED) {
+    // 1. Check admin status
+    if (vendor.adminStatus === VendorAdminStatus.SUSPENDED) {
       throw new BadRequestException({
-        code: 'KYC_NOT_APPROVED',
-        message:
-          'Verification required. Please complete your identity verification before going online.',
+        code: 'VENDOR_SUSPENDED',
+        message: `Vendor account is suspended. Reason: ${vendor.statusReason || 'No reason provided'}`,
       });
     }
 
+    if (vendor.adminStatus === VendorAdminStatus.DISABLED) {
+      throw new BadRequestException({
+        code: 'VENDOR_DISABLED',
+        message: 'Vendor account is disabled.',
+      });
+    }
+
+    // 2. Check KYC status
+    if (vendor.kycStatus !== KycStatus.APPROVED) {
+      let errorMessage = 'KYC verification required to go online. ';
+
+      switch (vendor.kycStatus) {
+        case KycStatus.UNVERIFIED:
+          errorMessage += 'Please submit your KYC documents for verification.';
+          break;
+        case KycStatus.PENDING_REVIEW:
+          errorMessage +=
+            'Your KYC documents are currently under review. Please wait for approval.';
+          break;
+        case KycStatus.REJECTED:
+          errorMessage +=
+            'Your KYC documents were rejected. Please resubmit your documents.';
+          break;
+        default:
+          errorMessage += 'Please complete KYC verification.';
+      }
+
+      throw new BadRequestException({
+        code: 'KYC_NOT_APPROVED',
+        status: vendor.kycStatus,
+        message: errorMessage,
+      });
+    }
+
+    // 3. Check business verification
     if (!vendor.vendorVerification) {
       throw new BadRequestException({
         code: 'BUSINESS_VERIFICATION_REQUIRED',
         message:
-          'Verification required. Please complete your business profile verification before going online.',
+          'Please complete your business profile verification before going online.',
       });
     }
 
     if (vendor.vendorVerification.status !== VerificationStatus.APPROVED) {
+      let statusMessage = '';
+      switch (vendor.vendorVerification.status) {
+        case VerificationStatus.PENDING:
+          statusMessage = 'Your business verification is pending review.';
+          break;
+        case VerificationStatus.IN_REVIEW:
+          statusMessage =
+            'Your business verification is currently being reviewed.';
+          break;
+        case VerificationStatus.REJECTED:
+          statusMessage =
+            'Your business verification was rejected. Please resubmit.';
+          break;
+        default:
+          statusMessage = 'Please complete business verification.';
+      }
+
       throw new BadRequestException({
         code: 'BUSINESS_VERIFICATION_NOT_APPROVED',
         status: vendor.vendorVerification.status,
-        message:
-          'Verification required. Your business verification must be approved before going online.',
+        message: `Business verification required. ${statusMessage}`,
       });
     }
   }

@@ -5,6 +5,7 @@ import {
   Inject,
   BadRequestException,
   ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import type { IProfileSetupRepository } from '../domain/interface/profile.setup.interface';
 import type { IVendorRepository } from '../../vendor/domain/interface/vendor.repository.interface';
@@ -80,6 +81,42 @@ export class ProfileSetupFlowService {
       userId,
       dto,
     );
+
+    return this.vendorProfileSetupMapper.toOperationHoursResponse(result);
+  }
+
+  async getOperationHours(userId: string): Promise<OperationHoursResponseDto> {
+    // Find vendor by ownerId
+    const vendor = await this.vendorRepo.findByOwnerId(userId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    // Get operation hours
+    const result = await this.vendorRepository.findOperationHoursByVendorId(
+      vendor.id,
+    );
+
+    if (!result) {
+      // Return empty response if no operation hours exist
+      return {
+        vendorId: vendor.id,
+        activePeriodStart: new Date(),
+        activePeriodEnd: null,
+        hours: [],
+        todayStatus: {
+          isOpen: false,
+          openTime: null,
+          closeTime: null,
+          leavingSoonEnabled: false,
+          leavingSoonMinutes: null,
+          customLeavingTime: null,
+          timeUntilClose: null,
+          timeUntilLeavingSoon: null,
+        },
+      };
+    }
 
     return this.vendorProfileSetupMapper.toOperationHoursResponse(result);
   }

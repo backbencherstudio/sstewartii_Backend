@@ -63,6 +63,14 @@ export class ProfileSetupFlowController {
     return this.service.upsertOperationHours(user.id, dto);
   }
 
+  @Get('operation-hours')
+  @UseGuards(RoleGuard)
+  @Roles(Role.VENDOR)
+  @ResponseMessage('Operation hours retrieved successfully')
+  async getOperationHours(@CurrentUser() user: AuthUser) {
+    return this.service.getOperationHours(user.id);
+  }
+
   @Post('service-area')
   @UseGuards(RoleGuard)
   @Roles(Role.VENDOR)

@@ -85,6 +85,10 @@ export interface IProfileSetupRepository {
     dto: UpsertOperationHoursDto,
   ): Promise<OperationHoursResponseView>;
 
+  findOperationHoursByVendorId(
+    vendorId: string,
+  ): Promise<OperationHoursResponseView | null>;
+
   upsertServiceArea(userId: string, data: ServiceAreaDto): Promise<void>;
 
   updateServiceArea(userId: string, dto: UpdateServiceAreaDto): Promise<void>;

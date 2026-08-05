@@ -300,7 +300,7 @@ export class VendorMapper {
 
       liveStatus: {
         canGoLive,
-        isLive: canGoLive ? data.isLive : false,
+        isLive: data.isLive ?? false,
         disabledReason: canGoLive
           ? undefined
           : 'Verify account to toggle status',
