@@ -270,6 +270,51 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
     });
   }
 
+  async findOperationHoursByVendorId(
+    vendorId: string,
+  ): Promise<OperationHoursResponseView | null> {
+    // Get all operation hours for the vendor
+    const hours = await this.prisma.operationHour.findMany({
+      where: { vendorId },
+      orderBy: [{ dayOfWeek: 'asc' }, { priority: 'desc' }],
+    });
+
+    if (hours.length === 0) {
+      return null;
+    }
+
+    // Get active period from the first hour (all hours should have same active period)
+    const firstHour = hours[0];
+
+    // Map to view
+    const hourViews: OperationHourDetailView[] = hours.map((h) => ({
+      id: h.id,
+      dayOfWeek: h.dayOfWeek,
+      openTime: h.openTime,
+      closeTime: h.closeTime,
+      isClosed: h.isClosed,
+      priority: h.priority,
+      activeFrom: h.activeFrom,
+      activeTo: h.activeTo,
+      leavingSoonEnabled: h.leavingSoonEnabled ?? true,
+      leavingSoonMinutes: h.leavingSoonMinutes ?? 30,
+      customLeavingTime: h.customLeavingTime ?? null,
+      createdAt: h.createdAt,
+      updatedAt: h.updatedAt,
+    }));
+
+    // Calculate today's status
+    const todayStatus = this.calculateTodayStatus(hours);
+
+    return {
+      vendorId,
+      activePeriodStart: firstHour.activeFrom,
+      activePeriodEnd: firstHour.activeTo,
+      hours: hourViews,
+      todayStatus,
+    };
+  }
+
   async upsertServiceArea(userId: string, data: ServiceAreaDto): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       let vendor = await tx.vendor.findUnique({
@@ -442,8 +487,8 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
     const timeUntilClose = isOpen ? closeMinutes - currentMinutes : null;
 
     let timeUntilLeavingSoon: number | null = null;
-    if (isOpen && (todayHours).leavingSoonEnabled) {
-      const leavingSoonMinutes = (todayHours).leavingSoonMinutes || 30;
+    if (isOpen && todayHours.leavingSoonEnabled) {
+      const leavingSoonMinutes = todayHours.leavingSoonMinutes || 30;
       const leavingTime = closeMinutes - leavingSoonMinutes;
       const diff = leavingTime - currentMinutes;
       timeUntilLeavingSoon = diff > 0 ? diff : 0;
@@ -453,9 +498,9 @@ export class ProfileSetupRepository implements IProfileSetupRepository {
       isOpen,
       openTime: todayHours.openTime,
       closeTime: todayHours.closeTime,
-      leavingSoonEnabled: (todayHours).leavingSoonEnabled ?? true,
-      leavingSoonMinutes: (todayHours).leavingSoonMinutes ?? 30,
-      customLeavingTime: (todayHours).customLeavingTime ?? null,
+      leavingSoonEnabled: todayHours.leavingSoonEnabled ?? true,
+      leavingSoonMinutes: todayHours.leavingSoonMinutes ?? 30,
+      customLeavingTime: todayHours.customLeavingTime ?? null,
       timeUntilClose,
       timeUntilLeavingSoon,
     };
