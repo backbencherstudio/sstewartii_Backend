@@ -6,8 +6,6 @@ import {
   Prisma,
   OrderStatus,
   VendorLiveStatus,
-  VerificationStatus,
-  KycStatus,
 } from '@prisma/client';
 
 import {
@@ -22,6 +20,7 @@ import {
   VendorReviewSummaryResult,
   VendorReviewResult,
   VendorFollowersProfileView,
+  VendorGoLiveEligibilityView,
 } from '../../domain/interface/vendor.repository.interface';
 import { Vendor } from '../../domain/entities/vendor.entity';
 
@@ -458,14 +457,9 @@ export class VendorRepository implements IVendorRepository {
     });
   }
 
-  async findGoLiveEligibilityByOwnerId(ownerId: string): Promise<{
-    id: string;
-    kycStatus: KycStatus;
-    vendorVerification: {
-      id: string;
-      status: VerificationStatus;
-    } | null;
-  } | null> {
+  async findGoLiveEligibilityByOwnerId(
+    ownerId: string,
+  ): Promise<VendorGoLiveEligibilityView | null> {
     return this.prisma.vendor.findUnique({
       where: {
         ownerId,
@@ -473,6 +467,8 @@ export class VendorRepository implements IVendorRepository {
       select: {
         id: true,
         kycStatus: true,
+        adminStatus: true,
+        statusReason: true,
         vendorVerification: {
           select: {
             id: true,

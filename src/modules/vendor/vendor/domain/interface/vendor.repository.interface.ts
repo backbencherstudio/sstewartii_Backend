@@ -5,6 +5,7 @@ import {
   KycStatus,
   SubscriptionStatus,
   OrderStatus,
+  VendorAdminStatus,
 } from '@prisma/client';
 
 import { Vendor } from '../entities/vendor.entity';
@@ -28,6 +29,8 @@ export interface UpdateVendorStatusInput {
 export interface VendorGoLiveEligibilityView {
   id: string;
   kycStatus: KycStatus;
+  adminStatus: VendorAdminStatus; // Add this
+  statusReason: string | null;
   vendorVerification: {
     id: string;
     status: VerificationStatus;
