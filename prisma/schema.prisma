@@ -242,6 +242,14 @@ model Otp {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+enum VendorSubscriptionStatus {
+  ACTIVE // Has valid subscription
+  GRACE_PERIOD // Payment failed, but in grace period (5 days)
+  EXPIRED // Subscription expired, profile hidden
+  CANCELLED // User cancelled, profile hidden
+  PAUSED // Temporarily paused by admin
+}
+
 model Vendor {
   id             String  @id @default(uuid())
   vendorCode     String  @unique
@@ -255,6 +263,13 @@ model Vendor {
   ownerId   String    @unique
   owner     User      @relation(fields: [ownerId], references: [id])
   kycStatus KycStatus @default(UNVERIFIED)
+
+  subscriptionStatus    VendorSubscriptionStatus @default(ACTIVE)
+  subscriptionExpiresAt DateTime? // When grace period ends
+  subscriptionPausedAt  DateTime? // When subscription was paused
+  lastSubscriptionCheck DateTime? // Last time we checked subscription
+  paymentFailureCount   Int                      @default(0) // Consecutive payment failures
+  lastPaymentFailureAt  DateTime? // Last payment failure time
 
   // Subscription relation - fixed
   vendorSubscription   VendorSubscription?
@@ -289,6 +304,8 @@ model Vendor {
   helpTickets              HelpCenterTicket[]
   profileViews             VendorProfileView[]
   subscriptionTransactions SubscriptionTransaction[]
+  paymentFailureLogs       PaymentFailureLog[]
+  subscriptionHistory      SubscriptionHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -442,6 +459,78 @@ model SubscriptionTransaction {
   @@index([status])
 }
 
+model PaymentFailureLog {
+  id       String @id @default(uuid())
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  failureType  PaymentFailureType
+  errorMessage String?            @db.Text
+  amount       Float?
+  currency     String?            @default("USD")
+
+  // Notification tracking
+  notificationSent Boolean @default(false)
+  notificationType String? // email, push, sms
+
+  resolvedAt DateTime?
+  resolvedBy String? // admin user id or "system"
+  resolution String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([createdAt])
+  @@index([resolvedAt])
+}
+
+enum PaymentFailureType {
+  CARD_EXPIRED
+  INSUFFICIENT_FUNDS
+  DECLINED
+  PAYMENT_METHOD_REMOVED
+  BILLING_ADDRESS_INVALID
+  OTHER
+}
+
+model SubscriptionHistory {
+  id       String @id @default(uuid())
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  action    SubscriptionAction
+  oldStatus VendorSubscriptionStatus
+  newStatus VendorSubscriptionStatus
+
+  // Context
+  reason   String? @db.Text
+  metadata Json?
+
+  // Who performed the action
+  performedBy String? // "system" or admin user id
+
+  createdAt DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+enum SubscriptionAction {
+  INITIAL_SUBSCRIPTION
+  RENEWAL
+  CANCELLATION
+  EXPIRATION
+  GRACE_PERIOD_START
+  GRACE_PERIOD_END
+  REACTIVATION
+  ADMIN_SUSPEND
+  ADMIN_REACTIVATE
+  PAYMENT_FAILURE
+  PAYMENT_SUCCESS
+}
+
 model KycProfile {
   id       String @id @default(uuid())
   vendorId String @unique
@@ -573,14 +662,14 @@ model OperationHour {
   dayOfWeek  Int // 0 = Sunday, 6 = Saturday
   openTime   String? // "09:00"
   closeTime  String? // "22:00"
-  isClosed   Boolean @default(false)
+  isClosed   Boolean   @default(false)
   activeFrom DateTime
   activeTo   DateTime?
 
   // New fields for leaving soon feature
-  leavingSoonEnabled  Boolean @default(true)
-  leavingSoonMinutes  Int     @default(30) // 30 minutes default
-  customLeavingTime   String? // "00:30:00" custom time when leaving
+  leavingSoonEnabled Boolean @default(true)
+  leavingSoonMinutes Int     @default(30) // 30 minutes default
+  customLeavingTime  String? // "00:30:00" custom time when leaving
 
   priority Int @default(0)
 

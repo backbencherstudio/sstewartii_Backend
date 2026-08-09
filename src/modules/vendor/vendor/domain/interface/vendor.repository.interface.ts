@@ -1,3 +1,5 @@
+// vendor.repository.interface.ts
+
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import {
   VendorLiveStatus,
@@ -6,6 +8,7 @@ import {
   SubscriptionStatus,
   OrderStatus,
   VendorAdminStatus,
+  VendorSubscriptionStatus,
 } from '@prisma/client';
 
 import { Vendor } from '../entities/vendor.entity';
@@ -14,6 +17,10 @@ import {
   VendorMenuItemsQueryDto,
   VendorReviewsQueryDtoMe,
 } from '../../presentation/dto/vendor.dto';
+
+// ============================================
+// EXISTING INTERFACES
+// ============================================
 
 export interface VendorStatusView {
   id: string;
@@ -29,7 +36,7 @@ export interface UpdateVendorStatusInput {
 export interface VendorGoLiveEligibilityView {
   id: string;
   kycStatus: KycStatus;
-  adminStatus: VendorAdminStatus; // Add this
+  adminStatus: VendorAdminStatus;
   statusReason: string | null;
   vendorVerification: {
     id: string;
@@ -223,22 +230,46 @@ export interface VendorFollowersResult {
   followers: VendorFollowerRowView[];
 }
 
-// Main interface
+// ============================================
+// ✅ NEW: SUBSCRIPTION INTERFACES
+// ============================================
+
+export interface VendorSubscriptionView {
+  id: string;
+  subscriptionStatus: VendorSubscriptionStatus;
+  subscriptionExpiresAt: Date | null;
+  paymentFailureCount: number;
+  lastPaymentFailureAt: Date | null;
+  vendorSubscription: {
+    status: SubscriptionStatus;
+    expiresAt: Date | null;
+    autoRenew: boolean;
+  } | null;
+}
+
+export interface VendorWithSubscriptionView {
+  id: string;
+  subscriptionStatus: VendorSubscriptionStatus;
+  subscriptionExpiresAt: Date | null;
+  paymentFailureCount: number;
+  lastPaymentFailureAt: Date | null;
+}
+
+// ============================================
+// MAIN REPOSITORY INTERFACE
+// ============================================
+
 export interface IVendorRepository {
+  // Existing methods
   findByVendorId(ownerId: string): Promise<Vendor | null>;
   findByOwnerId(ownerId: string): Promise<Vendor | null>;
-
   findById(id: string): Promise<Vendor | null>;
-
   findVendorMenuById(
     vendorId: string,
     query: VendorMenuQueryDto,
   ): Promise<any | null>;
-
   findVendorInfoById(vendorId: string): Promise<any | null>;
-
   resetTruckGalleryPrimary(vendorId: string): Promise<void>;
-
   createTruckGalleryImages(data: {
     vendorId: string;
     images: {
@@ -248,9 +279,7 @@ export interface IVendorRepository {
       position?: number;
     }[];
   }): Promise<void>;
-
   findVendorHomeByOwnerId(ownerId: string): Promise<any | null>;
-
   getVendorTodayStats(data: {
     vendorId: string;
     startOfDay: Date;
@@ -261,97 +290,71 @@ export interface IVendorRepository {
     pendingOrders: number;
     cancelledOrders: number;
   }>;
-
   findVendorStatusByOwnerId(ownerId: string): Promise<VendorStatusView | null>;
-
   updateVendorStatus(data: UpdateVendorStatusInput): Promise<VendorStatusView>;
-
   findGoLiveEligibilityByOwnerId(
     ownerId: string,
   ): Promise<VendorGoLiveEligibilityView | null>;
-
   findVendorMenuCategories(ownerId: string): Promise<any | null>;
-
   findVendorMenuItems(
     ownerId: string,
     query: VendorMenuItemsQueryDto,
   ): Promise<VendorMenuItemsResult>;
-
   findVendorIdByOwnerId(ownerId: string): Promise<{ id: string } | null>;
-
   findVendorMenuItemOwner(
     productId: string,
   ): Promise<VendorMenuItemOwnerView | null>;
-
   updateVendorMenuItemStatus(data: {
     productId: string;
     isActive: boolean;
   }): Promise<VendorMenuItemStatusView>;
-
   softDeleteVendorMenuItem(
     productId: string,
   ): Promise<DeleteVendorMenuItemView>;
-
   findTruckGalleryByOwnerId(
     ownerId: string,
   ): Promise<VendorTruckGalleryView | null>;
-
   findTruckGalleryByVendorId(
     vendorId: string,
   ): Promise<VendorTruckGalleryView | null>;
-
   findVendorInsightProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorInsightProfileView | null>;
-
   findOrdersForInsights(
     data: VendorInsightsDateRangeInput,
   ): Promise<VendorInsightOrderView[]>;
-
   countVendorFavorites(vendorId: string): Promise<VendorFavoriteCountView>;
-
   countVendorFavoritesInRange(
     data: VendorInsightsDateRangeInput,
   ): Promise<VendorFavoriteCountView>;
-
   findAiProfileByOwnerId(ownerId: string): Promise<VendorAiProfileView | null>;
-
   findOrdersForAiGuidance(
     data: VendorAiDateRangeInput,
   ): Promise<VendorAiOrderView[]>;
-
   getVendorReviewSummary(vendorId: string): Promise<VendorReviewSummaryResult>;
-
   findVendorReviews(
     vendorId: string,
     query: VendorReviewsQueryDtoMe,
   ): Promise<VendorReviewResult>;
-
   findFollowersProfileByOwnerId(
     ownerId: string,
   ): Promise<VendorFollowersProfileView | null>;
-
   countVendorFollowers(vendorId: string): Promise<number>;
-
   countVendorFollowersInRange(data: {
     vendorId: string;
     startDate: Date;
     endDate: Date;
   }): Promise<number>;
-
   findVendorFollowers(data: {
     vendorId: string;
     page: number;
     limit: number;
   }): Promise<VendorFollowersResult>;
-
   createVendorProfileViewOncePerDay(data: {
     vendorId: string;
     customerId?: string;
   }): Promise<void>;
-
   findCustomerIdByUserId(userId: string): Promise<string | null>;
-
   findTruckGalleryImageById(imageId: string): Promise<{
     id: string;
     vendorId: string;
@@ -361,9 +364,7 @@ export interface IVendorRepository {
     position: number;
     createdAt: Date;
   } | null>;
-
   deleteTruckGalleryImages(imageIds: string[]): Promise<{ count: number }>;
-
   updateTruckGalleryImage(data: {
     id: string;
     caption?: string | null;
@@ -377,4 +378,40 @@ export interface IVendorRepository {
     position: number;
     createdAt: Date;
   }>;
+
+  // ============================================
+  // ✅ NEW: SUBSCRIPTION MANAGEMENT METHODS
+  // ============================================
+  findVendorWithSubscription(
+    ownerId: string,
+  ): Promise<VendorWithSubscriptionView | null>;
+  getVendorSubscriptionStatus(
+    vendorId: string,
+  ): Promise<VendorSubscriptionView | null>;
+  updateVendorSubscriptionStatus(
+    vendorId: string,
+    status: VendorSubscriptionStatus,
+    reason?: string,
+  ): Promise<void>;
+  findVendorsWithExpiringSubscriptions(): Promise<any[]>;
+  findVendorsWithExpiredGracePeriods(): Promise<any[]>;
+  logPaymentFailure(data: {
+    vendorId: string;
+    failureType: string;
+    errorMessage?: string;
+    amount?: number;
+    currency?: string;
+  }): Promise<void>;
+  logSubscriptionHistory(data: {
+    vendorId: string;
+    action: string;
+    oldStatus: VendorSubscriptionStatus;
+    newStatus: VendorSubscriptionStatus;
+    reason?: string;
+    performedBy?: string;
+  }): Promise<void>;
+  updateVendorPaymentFailureCount(
+    vendorId: string,
+    count: number,
+  ): Promise<void>;
 }

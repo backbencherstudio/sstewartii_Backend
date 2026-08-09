@@ -1,22 +1,30 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/modules/revenuecat/revenuecat.service.ts
+// revenuecat.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  WebhookStatus,
-  PeriodType,
-  SubscriptionTransactionStatus,
   SubscriptionStatus,
   SubscriptionProvider,
   SubscriptionStore,
+  VendorSubscriptionStatus,
+  PaymentFailureType,
+  SubscriptionAction,
+  VendorLiveStatus,
+  VendorAdminStatus,
+  WebhookStatus,
+  PeriodType,
+  SubscriptionTransactionStatus,
 } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class RevenueCatService {
   private readonly logger = new Logger(RevenueCatService.name);
   private readonly revenueCatApiKey: string;
   private readonly webhookSecret: string;
+  private readonly GRACE_PERIOD_DAYS = 5;
+  private readonly MAX_PAYMENT_FAILURES = 3;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -26,152 +34,10 @@ export class RevenueCatService {
       this.configService.get<string>('REVENUECAT_API_KEY') || '';
     this.webhookSecret =
       this.configService.get<string>('REVENUECAT_WEBHOOK_SECRET') || '';
-
-    if (!this.revenueCatApiKey) {
-      this.logger.warn(
-        '⚠️ REVENUECAT_API_KEY is not set in environment variables',
-      );
-    }
-    if (!this.webhookSecret) {
-      this.logger.warn(
-        '⚠️ REVENUECAT_WEBHOOK_SECRET is not set in environment variables',
-      );
-    }
-  }
-
-  /**
-   * Register a vendor with RevenueCat
-   * This should be called when a vendor registers or logs in
-   */
-  async registerVendorWithRevenueCat(
-    vendorId: string,
-    userId: string,
-    platform: 'ios' | 'android' = 'ios',
-  ): Promise<void> {
-    try {
-      this.logger.log(`📝 Registering vendor ${vendorId} with RevenueCat...`);
-
-      // Check if vendor already has a RevenueCat user ID stored
-      const existingVendor = await this.prisma.vendor.findUnique({
-        where: { id: vendorId },
-        select: {
-          id: true,
-          vendorSubscription: {
-            select: {
-              id: true,
-              revenueCatAppUserId: true,
-            },
-          },
-        },
-      });
-
-      // If vendor already has a RevenueCat ID, skip
-      if (existingVendor?.vendorSubscription?.revenueCatAppUserId) {
-        this.logger.log(
-          `✅ Vendor ${vendorId} already has RevenueCat ID: ${existingVendor.vendorSubscription.revenueCatAppUserId}`,
-        );
-        return;
-      }
-
-      // Use the user ID as the RevenueCat app user ID
-      const revenueCatUserId = userId;
-
-      // Store ONLY the RevenueCat user ID mapping, not a subscription
-      await this.prisma.vendorSubscription.upsert({
-        where: { vendorId },
-        update: {
-          revenueCatAppUserId: revenueCatUserId,
-          provider: SubscriptionProvider.REVENUECAT,
-        },
-        create: {
-          vendorId,
-          revenueCatAppUserId: revenueCatUserId,
-          provider: SubscriptionProvider.REVENUECAT,
-          status: SubscriptionStatus.INACTIVE,
-          productId: 'pending',
-          store: SubscriptionStore.UNKNOWN,
-          isActive: false,
-          autoRenew: false,
-        },
-      });
-
-      this.logger.log(
-        `✅ Vendor ${vendorId} registered with RevenueCat (ID: ${revenueCatUserId})`,
-      );
-
-      // Call RevenueCat API to set the app user ID
-      await this.setRevenueCatAppUserId(revenueCatUserId, vendorId, platform);
-    } catch (error: any) {
-      this.logger.error(
-        `Error registering vendor with RevenueCat: ${error.message}`,
-      );
-      // Don't throw - registration should not block the main flow
-    }
-  }
-
-  /**
-   * Call RevenueCat API to set the app user ID
-   */
-  private async setRevenueCatAppUserId(
-    appUserId: string,
-    vendorId: string,
-    platform: 'ios' | 'android' = 'ios',
-  ): Promise<void> {
-    try {
-      if (!this.revenueCatApiKey) {
-        this.logger.warn(
-          'RevenueCat API key not configured, skipping API call',
-        );
-        return;
-      }
-
-      this.logger.log(
-        `📡 Calling RevenueCat API to set attributes for user: ${appUserId}`,
-      );
-
-      const response = await fetch(
-        `https://api.revenuecat.com/v1/subscribers/${appUserId}/attributes`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.revenueCatApiKey}`,
-            'Content-Type': 'application/json',
-            'X-Platform': platform,
-          },
-          body: JSON.stringify({
-            attributes: {
-              vendorId: {
-                value: vendorId,
-              },
-              platform: {
-                value: platform,
-              },
-            },
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        this.logger.warn(
-          `RevenueCat API warning: ${response.status} — ${errorBody}`,
-        );
-        return;
-      }
-
-      this.logger.log(
-        `✅ RevenueCat app user ID set: ${appUserId} for vendor: ${vendorId} (platform: ${platform})`,
-      );
-    } catch (error: any) {
-      this.logger.warn(
-        `Could not set RevenueCat app user ID: ${error.message}`,
-      );
-      // Non-critical — don't throw, just log
-    }
   }
 
   // ============================================
-  // MAIN WEBHOOK PROCESSING
+  // PUBLIC METHODS (Called from Controller)
   // ============================================
 
   async processWebhookEvent(
@@ -258,6 +124,66 @@ export class RevenueCatService {
     }
   }
 
+  async registerVendorWithRevenueCat(
+    vendorId: string,
+    userId: string,
+    platform: 'ios' | 'android' = 'ios',
+  ): Promise<void> {
+    try {
+      this.logger.log(`📝 Registering vendor ${vendorId} with RevenueCat...`);
+
+      const existingVendor = await this.prisma.vendor.findUnique({
+        where: { id: vendorId },
+        select: {
+          id: true,
+          vendorSubscription: {
+            select: {
+              id: true,
+              revenueCatAppUserId: true,
+            },
+          },
+        },
+      });
+
+      if (existingVendor?.vendorSubscription?.revenueCatAppUserId) {
+        this.logger.log(
+          `✅ Vendor ${vendorId} already has RevenueCat ID: ${existingVendor.vendorSubscription.revenueCatAppUserId}`,
+        );
+        return;
+      }
+
+      const revenueCatUserId = userId;
+
+      await this.prisma.vendorSubscription.upsert({
+        where: { vendorId },
+        update: {
+          revenueCatAppUserId: revenueCatUserId,
+          provider: SubscriptionProvider.REVENUECAT,
+        },
+        create: {
+          vendorId,
+          revenueCatAppUserId: revenueCatUserId,
+          provider: SubscriptionProvider.REVENUECAT,
+          status: SubscriptionStatus.INACTIVE,
+          productId: 'pending',
+          store: SubscriptionStore.UNKNOWN,
+          isActive: false,
+          autoRenew: false,
+        },
+      });
+
+      this.logger.log(
+        `✅ Vendor ${vendorId} registered with RevenueCat (ID: ${revenueCatUserId})`,
+      );
+
+      await this.setRevenueCatAppUserId(revenueCatUserId, vendorId, platform);
+    } catch (error: any) {
+      this.logger.error(
+        `Error registering vendor with RevenueCat: ${error.message}`,
+      );
+    }
+  }
+
   // ============================================
   // FIND VENDOR BY REVENUECAT ID
   // ============================================
@@ -268,7 +194,6 @@ export class RevenueCatService {
   ): Promise<any> {
     if (!appUserId) return null;
 
-    // Check for original_app_user_id first
     const originalAppUserId =
       payload?.event?.original_app_user_id || payload?.original_app_user_id;
 
@@ -301,7 +226,6 @@ export class RevenueCatService {
       }
     }
 
-    // Try to find vendor by RevenueCat app user ID stored in subscription
     const vendor = await this.prisma.vendor.findFirst({
       where: {
         vendorSubscription: {
@@ -313,39 +237,24 @@ export class RevenueCatService {
       },
     });
 
-    if (vendor) {
-      return vendor;
-    }
+    if (vendor) return vendor;
 
-    // Try to find by owner ID
     const userVendor = await this.prisma.vendor.findFirst({
-      where: {
-        ownerId: appUserId,
-      },
+      where: { ownerId: appUserId },
       include: {
         vendorSubscription: true,
       },
     });
 
-    if (userVendor) {
-      return userVendor;
-    }
+    if (userVendor) return userVendor;
 
-    // For development, try to find by email
     const nodeEnv = process.env.NODE_ENV;
     if (nodeEnv === 'development' || nodeEnv === 'test') {
       const email = payload?.event?.subscriber_attributes?.$email?.value;
       if (email) {
         const vendorByEmail = await this.prisma.vendor.findFirst({
           where: {
-            OR: [
-              { publicEmail: email },
-              {
-                owner: {
-                  email: email,
-                },
-              },
-            ],
+            OR: [{ publicEmail: email }, { owner: { email: email } }],
           },
           include: {
             vendorSubscription: true,
@@ -358,7 +267,6 @@ export class RevenueCatService {
         }
       }
 
-      // Fallback: find any vendor for testing
       const anyVendor = await this.prisma.vendor.findFirst({
         include: {
           vendorSubscription: true,
@@ -383,7 +291,6 @@ export class RevenueCatService {
   private async findSubscriptionPlanByProductId(productId: string) {
     if (!productId) return null;
 
-    // Try to find by various product identifiers
     const plan = await this.prisma.subscriptionPlan.findFirst({
       where: {
         OR: [
@@ -401,7 +308,6 @@ export class RevenueCatService {
       return plan;
     }
 
-    // Try to find by name mapping
     const planName = this.getPlanNameFromProductId(productId);
     if (planName) {
       const planByName = await this.prisma.subscriptionPlan.findFirst({
@@ -413,7 +319,6 @@ export class RevenueCatService {
       }
     }
 
-    // For development, create a temporary plan
     const nodeEnv = process.env.NODE_ENV;
     if (nodeEnv === 'development' || nodeEnv === 'test') {
       this.logger.warn(
@@ -505,15 +410,125 @@ export class RevenueCatService {
   }
 
   // ============================================
+  // SET REVENUECAT APP USER ID
+  // ============================================
+
+  private async setRevenueCatAppUserId(
+    appUserId: string,
+    vendorId: string,
+    platform: 'ios' | 'android' = 'ios',
+  ): Promise<void> {
+    try {
+      if (!this.revenueCatApiKey) {
+        this.logger.warn(
+          'RevenueCat API key not configured, skipping API call',
+        );
+        return;
+      }
+
+      this.logger.log(
+        `📡 Calling RevenueCat API to set attributes for user: ${appUserId}`,
+      );
+
+      const response = await fetch(
+        `https://api.revenuecat.com/v1/subscribers/${appUserId}/attributes`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.revenueCatApiKey}`,
+            'Content-Type': 'application/json',
+            'X-Platform': platform,
+          },
+          body: JSON.stringify({
+            attributes: {
+              vendorId: {
+                value: vendorId,
+              },
+              platform: {
+                value: platform,
+              },
+            },
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        this.logger.warn(
+          `RevenueCat API warning: ${response.status} — ${errorBody}`,
+        );
+        return;
+      }
+
+      this.logger.log(
+        `✅ RevenueCat app user ID set: ${appUserId} for vendor: ${vendorId}`,
+      );
+    } catch (error: any) {
+      this.logger.warn(
+        `Could not set RevenueCat app user ID: ${error.message}`,
+      );
+    }
+  }
+
+  // ============================================
+  // TRANSACTION CREATION
+  // ============================================
+
+  private async createTransaction(
+    vendorId: string,
+    event: any,
+    subscriptionId: string,
+  ): Promise<any> {
+    const existingTransaction =
+      await this.prisma.subscriptionTransaction.findUnique({
+        where: {
+          transactionId: event.transaction_id || undefined,
+        },
+      });
+
+    if (existingTransaction) {
+      this.logger.log(
+        `⚠️ Transaction ${event.transaction_id} already exists, skipping creation`,
+      );
+      return existingTransaction;
+    }
+
+    return this.prisma.subscriptionTransaction.create({
+      data: {
+        vendorId,
+        vendorSubscriptionId: subscriptionId,
+        revenueCatEventId: event.id,
+        revenueCatProductId: event.product_id,
+        store: event.store,
+        environment: event.environment,
+        productId: event.product_id,
+        transactionId: event.transaction_id || `temp_${Date.now()}`,
+        originalTransactionId: event.original_transaction_id,
+        purchasedAt: new Date(parseInt(event.purchased_at_ms)),
+        expirationAt: event.expiration_at_ms
+          ? new Date(parseInt(event.expiration_at_ms))
+          : null,
+        eventTimestamp: new Date(parseInt(event.event_timestamp_ms)),
+        price: event.price,
+        priceInPurchasedCurrency: event.price_in_purchased_currency,
+        currency: event.currency || 'USD',
+        periodType: event.period_type || PeriodType.NORMAL,
+        isTrialPeriod: event.period_type === 'TRIAL',
+        isFamilyShare: event.is_family_share || false,
+        renewalNumber: event.renewal_number,
+        status: SubscriptionTransactionStatus.COMPLETED,
+        rawData: event,
+      },
+    });
+  }
+
+  // ============================================
   // EVENT HANDLERS
   // ============================================
 
   private async handleInitialPurchase(vendor: any, payload: any): Promise<any> {
     const { event } = payload;
     this.logger.log(`🎉 New subscription purchase for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   Product: ${event.product_id}`);
-    this.logger.log(`   Store: ${event.store}`);
 
     try {
       const subscriptionPlan = await this.findSubscriptionPlanByProductId(
@@ -568,19 +583,22 @@ export class RevenueCatService {
         },
       });
 
-      if (subscription && !subscription.vendorId) {
-        await this.prisma.vendor.update({
-          where: { id: vendor.id },
-          data: {
-            vendorSubscriptionId: subscription.id,
-          },
-        });
+      await this.reactivateVendor(vendor.id);
+      await this.logPaymentSuccess(vendor.id);
+
+      if (subscription) {
+        await this.createTransaction(vendor.id, event, subscription.id);
       }
 
-      await this.createTransaction(vendor.id, event, subscription.id);
+      await this.createSubscriptionHistory(
+        vendor.id,
+        SubscriptionAction.INITIAL_SUBSCRIPTION,
+        VendorSubscriptionStatus.EXPIRED,
+        VendorSubscriptionStatus.ACTIVE,
+        'Initial subscription purchase',
+      );
 
-      this.logger.log(`✅ Subscription created for vendor: ${vendor.id}`);
-      this.logger.log(`   Plan: ${subscriptionPlan?.name || 'Unknown'}`);
+      this.logger.log(`✅ Vendor ${vendor.id} subscription active`);
       return { success: true };
     } catch (error: any) {
       this.logger.error(`Error handling initial purchase: ${error.message}`);
@@ -588,35 +606,21 @@ export class RevenueCatService {
     }
   }
 
-  // ============================================
-  // ✅ FIXED: RENEWAL HANDLER
-  // ============================================
-
   private async handleRenewal(vendor: any, payload: any): Promise<any> {
     const { event } = payload;
     this.logger.log(`🔄 Subscription renewal for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   Product: ${event.product_id}`);
-    this.logger.log(
-      `   Expiration: ${event.expiration_at_ms ? new Date(parseInt(event.expiration_at_ms)).toISOString() : 'N/A'}`,
-    );
 
     try {
-      // Find the subscription plan
       const subscriptionPlan = await this.findSubscriptionPlanByProductId(
         event.product_id,
       );
 
-      // Update subscription with ALL fields
       const updatedSubscription = await this.prisma.vendorSubscription.update({
         where: { vendorId: vendor.id },
         data: {
-          // Update product and plan
           productId: event.product_id,
           subscriptionPlanId: subscriptionPlan?.id || null,
           entitlementId: event.entitlement_id || null,
-
-          // Update dates
           currentPeriodEnd: event.expiration_at_ms
             ? new Date(parseInt(event.expiration_at_ms))
             : null,
@@ -626,40 +630,26 @@ export class RevenueCatService {
           currentPeriodStart: event.purchased_at_ms
             ? new Date(parseInt(event.purchased_at_ms))
             : null,
-
-          // Update renewal date
           lastRenewalDate: new Date(),
-
-          // Reset cancellation date
           cancellationDate: null,
-
-          // Ensure active status
           status: SubscriptionStatus.ACTIVE,
           isActive: true,
-
-          // Update auto-renew flag
           autoRenew: event.auto_renew !== undefined ? event.auto_renew : true,
-
-          // Update store
           store: event.store || SubscriptionStore.UNKNOWN,
-
-          // Update raw data
           rawProviderData: event,
         },
       });
 
-      this.logger.log(`✅ Subscription renewed for vendor: ${vendor.id}`);
-      this.logger.log(`   New product: ${updatedSubscription.productId}`);
-      this.logger.log(
-        `   New expiry: ${updatedSubscription.expiresAt?.toISOString()}`,
-      );
-      this.logger.log(`   Plan: ${subscriptionPlan?.name || 'Unknown'}`);
+      await this.reactivateVendor(vendor.id);
+      await this.logPaymentSuccess(vendor.id);
 
-      // Create transaction record for renewal
       if (updatedSubscription) {
         await this.createTransaction(vendor.id, event, updatedSubscription.id);
       }
 
+      this.logger.log(
+        `✅ Subscription renewed and vendor reactivated: ${vendor.id}`,
+      );
       return { success: true };
     } catch (error: any) {
       this.logger.error(`Error handling renewal: ${error.message}`);
@@ -668,10 +658,7 @@ export class RevenueCatService {
   }
 
   private async handleCancellation(vendor: any, payload: any): Promise<any> {
-    const { event } = payload;
     this.logger.log(`❌ Subscription cancelled for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   Product: ${event.product_id}`);
 
     try {
       await this.prisma.vendorSubscription.update({
@@ -684,7 +671,28 @@ export class RevenueCatService {
         },
       });
 
-      this.logger.log(`✅ Subscription cancelled for vendor: ${vendor.id}`);
+      await this.prisma.vendor.update({
+        where: { id: vendor.id },
+        data: {
+          subscriptionStatus: VendorSubscriptionStatus.CANCELLED,
+          status: VendorLiveStatus.OFFLINE,
+          statusReason: 'Subscription cancelled by vendor',
+          statusUpdatedAt: new Date(),
+          subscriptionPausedAt: new Date(),
+        },
+      });
+
+      await this.createSubscriptionHistory(
+        vendor.id,
+        SubscriptionAction.CANCELLATION,
+        VendorSubscriptionStatus.ACTIVE,
+        VendorSubscriptionStatus.CANCELLED,
+        'Vendor cancelled subscription',
+      );
+
+      this.logger.log(
+        `✅ Vendor ${vendor.id} subscription cancelled and offline`,
+      );
       return { success: true };
     } catch (error: any) {
       this.logger.error(`Error handling cancellation: ${error.message}`);
@@ -695,10 +703,60 @@ export class RevenueCatService {
   private async handleExpiration(vendor: any, payload: any): Promise<any> {
     const { event } = payload;
     this.logger.log(`⏰ Subscription expired for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   Product: ${event.product_id}`);
 
     try {
+      const existingVendor = await this.prisma.vendor.findUnique({
+        where: { id: vendor.id },
+        select: {
+          subscriptionStatus: true,
+          paymentFailureCount: true,
+          lastPaymentFailureAt: true,
+        },
+      });
+
+      const failureCount = (existingVendor?.paymentFailureCount || 0) + 1;
+      const now = new Date();
+
+      if (failureCount >= this.MAX_PAYMENT_FAILURES) {
+        this.logger.warn(
+          `⚠️ Vendor ${vendor.id} has ${failureCount} failures, skipping grace period`,
+        );
+        await this.expireVendorImmediately(vendor.id);
+        return {
+          success: true,
+          message: 'Vendor expired immediately due to multiple failures',
+        };
+      }
+
+      const gracePeriodEnd = new Date(now);
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + this.GRACE_PERIOD_DAYS);
+
+      await this.prisma.vendor.update({
+        where: { id: vendor.id },
+        data: {
+          subscriptionStatus: VendorSubscriptionStatus.GRACE_PERIOD,
+          subscriptionExpiresAt: gracePeriodEnd,
+          subscriptionPausedAt: now,
+          paymentFailureCount: failureCount,
+          lastPaymentFailureAt: now,
+          status: VendorLiveStatus.OFFLINE,
+          statusReason: `Payment failed - Grace period until ${gracePeriodEnd.toISOString()}`,
+          statusUpdatedAt: now,
+        },
+      });
+
+      await this.logPaymentFailure(vendor.id, event);
+
+      await this.createSubscriptionHistory(
+        vendor.id,
+        SubscriptionAction.GRACE_PERIOD_START,
+        VendorSubscriptionStatus.EXPIRED,
+        VendorSubscriptionStatus.GRACE_PERIOD,
+        `Payment failed, grace period started. Expires: ${gracePeriodEnd.toISOString()}`,
+      );
+
+      await this.sendGracePeriodNotifications(vendor.id, gracePeriodEnd);
+
       await this.prisma.vendorSubscription.update({
         where: { vendorId: vendor.id },
         data: {
@@ -707,10 +765,44 @@ export class RevenueCatService {
         },
       });
 
-      this.logger.log(`✅ Subscription expired for vendor: ${vendor.id}`);
-      return { success: true };
+      this.logger.log(
+        `✅ Vendor ${vendor.id} moved to GRACE_PERIOD until ${gracePeriodEnd.toISOString()}`,
+      );
+      return { success: true, gracePeriodEnd };
     } catch (error: any) {
       this.logger.error(`Error handling expiration: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async handleUncancellation(vendor: any, payload: any): Promise<any> {
+    this.logger.log(`↩️ Subscription uncancelled for vendor: ${vendor.id}`);
+
+    try {
+      await this.prisma.vendorSubscription.update({
+        where: { vendorId: vendor.id },
+        data: {
+          status: SubscriptionStatus.ACTIVE,
+          autoRenew: true,
+          cancellationDate: null,
+          isActive: true,
+        },
+      });
+
+      await this.reactivateVendor(vendor.id);
+
+      await this.createSubscriptionHistory(
+        vendor.id,
+        SubscriptionAction.REACTIVATION,
+        VendorSubscriptionStatus.CANCELLED,
+        VendorSubscriptionStatus.ACTIVE,
+        'Vendor uncancelled subscription',
+      );
+
+      this.logger.log(`✅ Vendor ${vendor.id} reactivated`);
+      return { success: true };
+    } catch (error: any) {
+      this.logger.error(`Error handling uncancellation: ${error.message}`);
       throw error;
     }
   }
@@ -721,8 +813,6 @@ export class RevenueCatService {
   ): Promise<any> {
     const { event } = payload;
     this.logger.log(`🛍️ One-time purchase for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   Product: ${event.product_id}`);
 
     try {
       await this.prisma.subscriptionTransaction.create({
@@ -756,15 +846,9 @@ export class RevenueCatService {
     }
   }
 
-  // ============================================
-  // ✅ FIXED: PRODUCT CHANGE HANDLER
-  // ============================================
-
   private async handleProductChange(vendor: any, payload: any): Promise<any> {
     const { event } = payload;
     this.logger.log(`🔄 Product change for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   New product: ${event.product_id}`);
 
     try {
       const subscriptionPlan = await this.findSubscriptionPlanByProductId(
@@ -799,7 +883,6 @@ export class RevenueCatService {
       }
 
       this.logger.log(`✅ Product changed for vendor: ${vendor.id}`);
-      this.logger.log(`   New plan: ${subscriptionPlan?.name || 'Unknown'}`);
       return { success: true };
     } catch (error: any) {
       this.logger.error(`Error handling product change: ${error.message}`);
@@ -810,8 +893,6 @@ export class RevenueCatService {
   private async handleRefund(vendor: any, payload: any): Promise<any> {
     const { event } = payload;
     this.logger.log(`💰 Refund issued for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   Transaction: ${event.transaction_id}`);
 
     try {
       await this.prisma.subscriptionTransaction.updateMany({
@@ -832,34 +913,8 @@ export class RevenueCatService {
     }
   }
 
-  private async handleUncancellation(vendor: any, payload: any): Promise<any> {
-    const { event } = payload;
-    this.logger.log(`↩️ Subscription uncancelled for vendor: ${vendor.id}`);
-    this.logger.log(`   Vendor: ${vendor.businessName || vendor.vendorCode}`);
-    this.logger.log(`   Product: ${event.product_id}`);
-
-    try {
-      await this.prisma.vendorSubscription.update({
-        where: { vendorId: vendor.id },
-        data: {
-          status: SubscriptionStatus.ACTIVE,
-          autoRenew: true,
-          cancellationDate: null,
-          isActive: true,
-        },
-      });
-
-      this.logger.log(`✅ Subscription reactivated for vendor: ${vendor.id}`);
-      return { success: true };
-    } catch (error: any) {
-      this.logger.error(`Error handling uncancellation: ${error.message}`);
-      throw error;
-    }
-  }
-
   private async handleTestEvent(vendor: any, payload: any): Promise<any> {
     this.logger.log(`🧪 Test event received for vendor: ${vendor.id}`);
-    this.logger.debug(`Test payload: ${JSON.stringify(payload, null, 2)}`);
 
     await this.prisma.revenueCatWebhookLog.create({
       data: {
@@ -875,62 +930,326 @@ export class RevenueCatService {
   }
 
   // ============================================
-  // TRANSACTION CREATION
+  // HELPER METHODS
   // ============================================
 
-  private async createTransaction(
-    vendorId: string,
-    event: any,
-    subscriptionId: string,
-  ): Promise<any> {
-    // Check if transaction already exists
-    const existingTransaction =
-      await this.prisma.subscriptionTransaction.findUnique({
-        where: {
-          transactionId: event.transaction_id || undefined,
-        },
-      });
+  private async reactivateVendor(vendorId: string): Promise<void> {
+    await this.prisma.vendor.update({
+      where: { id: vendorId },
+      data: {
+        subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
+        subscriptionExpiresAt: null,
+        subscriptionPausedAt: null,
+        paymentFailureCount: 0,
+        lastPaymentFailureAt: null,
+        statusReason: null,
+        adminStatus: VendorAdminStatus.ACTIVE,
+        disabledAt: null,
+      },
+    });
 
-    if (existingTransaction) {
-      this.logger.log(
-        `⚠️ Transaction ${event.transaction_id} already exists, skipping creation`,
-      );
-      return existingTransaction;
+    await this.createSubscriptionHistory(
+      vendorId,
+      SubscriptionAction.REACTIVATION,
+      VendorSubscriptionStatus.GRACE_PERIOD,
+      VendorSubscriptionStatus.ACTIVE,
+      'Vendor reactivated after payment',
+    );
+  }
+
+  private async expireVendorImmediately(vendorId: string): Promise<void> {
+    await this.prisma.vendor.update({
+      where: { id: vendorId },
+      data: {
+        subscriptionStatus: VendorSubscriptionStatus.EXPIRED,
+        status: VendorLiveStatus.OFFLINE,
+        statusReason: 'Multiple payment failures - subscription expired',
+        adminStatus: VendorAdminStatus.DISABLED,
+        disabledAt: new Date(),
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    await this.createSubscriptionHistory(
+      vendorId,
+      SubscriptionAction.EXPIRATION,
+      VendorSubscriptionStatus.GRACE_PERIOD,
+      VendorSubscriptionStatus.EXPIRED,
+      'Multiple payment failures, expired immediately',
+    );
+  }
+
+  private async logPaymentFailure(vendorId: string, event: any): Promise<void> {
+    let failureType: PaymentFailureType = PaymentFailureType.OTHER;
+
+    if (event.error) {
+      const errorLower = event.error.toLowerCase();
+      if (errorLower.includes('card') && errorLower.includes('expir')) {
+        failureType = PaymentFailureType.CARD_EXPIRED;
+      } else if (
+        errorLower.includes('insufficient') ||
+        errorLower.includes('fund')
+      ) {
+        failureType = PaymentFailureType.INSUFFICIENT_FUNDS;
+      } else if (errorLower.includes('declin')) {
+        failureType = PaymentFailureType.DECLINED;
+      } else if (errorLower.includes('removed')) {
+        failureType = PaymentFailureType.PAYMENT_METHOD_REMOVED;
+      } else if (errorLower.includes('address')) {
+        failureType = PaymentFailureType.BILLING_ADDRESS_INVALID;
+      }
     }
 
-    // Create new transaction
-    return this.prisma.subscriptionTransaction.create({
+    await this.prisma.paymentFailureLog.create({
       data: {
         vendorId,
-        vendorSubscriptionId: subscriptionId,
-        revenueCatEventId: event.id,
-        revenueCatProductId: event.product_id,
-        store: event.store,
-        environment: event.environment,
-        productId: event.product_id,
-        transactionId: event.transaction_id || `temp_${Date.now()}`,
-        originalTransactionId: event.original_transaction_id,
-        purchasedAt: new Date(parseInt(event.purchased_at_ms)),
-        expirationAt: event.expiration_at_ms
-          ? new Date(parseInt(event.expiration_at_ms))
-          : null,
-        eventTimestamp: new Date(parseInt(event.event_timestamp_ms)),
-        price: event.price,
-        priceInPurchasedCurrency: event.price_in_purchased_currency,
+        failureType,
+        errorMessage: event.error || 'Payment failed',
+        amount: event.price,
         currency: event.currency || 'USD',
-        periodType: event.period_type || PeriodType.NORMAL,
-        isTrialPeriod: event.period_type === 'TRIAL',
-        isFamilyShare: event.is_family_share || false,
-        renewalNumber: event.renewal_number,
-        status: SubscriptionTransactionStatus.COMPLETED,
-        rawData: event,
+        notificationSent: false,
+        createdAt: new Date(),
       },
     });
   }
 
-  verifyWebhookSignature(payload: any, signature: string): boolean {
-    // This method is now implemented in the controller
-    // Keeping for backward compatibility
-    return true;
+  private async logPaymentSuccess(vendorId: string): Promise<void> {
+    await this.prisma.paymentFailureLog.updateMany({
+      where: {
+        vendorId,
+        resolvedAt: null,
+      },
+      data: {
+        resolvedAt: new Date(),
+        resolvedBy: 'system',
+        resolution: 'Payment successful',
+      },
+    });
+  }
+
+  private async createSubscriptionHistory(
+    vendorId: string,
+    action: SubscriptionAction,
+    oldStatus: VendorSubscriptionStatus,
+    newStatus: VendorSubscriptionStatus,
+    reason?: string,
+  ): Promise<void> {
+    await this.prisma.subscriptionHistory.create({
+      data: {
+        vendorId,
+        action,
+        oldStatus,
+        newStatus,
+        reason,
+        performedBy: 'system',
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      },
+    });
+  }
+
+  private async sendGracePeriodNotifications(
+    vendorId: string,
+    gracePeriodEnd: Date,
+  ): Promise<void> {
+    try {
+      const vendor = await this.prisma.vendor.findUnique({
+        where: { id: vendorId },
+        include: {
+          owner: {
+            select: {
+              email: true,
+              fcm_token: true,
+              platform: true,
+            },
+          },
+        },
+      });
+
+      if (!vendor) return;
+
+      const daysLeft = Math.ceil(
+        (gracePeriodEnd.getTime() - new Date().getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+
+      this.logger.log(
+        `📧 Sending grace period email to ${vendor.owner.email} for vendor ${vendorId}`,
+      );
+
+      if (vendor.owner.fcm_token) {
+        this.logger.log(`📱 Sending push notification to vendor ${vendorId}`);
+      }
+
+      await this.prisma.paymentFailureLog.updateMany({
+        where: {
+          vendorId,
+          notificationSent: false,
+        },
+        data: {
+          notificationSent: true,
+        },
+      });
+    } catch (error: any) {
+      this.logger.error(`Error sending notifications: ${error.message}`);
+    }
+  }
+
+  private async sendFinalExpirationNotification(
+    vendorId: string,
+  ): Promise<void> {
+    try {
+      const vendor = await this.prisma.vendor.findUnique({
+        where: { id: vendorId },
+        include: {
+          owner: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (vendor) {
+        this.logger.log(
+          `📧 Sending final expiration email to ${vendor.owner.email}`,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(`Error sending final notification: ${error.message}`);
+    }
+  }
+
+  // ============================================
+  // CRON JOB: CHECK EXPIRED GRACE PERIODS
+  // ============================================
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleExpiredGracePeriods(): Promise<void> {
+    this.logger.log('🔄 Checking for expired grace periods...');
+
+    const now = new Date();
+
+    try {
+      const expiredVendors = await this.prisma.vendor.findMany({
+        where: {
+          subscriptionStatus: VendorSubscriptionStatus.GRACE_PERIOD,
+          subscriptionExpiresAt: {
+            lt: now,
+          },
+        },
+        include: {
+          vendorSubscription: true,
+        },
+      });
+
+      this.logger.log(
+        `Found ${expiredVendors.length} vendors with expired grace periods`,
+      );
+
+      for (const vendor of expiredVendors) {
+        this.logger.log(`⏰ Grace period expired for vendor: ${vendor.id}`);
+
+        await this.prisma.vendor.update({
+          where: { id: vendor.id },
+          data: {
+            subscriptionStatus: VendorSubscriptionStatus.EXPIRED,
+            status: VendorLiveStatus.OFFLINE,
+            adminStatus: VendorAdminStatus.DISABLED,
+            statusReason: 'Grace period expired - subscription not renewed',
+            disabledAt: now,
+            statusUpdatedAt: now,
+          },
+        });
+
+        if (vendor.vendorSubscription) {
+          await this.prisma.vendorSubscription.update({
+            where: { vendorId: vendor.id },
+            data: {
+              status: SubscriptionStatus.EXPIRED,
+              isActive: false,
+            },
+          });
+        }
+
+        await this.createSubscriptionHistory(
+          vendor.id,
+          SubscriptionAction.GRACE_PERIOD_END,
+          VendorSubscriptionStatus.GRACE_PERIOD,
+          VendorSubscriptionStatus.EXPIRED,
+          'Grace period ended without renewal',
+        );
+
+        await this.sendFinalExpirationNotification(vendor.id);
+
+        this.logger.log(`✅ Vendor ${vendor.id} expired after grace period`);
+      }
+
+      this.logger.log('✅ Grace period check completed');
+    } catch (error: any) {
+      this.logger.error(`Error checking grace periods: ${error.message}`);
+    }
+  }
+
+  // ============================================
+  // ADMIN METHODS (Public)
+  // ============================================
+
+  async adminReactivateVendor(
+    vendorId: string,
+    adminId: string,
+  ): Promise<void> {
+    this.logger.log(`🔧 Admin ${adminId} reactivating vendor ${vendorId}`);
+
+    await this.prisma.vendor.update({
+      where: { id: vendorId },
+      data: {
+        subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
+        subscriptionExpiresAt: null,
+        subscriptionPausedAt: null,
+        paymentFailureCount: 0,
+        lastPaymentFailureAt: null,
+        statusReason: null,
+        adminStatus: VendorAdminStatus.ACTIVE,
+        disabledAt: null,
+      },
+    });
+
+    await this.createSubscriptionHistory(
+      vendorId,
+      SubscriptionAction.ADMIN_REACTIVATE,
+      VendorSubscriptionStatus.EXPIRED,
+      VendorSubscriptionStatus.ACTIVE,
+      `Admin ${adminId} reactivated vendor`,
+    );
+  }
+
+  async adminSuspendVendor(
+    vendorId: string,
+    adminId: string,
+    reason: string,
+  ): Promise<void> {
+    this.logger.log(`🔧 Admin ${adminId} suspending vendor ${vendorId}`);
+
+    await this.prisma.vendor.update({
+      where: { id: vendorId },
+      data: {
+        subscriptionStatus: VendorSubscriptionStatus.PAUSED,
+        status: VendorLiveStatus.OFFLINE,
+        statusReason: `Admin suspended: ${reason}`,
+        adminStatus: VendorAdminStatus.SUSPENDED,
+        suspendedAt: new Date(),
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    await this.createSubscriptionHistory(
+      vendorId,
+      SubscriptionAction.ADMIN_SUSPEND,
+      VendorSubscriptionStatus.ACTIVE,
+      VendorSubscriptionStatus.PAUSED,
+      `Admin ${adminId} suspended vendor: ${reason}`,
+    );
   }
 }

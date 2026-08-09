@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
   KycStatus,
-  SubscriptionStatus,
   VerificationStatus,
+  VendorSubscriptionStatus,
 } from '@prisma/client';
 
 import {
@@ -34,6 +34,10 @@ import { MediaService } from '@/common/media/media.service';
 export class VendorMapper {
   constructor(private readonly mediaService: MediaService) {}
 
+  // ============================================
+  // DOMAIN MAPPING
+  // ============================================
+
   static toDomain(raw: any): Vendor {
     return new Vendor({
       id: raw.id,
@@ -54,6 +58,10 @@ export class VendorMapper {
       updatedAt: raw.updatedAt,
     });
   }
+
+  // ============================================
+  // MENU RESPONSE MAPPING
+  // ============================================
 
   toMenuResponse(
     vendor: any,
@@ -129,6 +137,10 @@ export class VendorMapper {
     };
   }
 
+  // ============================================
+  // INFO RESPONSE MAPPING
+  // ============================================
+
   static toInfoResponse(vendor: any, distance?: number): VendorInfoResponseDto {
     // Deduplicate opening hours by dayOfWeek
     const uniqueOpeningHours = (vendor.operationHours ?? []).reduce(
@@ -163,7 +175,7 @@ export class VendorMapper {
       latitude: vendor.serviceArea?.latitude ?? undefined,
       longitude: vendor.serviceArea?.longitude ?? undefined,
       radius: vendor.serviceArea?.radius ?? undefined,
-      distance: distance, // Use the parameter
+      distance: distance,
       distanceUnit: distance ? 'km' : undefined,
       openingHours: uniqueOpeningHours.map((item: any) => ({
         dayOfWeek: item.dayOfWeek,
@@ -216,6 +228,10 @@ export class VendorMapper {
     return 'Website';
   }
 
+  // ============================================
+  // TRUCK GALLERY MAPPING
+  // ============================================
+
   static toUploadTruckGalleryResponse(): UploadTruckGalleryResponseDto {
     return {
       message: 'Truck gallery images uploaded successfully.',
@@ -224,29 +240,29 @@ export class VendorMapper {
     };
   }
 
-  // toTruckGalleryResponse(vendor: {
-  //   id: string;
-  //   truckGalleryImages: {
-  //     id: string;
-  //     url: string;
-  //     caption: string | null;
-  //     isPrimary: boolean;
-  //     position: number;
-  //     createdAt: Date;
-  //   }[];
-  // }): TruckGalleryResponseDto {
-  //   return {
-  //     vendorId: vendor.id,
-  //     items: vendor.truckGalleryImages.map((image) => ({
-  //       id: image.id,
-  //       url: this.mediaService.getUrl(image.url),
-  //       caption: image.caption ?? undefined,
-  //       isPrimary: image.isPrimary,
-  //       position: image.position,
-  //       createdAt: image.createdAt,
-  //     })),
-  //   };
-  // }
+  toResponse(vendor: VendorTruckGalleryView): TruckGalleryResponseDto {
+    return {
+      vendorId: vendor.id,
+      isPublic: true,
+      total: vendor.truckGalleryImages.length,
+      images: vendor.truckGalleryImages.map((image) => ({
+        id: image.id,
+        url: this.resolveImageUrl(image.url),
+        caption: image.caption ?? undefined,
+        isPrimary: image.isPrimary,
+        position: image.position,
+        createdAt: image.createdAt,
+      })),
+    };
+  }
+
+  private resolveImageUrl(path: string): string {
+    return this.mediaService.getUrl(path) ?? path;
+  }
+
+  // ============================================
+  // HOME RESPONSE MAPPING (UPDATED WITH SUBSCRIPTION)
+  // ============================================
 
   toVendorHomeResponse(data: {
     vendor: any;
@@ -258,26 +274,69 @@ export class VendorMapper {
     };
     unreadNotificationCount: number;
     isLive: boolean;
+    subscription?: {
+      status: VendorSubscriptionStatus;
+      expiresAt: Date | null;
+      paymentFailureCount: number;
+      lastFailureAt: Date | null;
+    } | null;
   }): VendorHomeResponseDto {
     const vendor = data.vendor;
 
     const kycApproved = vendor.kycStatus === KycStatus.APPROVED;
-
     const businessApproved =
       vendor.vendorVerification?.status === VerificationStatus.APPROVED;
 
+    const subscription = data.subscription;
     const subscriptionActive =
-      vendor.subscriptionStatus === SubscriptionStatus.ACTIVE;
+      subscription?.status === VendorSubscriptionStatus.ACTIVE;
+    const inGracePeriod =
+      subscription?.status === VendorSubscriptionStatus.GRACE_PERIOD;
 
     const canGoLive = kycApproved && businessApproved && subscriptionActive;
 
-    const actionRequired = !canGoLive;
+    // Determine action required message
+    let actionMessage = '';
+    let buttonText = '';
+    let actionTitle = '';
+
+    if (!kycApproved) {
+      actionTitle = 'KYC Verification Required';
+      actionMessage = 'Please complete your KYC verification to go online.';
+      buttonText = 'Complete KYC';
+    } else if (!businessApproved) {
+      actionTitle = 'Business Verification Required';
+      actionMessage =
+        'Please complete your business verification to go online.';
+      buttonText = 'Complete Verification';
+    } else if (!subscriptionActive) {
+      if (inGracePeriod) {
+        const daysLeft = subscription?.expiresAt
+          ? Math.ceil(
+              (subscription.expiresAt.getTime() - new Date().getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : 0;
+        actionTitle = 'Payment Pending';
+        actionMessage = `Your payment is pending. Grace period ends in ${daysLeft} day${
+          daysLeft > 1 ? 's' : ''
+        }. Please update your payment method.`;
+        buttonText = 'Update Payment';
+      } else {
+        actionTitle = 'Subscription Expired';
+        actionMessage =
+          'Your subscription has expired. Please renew to go online.';
+        buttonText = 'Renew Subscription';
+      }
+    }
 
     return {
       vendor: {
         id: vendor.id,
         businessName: vendor.businessName ?? 'Unnamed Vendor',
-        coverImage: this.mediaService.getUrl(vendor.coverImage),
+        coverImage: vendor.coverImage
+          ? this.mediaService.getUrl(vendor.coverImage)
+          : undefined,
         address: vendor.serviceArea?.address ?? undefined,
         latitude: vendor.serviceArea?.latitude ?? undefined,
         longitude: vendor.serviceArea?.longitude ?? undefined,
@@ -288,14 +347,13 @@ export class VendorMapper {
         kycStatus: vendor.kycStatus,
         businessVerificationStatus:
           vendor.vendorVerification?.status ?? undefined,
-        subscriptionStatus: vendor.subscriptionStatus,
+        // ✅ FIX: Pass undefined if no subscription
+        subscriptionStatus: subscription?.status,
         onboardingStep: vendor.onboardingStep,
-        actionRequired,
-        title: actionRequired ? 'Action Required' : undefined,
-        message: actionRequired
-          ? 'Your account is currently in "Limited Mode". To start accepting order requests and accessing the marketplace, please complete your identity and fleet verification.'
-          : undefined,
-        buttonText: actionRequired ? 'Complete Verification' : undefined,
+        actionRequired: !canGoLive,
+        title: !canGoLive ? actionTitle : undefined,
+        message: !canGoLive ? actionMessage : undefined,
+        buttonText: !canGoLive ? buttonText : undefined,
       },
 
       liveStatus: {
@@ -303,7 +361,7 @@ export class VendorMapper {
         isLive: data.isLive ?? false,
         disabledReason: canGoLive
           ? undefined
-          : 'Verify account to toggle status',
+          : 'Complete verification and subscription to toggle status',
       },
 
       stats: {
@@ -325,6 +383,10 @@ export class VendorMapper {
       unreadNotificationCount: data.unreadNotificationCount,
     };
   }
+
+  // ============================================
+  // MENU CATEGORIES RESPONSE MAPPING
+  // ============================================
 
   toMenuCategoriesResponse(vendor: any): VendorMenuResponseDto {
     const categoryMap = new Map<
@@ -393,6 +455,10 @@ export class VendorMapper {
     };
   }
 
+  // ============================================
+  // MENU ITEMS RESPONSE MAPPING
+  // ============================================
+
   toMenuItemsResponse(data: {
     total: number;
     page: number;
@@ -457,25 +523,9 @@ export class VendorMapper {
     };
   }
 
-  toResponse(vendor: VendorTruckGalleryView): TruckGalleryResponseDto {
-    return {
-      vendorId: vendor.id,
-      isPublic: true,
-      total: vendor.truckGalleryImages.length,
-      images: vendor.truckGalleryImages.map((image) => ({
-        id: image.id,
-        url: this.resolveImageUrl(image.url),
-        caption: image.caption ?? undefined,
-        isPrimary: image.isPrimary,
-        position: image.position,
-        createdAt: image.createdAt,
-      })),
-    };
-  }
-
-  private resolveImageUrl(path: string): string {
-    return this.mediaService.getUrl(path) ?? path;
-  }
+  // ============================================
+  // REVIEWS RESPONSE MAPPING
+  // ============================================
 
   toRviewResponse(data: {
     summary: {
@@ -579,6 +629,10 @@ export class VendorMapper {
       year: 'numeric',
     }).format(new Date(date));
   }
+
+  // ============================================
+  // FOLLOWERS RESPONSE MAPPING
+  // ============================================
 
   toLockedResponse(data: {
     access: VendorInsightAccessDto;

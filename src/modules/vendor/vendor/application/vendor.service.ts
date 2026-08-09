@@ -11,6 +11,7 @@ import {
   VerificationStatus,
   KycStatus,
   VendorAdminStatus,
+  VendorSubscriptionStatus,
 } from '@prisma/client';
 
 import type { IVendorRepository } from '../domain/interface/vendor.repository.interface';
@@ -583,8 +584,20 @@ export class VendorService {
       endOfDay,
     });
 
-    const isLive = vendor.status === VendorLiveStatus.ONLINE;
+    // Get subscription status
+    const subscription =
+      await this.vendorRepository.getVendorSubscriptionStatus(vendor.id);
 
+    const subscriptionData = subscription
+      ? {
+          status: subscription.subscriptionStatus,
+          expiresAt: subscription.subscriptionExpiresAt,
+          paymentFailureCount: subscription.paymentFailureCount,
+          lastFailureAt: subscription.lastPaymentFailureAt,
+        }
+      : undefined;
+
+    const isLive = vendor.status === VendorLiveStatus.ONLINE;
     const unreadNotificationCount = 0;
 
     return this.vendorMapper.toVendorHomeResponse({
@@ -592,7 +605,47 @@ export class VendorService {
       stats,
       unreadNotificationCount,
       isLive,
+      subscription: subscriptionData,
     });
+  }
+
+  async getVendorSubscriptionStatus(ownerId: string): Promise<{
+    status: VendorSubscriptionStatus;
+    expiresAt: Date | null;
+    paymentFailureCount: number;
+    lastFailureAt: Date | null;
+    canGoOnline: boolean;
+    gracePeriodRemaining: number | null;
+  }> {
+    const vendor =
+      await this.vendorRepository.findVendorWithSubscription(ownerId);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    const canGoOnline =
+      vendor.subscriptionStatus === VendorSubscriptionStatus.ACTIVE;
+
+    let gracePeriodRemaining: number | null = null;
+    if (
+      vendor.subscriptionStatus === VendorSubscriptionStatus.GRACE_PERIOD &&
+      vendor.subscriptionExpiresAt
+    ) {
+      gracePeriodRemaining = Math.ceil(
+        (vendor.subscriptionExpiresAt.getTime() - new Date().getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+    }
+
+    return {
+      status: vendor.subscriptionStatus,
+      expiresAt: vendor.subscriptionExpiresAt,
+      paymentFailureCount: vendor.paymentFailureCount,
+      lastFailureAt: vendor.lastPaymentFailureAt,
+      canGoOnline,
+      gracePeriodRemaining,
+    };
   }
 
   private getTodayRange(): {
@@ -617,16 +670,33 @@ export class VendorService {
     ownerId: string,
     dto: UpdateVendorStatusDto,
   ): Promise<VendorStatusResponseDto> {
+    // Get vendor with subscription status
     const vendor =
-      await this.vendorRepository.findGoLiveEligibilityByOwnerId(ownerId);
+      await this.vendorRepository.findVendorWithSubscription(ownerId);
 
     if (!vendor) {
       throw new NotFoundException('Vendor not found');
     }
 
+    // Get full eligibility for other checks
+    const fullVendor =
+      await this.vendorRepository.findGoLiveEligibilityByOwnerId(ownerId);
+    if (!fullVendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
     if (dto.status === VendorLiveStatus.ONLINE) {
-      // Validate vendor can go live (includes KYC + business verification)
-      this.validateVendorCanGoLive(vendor);
+      // 1. Check KYC status
+      this.validateVendorKycStatus(fullVendor);
+
+      // 2. Check Admin status
+      this.validateVendorAdminStatus(fullVendor);
+
+      // 3. Check Business verification
+      this.validateVendorBusinessVerification(fullVendor);
+
+      // 4. ✅ NEW: Check Subscription status
+      this.validateVendorSubscription(vendor);
     }
 
     const updatedVendor = await this.vendorRepository.updateVendorStatus({
@@ -1149,6 +1219,120 @@ export class VendorService {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_error) {
       // Silently fail - don't throw error for tracking
+    }
+  }
+
+  private validateVendorSubscription(vendor: {
+    id: string;
+    subscriptionStatus: VendorSubscriptionStatus;
+    subscriptionExpiresAt: Date | null;
+    paymentFailureCount: number;
+    lastPaymentFailureAt: Date | null;
+  }): void {
+    // Check if subscription is active
+    if (vendor.subscriptionStatus === VendorSubscriptionStatus.ACTIVE) {
+      return; // All good
+    }
+
+    // Check if in grace period
+    if (vendor.subscriptionStatus === VendorSubscriptionStatus.GRACE_PERIOD) {
+      if (
+        vendor.subscriptionExpiresAt &&
+        vendor.subscriptionExpiresAt > new Date()
+      ) {
+        // Still in grace period - allow online but with warning
+        return;
+      }
+    }
+
+    // Subscription expired or invalid
+    const errorMessages: Record<VendorSubscriptionStatus, string> = {
+      [VendorSubscriptionStatus.ACTIVE]: '',
+      [VendorSubscriptionStatus.GRACE_PERIOD]:
+        'Your payment is pending. Please update your payment method.',
+      [VendorSubscriptionStatus.EXPIRED]:
+        'Your subscription has expired. Please renew to go online.',
+      [VendorSubscriptionStatus.CANCELLED]:
+        'Your subscription was cancelled. Please resubscribe to go online.',
+      [VendorSubscriptionStatus.PAUSED]:
+        'Your account is temporarily suspended. Please contact support.',
+    };
+
+    const message =
+      errorMessages[vendor.subscriptionStatus] ||
+      'Subscription required to go online.';
+
+    throw new BadRequestException({
+      code: 'SUBSCRIPTION_INVALID',
+      status: vendor.subscriptionStatus,
+      message,
+      paymentFailureCount: vendor.paymentFailureCount,
+      lastFailureAt: vendor.lastPaymentFailureAt,
+    });
+  }
+
+  private validateVendorKycStatus(vendor: { kycStatus: KycStatus }): void {
+    if (vendor.kycStatus !== KycStatus.APPROVED) {
+      const messages: Record<KycStatus, string> = {
+        [KycStatus.UNVERIFIED]:
+          'Please submit your KYC documents for verification.',
+        [KycStatus.PENDING_REVIEW]:
+          'Your KYC is under review. Please wait for approval.',
+        [KycStatus.REJECTED]:
+          'Your KYC was rejected. Please resubmit your documents.',
+        [KycStatus.APPROVED]: '',
+      };
+      throw new BadRequestException({
+        code: 'KYC_NOT_APPROVED',
+        message: messages[vendor.kycStatus] || 'KYC verification required.',
+      });
+    }
+  }
+
+  private validateVendorAdminStatus(vendor: {
+    adminStatus: VendorAdminStatus;
+    statusReason?: string | null;
+  }): void {
+    if (vendor.adminStatus === VendorAdminStatus.SUSPENDED) {
+      throw new BadRequestException({
+        code: 'VENDOR_SUSPENDED',
+        message: `Vendor account is suspended. Reason: ${vendor.statusReason || 'No reason provided'}`,
+      });
+    }
+
+    if (vendor.adminStatus === VendorAdminStatus.DISABLED) {
+      throw new BadRequestException({
+        code: 'VENDOR_DISABLED',
+        message: 'Vendor account is disabled.',
+      });
+    }
+  }
+
+  private validateVendorBusinessVerification(vendor: {
+    vendorVerification: { status: VerificationStatus } | null;
+  }): void {
+    if (!vendor.vendorVerification) {
+      throw new BadRequestException({
+        code: 'BUSINESS_VERIFICATION_REQUIRED',
+        message: 'Please complete your business profile verification.',
+      });
+    }
+
+    if (vendor.vendorVerification.status !== VerificationStatus.APPROVED) {
+      const messages: Record<VerificationStatus, string> = {
+        [VerificationStatus.PENDING]: 'Your business verification is pending.',
+        [VerificationStatus.IN_REVIEW]:
+          'Your business verification is being reviewed.',
+        [VerificationStatus.REJECTED]:
+          'Your business verification was rejected. Please resubmit.',
+        [VerificationStatus.APPROVED]: '',
+      };
+      throw new BadRequestException({
+        code: 'BUSINESS_VERIFICATION_NOT_APPROVED',
+        message:
+          messages[vendor.vendorVerification.status] ||
+          'Business verification required.',
+      });
     }
   }
 }
