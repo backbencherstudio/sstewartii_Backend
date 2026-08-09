@@ -6,6 +6,7 @@ import {
   Prisma,
   OrderStatus,
   VendorLiveStatus,
+  VendorSubscriptionStatus,
 } from '@prisma/client';
 
 import {
@@ -21,6 +22,8 @@ import {
   VendorReviewResult,
   VendorFollowersProfileView,
   VendorGoLiveEligibilityView,
+  VendorWithSubscriptionView,
+  VendorSubscriptionView,
 } from '../../domain/interface/vendor.repository.interface';
 import { Vendor } from '../../domain/entities/vendor.entity';
 
@@ -928,6 +931,162 @@ export class VendorRepository implements IVendorRepository {
       subscriptionPlan: vendor.vendorSubscription?.subscriptionPlan || null,
       serviceArea: vendor.serviceArea,
     };
+  }
+
+  async findVendorWithSubscription(
+    ownerId: string,
+  ): Promise<VendorWithSubscriptionView | null> {
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { ownerId },
+      select: {
+        id: true,
+        subscriptionStatus: true,
+        subscriptionExpiresAt: true,
+        paymentFailureCount: true,
+        lastPaymentFailureAt: true,
+      },
+    });
+    return vendor;
+  }
+
+  async getVendorSubscriptionStatus(
+    vendorId: string,
+  ): Promise<VendorSubscriptionView | null> {
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: {
+        id: true,
+        subscriptionStatus: true,
+        subscriptionExpiresAt: true,
+        paymentFailureCount: true,
+        lastPaymentFailureAt: true,
+        vendorSubscription: {
+          select: {
+            status: true,
+            expiresAt: true,
+            autoRenew: true,
+          },
+        },
+      },
+    });
+    return vendor;
+  }
+
+  async updateVendorSubscriptionStatus(
+    vendorId: string,
+    status: VendorSubscriptionStatus,
+    reason?: string,
+  ): Promise<void> {
+    await this.prisma.vendor.update({
+      where: { id: vendorId },
+      data: {
+        subscriptionStatus: status,
+        statusReason: reason,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  async findVendorsWithExpiringSubscriptions(): Promise<any[]> {
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+    return this.prisma.vendor.findMany({
+      where: {
+        vendorSubscription: {
+          expiresAt: {
+            lte: sevenDaysFromNow,
+            gte: new Date(),
+          },
+        },
+        subscriptionStatus: VendorSubscriptionStatus.ACTIVE,
+      },
+      include: {
+        owner: {
+          select: {
+            email: true,
+            fcm_token: true,
+            platform: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findVendorsWithExpiredGracePeriods(): Promise<any[]> {
+    const now = new Date();
+    return this.prisma.vendor.findMany({
+      where: {
+        subscriptionStatus: VendorSubscriptionStatus.GRACE_PERIOD,
+        subscriptionExpiresAt: {
+          lt: now,
+        },
+      },
+      include: {
+        vendorSubscription: true,
+        owner: {
+          select: {
+            email: true,
+            fcm_token: true,
+          },
+        },
+      },
+    });
+  }
+
+  async logPaymentFailure(data: {
+    vendorId: string;
+    failureType: string;
+    errorMessage?: string;
+    amount?: number;
+    currency?: string;
+  }): Promise<void> {
+    await this.prisma.paymentFailureLog.create({
+      data: {
+        vendorId: data.vendorId,
+        failureType: data.failureType as any,
+        errorMessage: data.errorMessage,
+        amount: data.amount,
+        currency: data.currency || 'USD',
+        notificationSent: false,
+      },
+    });
+  }
+
+  async logSubscriptionHistory(data: {
+    vendorId: string;
+    action: string;
+    oldStatus: VendorSubscriptionStatus;
+    newStatus: VendorSubscriptionStatus;
+    reason?: string;
+    performedBy?: string;
+  }): Promise<void> {
+    await this.prisma.subscriptionHistory.create({
+      data: {
+        vendorId: data.vendorId,
+        action: data.action as any,
+        oldStatus: data.oldStatus,
+        newStatus: data.newStatus,
+        reason: data.reason,
+        performedBy: data.performedBy || 'system',
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      },
+    });
+  }
+
+  async updateVendorPaymentFailureCount(
+    vendorId: string,
+    count: number,
+  ): Promise<void> {
+    await this.prisma.vendor.update({
+      where: { id: vendorId },
+      data: {
+        paymentFailureCount: count,
+        lastPaymentFailureAt: count > 0 ? new Date() : null,
+      },
+    });
   }
 
   async findOrdersForAiGuidance(

@@ -1,8 +1,8 @@
 import {
   VendorLiveStatus,
   KycStatus,
-  SubscriptionStatus,
   VerificationStatus,
+  VendorSubscriptionStatus,
 } from '@prisma/client';
 
 import { VendorInsightAccessDto } from './vendor-insights.response.dto';
@@ -106,7 +106,7 @@ export class VendorHomeVerificationDto {
   isLimitedMode!: boolean;
   kycStatus!: KycStatus;
   businessVerificationStatus?: VerificationStatus;
-  subscriptionStatus!: SubscriptionStatus;
+  subscriptionStatus?: VendorSubscriptionStatus;
   onboardingStep!: number;
   actionRequired!: boolean;
   title?: string;
