@@ -27,6 +27,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { RevenueCatModule } from './modules/revenuecat/revenuecat.module';
 import { AnalyticsModule } from './modules/vendor/analytics/analytics.module';
 import { VendorKycModule } from './modules/vendor/vendor-kyc/vendor-kyc.module';
+import { AuditLogModule } from './modules/admin/audit-logs/audit-log.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { VendorKycModule } from './modules/vendor/vendor-kyc/vendor-kyc.module';
     NotificationModule,
     RevenueCatModule,
     AnalyticsModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [

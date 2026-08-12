@@ -53,6 +53,8 @@ model User {
   // Notification logs (all notifications sent to this user)
   notificationLogs NotificationLog[]
 
+  auditLogs AuditLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1426,4 +1428,88 @@ enum SubscriptionTransactionStatus {
   REFUNDED
   CANCELLED
   EXPIRED
+}
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  
+  // Who performed the action
+  adminId   String   @map("admin_id")
+  admin     User     @relation(fields: [adminId], references: [id])
+  
+  // What they did
+  action    String   // e.g., "APPROVE_KYC", "REJECT_KYC", "SUSPEND_VENDOR"
+  entity    String   // e.g., "Vendor", "User", "Product"
+  entityId  String?  @map("entity_id") // ID of the affected entity
+  
+  // Details
+  changes   Json?    // What changed (before/after)
+  reason    String?  @db.Text // Why they did it
+  
+  // Request context
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([adminId])
+  @@index([entity])
+  @@index([entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// ENUMS FOR AUDIT LOGS
+// ============================================
+
+enum AuditAction {
+  // KYC Actions
+  APPROVE_KYC
+  REJECT_KYC
+  REQUEST_KYC_REVIEW
+  
+  // Vendor Management
+  SUSPEND_VENDOR
+  ACTIVATE_VENDOR
+  DISABLE_VENDOR
+  ENABLE_VENDOR
+  
+  // User Management
+  BLOCK_USER
+  UNBLOCK_USER
+  DELETE_USER
+  RESTORE_USER
+  
+  // Subscription Actions
+  UPDATE_SUBSCRIPTION
+  CANCEL_SUBSCRIPTION
+  REFUND_PAYMENT
+  
+  // Product Actions
+  APPROVE_PRODUCT
+  REJECT_PRODUCT
+  HIDE_PRODUCT
+  
+  // Content Management
+  UPDATE_CUISINE
+  DELETE_CUISINE
+  UPDATE_SETTINGS
+  
+  // Reports
+  RESOLVE_REPORT
+  REJECT_REPORT
+  
+  // Other Admin Actions
+  ADMIN_LOGIN
+  ADMIN_LOGOUT
+  PASSWORD_CHANGE
+  ROLE_CHANGE
+  SYSTEM_CONFIG_UPDATE
 }

@@ -109,26 +109,26 @@ async function main(): Promise<void> {
     role: RoleName;
     perms: PermissionName[];
   }> = [
-    { role: 'ADMIN', perms: Object.keys(permissionMap) as PermissionName[] },
-    {
-      role: 'USER',
-      perms: ['read:user', 'read:vendor', 'read:product', 'read:order'],
-    },
-    {
-      role: 'VENDOR',
-      perms: [
-        'read:vendor',
-        'create:vendor',
-        'update:vendor',
-        'read:product',
-        'create:product',
-        'update:product',
-        'read:order',
-        'create:order',
-        'update:order',
-      ],
-    },
-  ];
+      { role: 'ADMIN', perms: Object.keys(permissionMap) as PermissionName[] },
+      {
+        role: 'USER',
+        perms: ['read:user', 'read:vendor', 'read:product', 'read:order'],
+      },
+      {
+        role: 'VENDOR',
+        perms: [
+          'read:vendor',
+          'create:vendor',
+          'update:vendor',
+          'read:product',
+          'create:product',
+          'update:product',
+          'read:order',
+          'create:order',
+          'update:order',
+        ],
+      },
+    ];
 
   for (const rp of rolePermissions) {
     for (const permName of rp.perms) {
@@ -1981,6 +1981,118 @@ async function main(): Promise<void> {
       },
     });
     console.log('✅ Subscription transaction created');
+  }
+
+  // ============================================
+  // 32. CREATE AUDIT LOGS
+  // ============================================
+  console.log('📝 Creating audit logs...');
+
+  const adminUser = await prisma.user.findUnique({
+    where: { email: 'admin@gmail.com' },
+  });
+
+  if (adminUser) {
+    // Create sample audit logs
+    const auditLogs = [
+      {
+        adminId: adminUser.id,
+        action: 'ADMIN_LOGIN',
+        entity: 'System',
+        entityId: null,
+        changes: { loginMethod: 'email', timestamp: new Date().toISOString() },
+        reason: 'Admin logged in',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        adminId: adminUser.id,
+        action: 'APPROVE_KYC',
+        entity: 'Vendor',
+        entityId: vendor.id,
+        changes: { from: 'PENDING_REVIEW', to: 'APPROVED' },
+        reason: 'KYC documents verified and approved',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      },
+      {
+        adminId: adminUser.id,
+        action: 'ACTIVATE_VENDOR',
+        entity: 'Vendor',
+        entityId: vendor.id,
+        changes: { from: 'INACTIVE', to: 'ACTIVE' },
+        reason: 'Vendor activated after KYC approval',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      },
+      {
+        adminId: adminUser.id,
+        action: 'UPDATE_SUBSCRIPTION',
+        entity: 'Subscription',
+        entityId: vendorSubscription.id,
+        changes: { from: 'FREE_TRIAL', to: 'STARTER' },
+        reason: 'Vendor upgraded to STARTER plan',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
+      },
+      {
+        adminId: adminUser.id,
+        action: 'APPROVE_PRODUCT',
+        entity: 'Product',
+        entityId: productIds[0],
+        changes: { from: 'PENDING', to: 'APPROVED' },
+        reason: 'Product approved for listing',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
+      },
+      {
+        adminId: adminUser.id,
+        action: 'SYSTEM_CONFIG_UPDATE',
+        entity: 'Settings',
+        entityId: null,
+        changes: { from: { maintenance: false }, to: { maintenance: true } },
+        reason: 'Maintenance mode enabled',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+      },
+      {
+        adminId: adminUser.id,
+        action: 'RESOLVE_REPORT',
+        entity: 'Report',
+        entityId: 'report_123',
+        changes: { from: 'OPEN', to: 'RESOLVED' },
+        reason: 'Order report resolved successfully',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+      },
+      {
+        adminId: adminUser.id,
+        action: 'ADMIN_LOGOUT',
+        entity: 'System',
+        entityId: null,
+        changes: { logoutTime: new Date().toISOString() },
+        reason: 'Admin logged out',
+        ipAddress: '192.168.1.1',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+      },
+    ];
+
+    for (const log of auditLogs) {
+      await prisma.auditLog.create({
+        data: log,
+      });
+    }
+    console.log(`✅ ${auditLogs.length} audit logs created`);
+  } else {
+    console.log('⚠️ Admin user not found, skipping audit logs');
   }
 
   console.log('🎉 All seeds completed successfully!');
