@@ -41,12 +41,18 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
           data = payload.data;
         }
 
-        return {
+        const response: any = {
           success: true,
           statusCode: status,
           message,
           data,
         };
+
+        if (payload && payload.meta !== undefined) {
+          response.meta = payload.meta;
+        }
+
+        return response;
       }),
     );
   }
