@@ -28,6 +28,8 @@ import { RevenueCatModule } from './modules/revenuecat/revenuecat.module';
 import { AnalyticsModule } from './modules/vendor/analytics/analytics.module';
 import { VendorKycModule } from './modules/vendor/vendor-kyc/vendor-kyc.module';
 import { AuditLogModule } from './modules/admin/audit-logs/audit-log.module';
+import { HealthModule } from './health/health.module';
+import { MetricsModule } from './common/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -45,17 +47,22 @@ import { AuditLogModule } from './modules/admin/audit-logs/audit-log.module';
       connection: {
         host: process.env.REDIS_HOST ?? 'localhost',
         port: Number(process.env.REDIS_PORT ?? 6379),
+        password: process.env.REDIS_PASSWORD,
       },
+
       defaultJobOptions: {
         attempts: 3,
+
         backoff: {
           type: 'exponential',
           delay: 5000,
         },
+
         removeOnComplete: {
           age: 60 * 60 * 24,
           count: 1000,
         },
+
         removeOnFail: {
           age: 60 * 60 * 24 * 7,
         },
@@ -79,6 +86,8 @@ import { AuditLogModule } from './modules/admin/audit-logs/audit-log.module';
     RevenueCatModule,
     AnalyticsModule,
     AuditLogModule,
+    HealthModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [
