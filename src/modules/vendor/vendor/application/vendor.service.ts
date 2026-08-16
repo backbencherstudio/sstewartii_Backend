@@ -60,6 +60,7 @@ import { LocalStorageService } from '@/common/storage/local.storage.service';
 import { VendorInsightAccessService } from './vendor-insight-access.service';
 import { MediaService } from '@/common/media/media.service';
 import { UserRepository } from '@/modules/auth/infrastructure/repositories/user.repository';
+import { CustomerRepository } from '@/modules/customer/customer/infrastructure/repositories/customer.repository';
 
 @Injectable()
 export class VendorService {
@@ -72,6 +73,7 @@ export class VendorService {
     private readonly vendorInsightAccessService: VendorInsightAccessService,
     private readonly mediaService: MediaService,
     private readonly userRepository: UserRepository,
+    private readonly customerRepository: CustomerRepository,
   ) {}
 
   async findByVendorId(vendorId: string) {
@@ -113,6 +115,21 @@ export class VendorService {
 
     let distanceKm: number | undefined;
 
+    // If customerLocation wasn't provided, try to get it from database
+    if (!customerLocation && userId) {
+      const customer = await this.customerRepository.findByUserId(userId);
+
+      if (customer?.latitude && customer?.longitude) {
+        customerLocation = {
+          latitude: customer.latitude,
+          longitude: customer.longitude,
+        };
+      }
+    }
+
+    console.log('Customer Location:', customerLocation);
+    console.log('Vendor Service Area:', vendor.serviceArea);
+
     if (
       customerLocation &&
       vendor.serviceArea?.latitude !== null &&
@@ -126,6 +143,9 @@ export class VendorService {
         vendor.serviceArea.latitude,
         vendor.serviceArea.longitude,
       );
+      console.log('Distance calculated:', distanceKm);
+    } else {
+      console.log('Distance not calculated - missing data');
     }
 
     const availability = this.resolveAvailability(vendor.operationHours ?? []);
@@ -248,6 +268,7 @@ export class VendorService {
   async getVendorInfo(
     vendorId: string,
     userId?: string,
+    customerLocation?: { latitude: number; longitude: number },
   ): Promise<VendorInfoResponseDto> {
     console.log(vendorId, userId);
     const vendor = await this.vendorRepository.findVendorInfoById(vendorId);
@@ -258,8 +279,21 @@ export class VendorService {
 
     let distance: number | undefined;
 
-    // Only calculate distance if userId is provided
-    if (userId) {
+    // Try to get location from provided location or from user's saved location
+    if (customerLocation) {
+      // Use location from query params
+      if (
+        vendor.serviceArea?.latitude !== undefined &&
+        vendor.serviceArea?.longitude !== undefined
+      ) {
+        distance = this.calculateDistance(
+          customerLocation.latitude,
+          customerLocation.longitude,
+          vendor.serviceArea.latitude,
+          vendor.serviceArea.longitude,
+        );
+      }
+    } else if (userId) {
       // Get user location from database
       const user = await this.userRepository.findLoginUserById(userId);
       let customerLat: number | undefined;
