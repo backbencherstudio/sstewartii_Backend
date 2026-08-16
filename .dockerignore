@@ -19,7 +19,4 @@ uploads/*
 .vscode
 .idea
 
-.yarn/cache
-.yarn/install-state.gz
-
 README.md
