@@ -14,48 +14,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # =========================
-      # Checkout
-      # =========================
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # =========================
-      # Node.js
-      # =========================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: yarn
 
-      # =========================
-      # Yarn
-      # =========================
       - name: Enable Corepack
-        run: corepack enable
+        run: |
+          corepack enable
+          corepack prepare yarn@4.17.0 --activate
+          yarn --version
 
-      # =========================
-      # Install dependencies
-      # =========================
       - name: Install dependencies
         run: yarn install --immutable
 
-      # =========================
-      # Prisma
-      # =========================
       - name: Generate Prisma Client
         run: yarn prisma generate
 
-      # =========================
-      # Build NestJS
-      # =========================
       - name: Build application
         run: yarn build
 
-      # =========================
-      # Docker Login to GHCR
-      # =========================
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -63,25 +44,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # =========================
-      # Docker Build
-      # =========================
       - name: Build Docker image
         run: |
           docker build \
             -t ghcr.io/backbencherstudio/sstewartii_backend:latest \
             .
 
-      # =========================
-      # Push Docker image
-      # =========================
       - name: Push Docker image
         run: |
           docker push ghcr.io/backbencherstudio/sstewartii_backend:latest
 
-      # =========================
-      # Deploy to VPS
-      # =========================
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -90,11 +62,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/sstewartii
-
             git pull origin main
-
             docker compose pull backend
-
             docker compose up -d
-
             docker image prune -f
