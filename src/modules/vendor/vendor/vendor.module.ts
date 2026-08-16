@@ -9,6 +9,7 @@ import { VendorInsightsMapper } from './infrastructure/mapper/vendor-insights.ma
 import { VendorInsightAccessService } from './application/vendor-insight-access.service';
 import { VendorCategoryModule } from '../category/category.module';
 import { UserRepository } from '@/modules/auth/infrastructure/repositories/user.repository';
+import { CustomerRepository } from '@/modules/customer/customer/infrastructure/repositories/customer.repository';
 
 @Module({
   imports: [MediaModule, VendorCategoryModule],
@@ -19,6 +20,7 @@ import { UserRepository } from '@/modules/auth/infrastructure/repositories/user.
     VendorMapper,
     VendorInsightsMapper,
     VendorInsightAccessService,
+    CustomerRepository,
     UserRepository,
     {
       provide: 'IVendorRepository',

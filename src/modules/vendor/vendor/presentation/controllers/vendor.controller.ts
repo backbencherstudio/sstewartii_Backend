@@ -84,12 +84,14 @@ export class VendorController {
     return this.vendorService.getVendorMenu(vendorId, query, user.id);
   }
 
-  @Public()
   @Get(':vendorId/info')
+  @UseGuards(RoleGuard)
+  @Roles(Role.USER)
   async getVendorInfo(
+    @CurrentUser() user: AuthUser,
     @Param('vendorId') vendorId: string,
   ): Promise<VendorInfoResponseDto> {
-    return this.vendorService.getVendorInfo(vendorId);
+    return this.vendorService.getVendorInfo(vendorId, user.id);
   }
 
   @Public()
