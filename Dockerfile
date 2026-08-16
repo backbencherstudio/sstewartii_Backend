@@ -11,7 +11,9 @@ RUN corepack enable
 
 COPY package.json yarn.lock .yarnrc.yml ./
 
-RUN yarn install --immutable
+RUN corepack prepare yarn@4.17.0 --activate \
+    && yarn --version \
+    && yarn install --immutable
 
 
 # ============================================================
@@ -23,10 +25,11 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/.yarn ./.yarn
-
 COPY package.json yarn.lock .yarnrc.yml ./
+
+RUN corepack prepare yarn@4.17.0 --activate
+
+COPY --from=deps /app/node_modules ./node_modules
 
 COPY tsconfig*.json ./
 COPY nest-cli.json ./
@@ -51,7 +54,9 @@ RUN corepack enable
 
 COPY package.json yarn.lock .yarnrc.yml ./
 
-RUN yarn install --immutable --production
+RUN corepack prepare yarn@4.17.0 --activate \
+    && yarn --version \
+    && yarn install --immutable --production
 
 
 # ============================================================
