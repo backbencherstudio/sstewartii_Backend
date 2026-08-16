@@ -29,7 +29,6 @@ import { AnalyticsModule } from './modules/vendor/analytics/analytics.module';
 import { VendorKycModule } from './modules/vendor/vendor-kyc/vendor-kyc.module';
 import { AuditLogModule } from './modules/admin/audit-logs/audit-log.module';
 import { HealthModule } from './health/health.module';
-import { MetricsModule } from './common/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -87,7 +86,6 @@ import { MetricsModule } from './common/metrics/metrics.module';
     AnalyticsModule,
     AuditLogModule,
     HealthModule,
-    MetricsModule,
   ],
   controllers: [AppController],
   providers: [
